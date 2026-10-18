@@ -99,17 +99,33 @@ render('header', compact('page'));
                     <li><?= icon('calendar', '', 20) ?><span><strong>Order <?= $leadHours >= 24 ? (int) ceil($leadHours / 24) . ' day' . ($leadHours >= 48 ? 's' : '') : $leadHours . ' hours' ?> ahead.</strong> Pick your pickup date and time at checkout.</span></li>
                     <li><?= icon('store', '', 20) ?><span><strong>Pickup</strong> from <?= e(store_address_line()) ?>.</span></li>
                     <li><?= icon('halal', '', 20) ?><span><strong>100% Halal</strong> ingredients.</span></li>
-                    <li><?= icon('leaf', '', 20) ?><span><strong>Need gluten-free, eggless or vegan?</strong> Call <a href="tel:<?= e(setting('store_phone_e164')) ?>"><?= e(setting('store_phone')) ?></a> before you order.</span></li>
                 </ul>
+
+                <div class="product-accordion">
+                    <?php if ($product['description']): ?>
+                        <details open>
+                            <summary>About this cake <?= icon('plus', 'faq-item__icon', 18) ?></summary>
+                            <div class="prose"><?= nl2br(e($product['description'])) ?></div>
+                        </details>
+                    <?php endif; ?>
+                    <details>
+                        <summary>Dietary and allergens <?= icon('plus', 'faq-item__icon', 18) ?></summary>
+                        <div class="prose">
+                            <p>Made with 100% Halal ingredients. Gluten-free, eggless and vegan versions may be possible on request, so please call <a href="tel:<?= e(setting('store_phone_e164')) ?>"><?= e(setting('store_phone')) ?></a> before you order.</p>
+                            <p>Our kitchen handles milk, eggs, wheat, soy and nuts, so we cannot guarantee any cake is free from traces. <a href="<?= e(url('allergens')) ?>">Read our allergen information</a>.</p>
+                        </div>
+                    </details>
+                    <details>
+                        <summary>Pickup and storage <?= icon('plus', 'faq-item__icon', 18) ?></summary>
+                        <div class="prose">
+                            <p>Collect from <?= e(store_address_line()) ?> at the time you choose at checkout. Carry the box flat and keep the cake in the fridge until you are ready to serve.</p>
+                            <p>Need to change your pickup time? Call us as early as possible.</p>
+                        </div>
+                    </details>
+                </div>
             </div>
         </div>
 
-        <?php if ($product['description']): ?>
-            <div class="product-description">
-                <h2>About this cake</h2>
-                <?= nl2br(e($product['description'])) ?>
-            </div>
-        <?php endif; ?>
     </div>
 </section>
 

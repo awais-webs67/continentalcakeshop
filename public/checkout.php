@@ -328,6 +328,12 @@ render('header', compact('page'));
                 <button class="btn btn--primary btn--lg btn--block" type="submit" <?= $methods ? '' : 'disabled' ?> data-submit-label-card="Continue to Payment" data-submit-label-default="Place Order">
                     <?= icon('check', '', 20) ?> <span data-submit-label><?= $selectedMethod === PAYMENT_STRIPE ? 'Continue to Payment' : 'Place Order' ?></span>
                 </button>
+                <p class="summary-legal">By placing your order you agree to our <a href="<?= e(url('terms')) ?>">Terms</a> and <a href="<?= e(url('refund-policy')) ?>">Refund Policy</a>.</p>
+                <ul class="summary-trust">
+                    <li><?= icon('check', '', 16) ?> Secure checkout</li>
+                    <li><?= icon('halal', '', 16) ?> 100% Halal</li>
+                    <li><?= icon('store', '', 16) ?> Pickup in Greenway</li>
+                </ul>
                 <a class="link-arrow summary-card__back" href="<?= e(url('cart')) ?>">Edit cart</a>
             </aside>
         </form>

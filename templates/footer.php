@@ -16,6 +16,11 @@ $socials = array_filter([
                 <img src="<?= e(asset('img/logo.svg')) ?>" alt="<?= e(setting('store_name')) ?>" width="72" height="72" loading="lazy">
             </a>
             <p>Fresh cakes made in our Greenway shop since <?= e(setting('store_founded')) ?>. 100% Halal ingredients.</p>
+            <ul class="footer-inline footer-inline--brand">
+                <li><a href="<?= e(url('about')) ?>">About Us</a></li>
+                <li><a href="<?= e(url('contact')) ?>">Contact</a></li>
+                <li><a href="<?= e(url('account')) ?>">My Account</a></li>
+            </ul>
         </div>
 
         <nav class="footer-col" aria-label="Our cakes">
@@ -43,8 +48,11 @@ $socials = array_filter([
     <div class="container site-footer__bottom">
         <p>&copy; <?= date('Y') ?> <?= e(setting('store_name')) ?></p>
         <ul class="footer-inline">
-            <li><a href="<?= e(url('about')) ?>">About</a></li>
-            <li><a href="<?= e(url('contact')) ?>">Contact</a></li>
+            <li><a href="<?= e(url('faq')) ?>">FAQ</a></li>
+            <li><a href="<?= e(url('allergens')) ?>">Allergens</a></li>
+            <li><a href="<?= e(url('refund-policy')) ?>">Refunds</a></li>
+            <li><a href="<?= e(url('terms')) ?>">Terms</a></li>
+            <li><a href="<?= e(url('privacy-policy')) ?>">Privacy</a></li>
             <?php foreach ($socials as $name => $link): ?>
                 <li><a href="<?= e($link) ?>" target="_blank" rel="noopener"><?= e($name) ?></a></li>
             <?php endforeach; ?>

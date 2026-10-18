@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/src/bootstrap.php';
 
+$photos = get_gallery(4, 1);
 $crumbs = [['Home', url()], ['About Us', url('about')]];
 $page = [
     'title'       => 'About Us | ' . setting('store_name'),
@@ -48,6 +49,25 @@ render('header', compact('page'));
     </div>
 </section>
 
+<?php if ($photos): ?>
+<section class="section section--tint">
+    <div class="container">
+        <div class="section-head">
+            <div>
+                <h2 class="section-title">Made in our kitchen</h2>
+                <p class="section-sub">A few of the cakes we have made for Canberra families.</p>
+            </div>
+            <a class="link-arrow" href="<?= e(url('custom-cakes') . '#gallery') ?>">See the gallery <?= icon('arrow', '', 18) ?></a>
+        </div>
+        <div class="photo-strip">
+            <?php foreach ($photos as $photo): ?>
+                <figure><img src="<?= e(product_image_url($photo['image'])) ?>" alt="<?= e($photo['caption']) ?>" width="720" height="960" loading="lazy" decoding="async"></figure>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
+
 <section class="section section--compact">
     <div class="container">
         <div class="stats">
@@ -55,6 +75,16 @@ render('header', compact('page'));
             <div><strong><?= e(setting('google_rating')) ?>/5</strong><span>Google rating</span></div>
             <div><strong>100%</strong><span>Halal ingredients</span></div>
             <div><strong><?= (int) db_value('SELECT COUNT(*) FROM products WHERE is_active = 1') ?></strong><span>Cakes on our menu</span></div>
+        </div>
+        <div class="cta-band">
+            <div>
+                <h2>Come and say hello</h2>
+                <p><?= e(today_hours_label()) ?> &middot; <?= e(store_address_line()) ?></p>
+            </div>
+            <div class="cta-band__actions">
+                <a class="btn btn--light" href="<?= e(url('shop')) ?>"><?= icon('bag', '', 18) ?> Order Online</a>
+                <a class="btn btn--ghost-light" href="<?= e(store_maps_url()) ?>" target="_blank" rel="noopener"><?= icon('pin', '', 18) ?> Get Directions</a>
+            </div>
         </div>
     </div>
 </section>

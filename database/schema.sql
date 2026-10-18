@@ -19,6 +19,8 @@ DROP TABLE IF EXISTS contact_messages;
 DROP TABLE IF EXISTS reviews;
 DROP TABLE IF EXISTS blocked_dates;
 DROP TABLE IF EXISTS gallery_images;
+DROP TABLE IF EXISTS pages;
+DROP TABLE IF EXISTS faqs;
 DROP TABLE IF EXISTS settings;
 
 SET FOREIGN_KEY_CHECKS = 1;
@@ -206,4 +208,28 @@ CREATE TABLE gallery_images (
     sort_order INT NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     KEY idx_gallery_active (is_active, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Editable content pages (privacy policy, terms, refund policy, allergens).
+-- Body is HTML written by the shop; {store_phone}-style tokens are filled from settings.
+CREATE TABLE pages (
+    id               INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    slug             VARCHAR(80) NOT NULL UNIQUE,
+    title            VARCHAR(160) NOT NULL,
+    summary          VARCHAR(255) NULL,
+    body             MEDIUMTEXT NOT NULL,
+    is_active        TINYINT(1) NOT NULL DEFAULT 1,
+    meta_title       VARCHAR(160) NULL,
+    meta_description VARCHAR(255) NULL,
+    updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE faqs (
+    id         INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    category   VARCHAR(60) NOT NULL,
+    question   VARCHAR(255) NOT NULL,
+    answer     TEXT NOT NULL,
+    is_active  TINYINT(1) NOT NULL DEFAULT 1,
+    sort_order INT NOT NULL DEFAULT 0,
+    KEY idx_faqs_active (is_active, sort_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

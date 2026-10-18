@@ -50,6 +50,7 @@ unset($_SESSION['form_errors']);
 $fieldError = static fn (string $f): string => isset($errors[$f]) ? '<p class="field-error" id="' . e($f) . '-error">' . e($errors[$f]) . '</p>' : '';
 $invalid = static fn (string $f): string => isset($errors[$f]) ? 'aria-invalid="true" aria-describedby="' . e($f) . '-error"' : '';
 
+$quickFaqs = array_slice(get_faqs(), 0, 4);
 $crumbs = [['Home', url()], ['Contact', url('contact')]];
 $page = [
     'title'       => 'Contact Us | ' . setting('store_name'),
@@ -74,6 +75,18 @@ render('header', compact('page'));
             <a class="contact-tile" href="tel:<?= e(setting('store_phone_e164')) ?>"><?= icon('phone', '', 24) ?><span><strong>Call</strong><?= e(setting('store_phone')) ?></span></a>
             <a class="contact-tile" href="mailto:<?= e(setting('store_email')) ?>"><?= icon('mail', '', 24) ?><span><strong>Email</strong><?= e(setting('store_email')) ?></span></a>
             <a class="contact-tile" href="<?= e(store_maps_url()) ?>" target="_blank" rel="noopener"><?= icon('pin', '', 24) ?><span><strong>Visit</strong><?= e(store_address_line()) ?></span></a>
+            <?php if ($quickFaqs): ?>
+                <div class="info-card">
+                    <h2>Quick answers</h2>
+                    <?php foreach ($quickFaqs as $faq): ?>
+                        <details class="faq-item faq-item--compact">
+                            <summary><?= e($faq['question']) ?> <?= icon('plus', 'faq-item__icon', 16) ?></summary>
+                            <div class="faq-item__answer prose"><?= render_content($faq['answer']) ?></div>
+                        </details>
+                    <?php endforeach; ?>
+                    <a class="link-arrow info-card__more" href="<?= e(url('faq')) ?>">All questions <?= icon('arrow', '', 16) ?></a>
+                </div>
+            <?php endif; ?>
             <div class="info-card">
                 <h2>Opening hours</h2>
                 <ul class="footer-hours footer-hours--dark">

@@ -25,6 +25,8 @@ DirectoryIndex index.php
     RewriteRule ^account$               account.php [L,QSA]
     RewriteRule ^forgot-password$       forgot-password.php [L,QSA]
     RewriteRule ^reset-password$        reset-password.php [L,QSA]
+    RewriteRule ^faq$                   faq.php [L,QSA]
+    RewriteRule ^(privacy-policy|terms|refund-policy|allergens)$ page.php?slug=$1 [L,QSA]
     RewriteRule ^api/slots$             api/slots.php [L,QSA]
     RewriteRule ^stripe-webhook$        stripe-webhook.php [L,QSA]
     RewriteRule ^sitemap\.xml$          sitemap.php [L]
