@@ -21,6 +21,7 @@ INSERT INTO settings (setting_key, setting_value) VALUES
 ('opening_hours',         '{"mon":["08:00","19:00"],"tue":["08:00","19:00"],"wed":["08:00","19:00"],"thu":["08:00","19:00"],"fri":["08:00","19:00"],"sat":["09:00","18:00"],"sun":["09:00","18:00"]}'),
 
 ('announcement_text',     '100% Halal ingredients. Order online and pick up from our Greenway shop.'),
+('hero_image',            'gallery/custom-24.webp'),
 ('hero_eyebrow',          'Baked in Greenway, Canberra since 2015'),
 ('hero_title',            'Fresh cakes for every celebration'),
 ('hero_subtitle',         'Tortes, mud cakes, velvet cakes and cheesecakes made in our shop with 100% Halal ingredients. Order online, choose your pickup time, and we will have it ready.'),
@@ -274,7 +275,7 @@ INSERT INTO gallery_images (image, caption, sort_order) VALUES
 ('gallery/custom-29.webp', 'Two-tier pink rosette cake', 29);
 
 -- Policy pages and FAQs. Review these with the shop before going live.
-INSERT INTO pages (slug, title, summary, body) VALUES
+INSERT IGNORE INTO pages (slug, title, summary, body) VALUES
 ('privacy-policy', 'Privacy Policy', 'How we collect, use and protect your personal information.', '<p>{store_name} ("we", "us") respects your privacy. This policy explains what personal information we collect when you use our website or place an order, and how we handle it in line with the Australian Privacy Principles in the <em>Privacy Act 1988</em> (Cth).</p>
 <h2>Information we collect</h2>
 <ul>
@@ -352,7 +353,7 @@ INSERT INTO pages (slug, title, summary, body) VALUES
 <h2>Ask us</h2>
 <p>If you have any questions about ingredients, please call us or ask in store before you order. Add any allergy details to the notes at checkout so our team can see them.</p>');
 
-INSERT INTO faqs (category, question, answer, sort_order) VALUES
+INSERT IGNORE INTO faqs (category, question, answer, sort_order) VALUES
 ('Ordering', 'How far in advance should I order?', '<p>Please order at least {min_lead_hours} hours ahead for cakes from our menu, and at least {custom_lead_days} days ahead for custom cakes. For weddings and big events, the earlier the better.</p>', 1),
 ('Ordering', 'I need a cake today. Can you help?', '<p>Please call us on {store_phone} and we will let you know what we can do.</p>', 2),
 ('Ordering', 'Can I add a message on my cake?', '<p>Yes, a message is free on every cake. Add it on the cake''s page before adding it to your cart.</p>', 3),

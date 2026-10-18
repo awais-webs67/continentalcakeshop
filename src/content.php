@@ -8,12 +8,23 @@ const POLICY_PAGES = ['privacy-policy', 'terms', 'refund-policy', 'allergens'];
 
 function get_page(string $slug): ?array
 {
-    return db_one('SELECT * FROM pages WHERE slug = ? AND is_active = 1', [$slug]);
+    try {
+        return db_one('SELECT * FROM pages WHERE slug = ? AND is_active = 1', [$slug]);
+    } catch (PDOException $e) {
+        // Table missing until database migrations have been run; show a 404 instead of a crash.
+        error_log('Content pages unavailable: ' . $e->getMessage());
+        return null;
+    }
 }
 
 function get_faqs(): array
 {
-    return db_all('SELECT * FROM faqs WHERE is_active = 1 ORDER BY sort_order, id');
+    try {
+        return db_all('SELECT * FROM faqs WHERE is_active = 1 ORDER BY sort_order, id');
+    } catch (PDOException $e) {
+        error_log('FAQs unavailable: ' . $e->getMessage());
+        return [];
+    }
 }
 
 /** Fills {token} placeholders in stored content with current settings. */

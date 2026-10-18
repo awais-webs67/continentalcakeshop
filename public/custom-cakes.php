@@ -201,7 +201,7 @@ render('header', compact('page'));
                     <li><?= icon('check', '', 18) ?> Edible images and custom shapes available</li>
                 </ul>
             </div>
-            <div class="info-card info-card--pink">
+            <div class="info-card info-card--brand">
                 <h2>Prefer to talk?</h2>
                 <p>Call us and we will help you plan your cake.</p>
                 <a class="btn btn--light btn--block" href="tel:<?= e(setting('store_phone_e164')) ?>"><?= icon('phone', '', 18) ?> <?= e(setting('store_phone')) ?></a>

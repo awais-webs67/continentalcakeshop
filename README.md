@@ -13,7 +13,7 @@ Plain PHP 8.1+ and MySQL/MariaDB, with no framework and no Composer packages, so
 - FAQ page and editable Privacy Policy, Terms, Refund Policy and Allergen pages (stored in the `pages` and `faqs` tables; review the wording with the shop before launch)
 - Optional customer accounts: register, log in, password reset, order history with live order status, and account creation during checkout
 - SEO: clean URLs, unique titles and descriptions, canonical tags, Open Graph, `Bakery`, `Product` and `BreadcrumbList` structured data, `sitemap.xml` and `robots.txt`
-- Responsive layout with a mobile slide-in menu (close button, tap outside or Esc to close)
+- Responsive layout in the shop's teal colours, with a mobile slide-in menu (close button, tap outside or Esc to close)
 
 ## Folder structure
 
@@ -38,7 +38,7 @@ The admin panel only needs to read and write these tables, using the same functi
    mysql -u USER -p DATABASE < database/schema.sql
    mysql -u USER -p DATABASE < database/seed.sql
    ```
-   Already imported an older version? Run the files in `database/migrations/` that you have not run yet, in order (or re-import both files, which resets the data).
+   Already imported an older version? Run `php database/migrate.php` (XAMPP: `C:\xampp\php\php.exe database\migrate.php`). It applies any new database changes and is safe to run again.
 3. Copy `config/config.example.php` to `config/config.php` and enter the site URL and database details.
 4. Point the domain's document root at the `public/` folder (Apache with `mod_rewrite`).
 5. Make `storage/uploads` and `public/uploads` writable by PHP.

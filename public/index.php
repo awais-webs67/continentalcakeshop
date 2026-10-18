@@ -6,8 +6,10 @@ require dirname(__DIR__) . '/src/bootstrap.php';
 $categories = get_categories();
 $featured = get_featured_products(8);
 $photos = get_gallery(12);
-$heroCake = $photos[0] ?? null;
-$gallery = array_slice($photos, 1, 6);
+// The hero photo is a setting so the admin can change it; it falls back to the first gallery photo.
+$heroCake = db_one('SELECT * FROM gallery_images WHERE image = ?', [setting('hero_image')]) ?? ($photos[0] ?? null);
+$gallery = array_values(array_filter($photos, static fn ($p) => $p['id'] !== ($heroCake['id'] ?? null)));
+$gallery = array_slice($gallery, 0, 6);
 $reviews = db_all('SELECT * FROM reviews WHERE is_active = 1 ORDER BY sort_order, id LIMIT 4');
 $todayKey = day_key(new DateTime());
 

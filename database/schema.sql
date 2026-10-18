@@ -231,5 +231,6 @@ CREATE TABLE faqs (
     answer     TEXT NOT NULL,
     is_active  TINYINT(1) NOT NULL DEFAULT 1,
     sort_order INT NOT NULL DEFAULT 0,
+    UNIQUE KEY uq_faqs_question (question),
     KEY idx_faqs_active (is_active, sort_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -48,7 +48,7 @@ function icon(string $name, string $class = '', int $size = 20): string
 
 /**
  * Wavy "icing drip" edge. Hangs downward from the top of its box and uses currentColor,
- * so the same shape works under the pink header and above the pink footer.
+ * so the same shape works under the header and above the footer.
  */
 function drip_svg(string $class = '', int $seed = 7): string
 {
@@ -110,6 +110,6 @@ function rating_stars(float $rating, int $size = 18): string
 /** Stable soft colour for a reviewer's initial. */
 function avatar_colour(string $name): string
 {
-    $colours = ['#B5174F', '#2F6F5E', '#5B4BB7', '#C46A1B', '#1F6FA8', '#8E3E86'];
+    $colours = ['#0F6E5F', '#2F6F5E', '#5B4BB7', '#C46A1B', '#1F6FA8', '#8E3E86'];
     return $colours[crc32($name) % count($colours)];
 }
