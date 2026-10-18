@@ -7,6 +7,7 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS order_events;
 DROP TABLE IF EXISTS order_items;
 DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS password_resets;
@@ -22,6 +23,8 @@ DROP TABLE IF EXISTS gallery_images;
 DROP TABLE IF EXISTS pages;
 DROP TABLE IF EXISTS faqs;
 DROP TABLE IF EXISTS settings;
+DROP TABLE IF EXISTS admins;
+DROP TABLE IF EXISTS schema_migrations;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -129,6 +132,7 @@ CREATE TABLE orders (
     payment_proof     VARCHAR(255) NULL COMMENT 'Path inside storage/uploads',
     stripe_session_id VARCHAR(255) NULL,
     notes             TEXT NULL,
+    admin_notes       TEXT NULL,
     created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     KEY idx_orders_pickup (pickup_date, pickup_time),
@@ -168,6 +172,8 @@ CREATE TABLE custom_requests (
     details         TEXT NOT NULL,
     reference_image VARCHAR(255) NULL COMMENT 'Path inside storage/uploads',
     status          ENUM('new','quoted','confirmed','closed') NOT NULL DEFAULT 'new',
+    quoted_price    DECIMAL(10,2) NULL,
+    admin_notes     TEXT NULL,
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     KEY idx_custom_status (status, event_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -179,6 +185,7 @@ CREATE TABLE contact_messages (
     phone      VARCHAR(40) NULL,
     message    TEXT NOT NULL,
     is_read    TINYINT(1) NOT NULL DEFAULT 0,
+    replied_at DATETIME NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -233,4 +240,38 @@ CREATE TABLE faqs (
     sort_order INT NOT NULL DEFAULT 0,
     UNIQUE KEY uq_faqs_question (question),
     KEY idx_faqs_active (is_active, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE admins (
+    id             INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    name           VARCHAR(120) NOT NULL,
+    email          VARCHAR(190) NOT NULL UNIQUE,
+    password_hash  VARCHAR(255) NOT NULL,
+    role           ENUM('owner','staff') NOT NULL DEFAULT 'staff',
+    is_active      TINYINT(1) NOT NULL DEFAULT 1,
+    failed_logins  INT UNSIGNED NOT NULL DEFAULT 0,
+    locked_until   DATETIME NULL,
+    last_login_at  DATETIME NULL,
+    created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Everything that happens to an order (placed, paid, status changes, notes).
+CREATE TABLE order_events (
+    id         INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    order_id   INT UNSIGNED NOT NULL,
+    admin_id   INT UNSIGNED NULL,
+    event      VARCHAR(40) NOT NULL,
+    message    VARCHAR(500) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_events_order (order_id, created_at),
+    CONSTRAINT fk_events_order FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE,
+    CONSTRAINT fk_events_admin FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- Records which files in database/migrations are already included, so migrate.php skips them.
+CREATE TABLE schema_migrations (
+    migration  VARCHAR(190) NOT NULL PRIMARY KEY,
+    applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

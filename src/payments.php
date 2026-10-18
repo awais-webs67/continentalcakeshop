@@ -168,3 +168,14 @@ function stripe_verify_webhook(string $payload, string $header, string $secret, 
     }
     return false;
 }
+
+/** Refunds a Stripe card payment in full. Returns the refund id. */
+function stripe_refund(array $order): string
+{
+    $intent = (string) $order['payment_reference'];
+    if (!str_starts_with($intent, 'pi_')) {
+        throw new RuntimeException('This order has no Stripe payment to refund.');
+    }
+    $refund = stripe_request('POST', 'refunds', ['payment_intent' => $intent, 'metadata' => ['order_number' => $order['order_number']]]);
+    return (string) ($refund['id'] ?? '');
+}

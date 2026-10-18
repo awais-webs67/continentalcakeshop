@@ -35,11 +35,7 @@ if (is_post()) {
 
     db_run('INSERT INTO contact_messages (name, email, phone, message) VALUES (?, ?, ?, ?)',
         [$data['name'], $data['email'], $data['phone'] ?: null, $data['message']]);
-    $notify = setting('order_notification_email');
-    if ($notify !== '') {
-        send_mail($notify, 'Website message from ' . $data['name'],
-            "Name: {$data['name']}\nEmail: {$data['email']}\nPhone: {$data['phone']}\n\n{$data['message']}", $data['email']);
-    }
+    send_contact_notification($data);
     forget_input();
     flash('success', 'Thanks for your message. We will get back to you soon.');
     redirect('contact');

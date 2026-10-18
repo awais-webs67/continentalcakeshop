@@ -138,8 +138,7 @@ function send_password_reset(string $email): void
     send_mail(
         $user['email'],
         'Reset your password - ' . setting('store_short_name'),
-        "Hi {$user['name']},\n\nUse this link to choose a new password. It works for " . RESET_TOKEN_MINUTES . " minutes:\n{$link}\n\n"
-        . "If you did not ask for this, you can ignore this email.\n\n" . setting('store_short_name')
+        render_email('password-reset', ['user' => $user, 'link' => $link, 'minutes' => RESET_TOKEN_MINUTES, 'title' => 'Reset your password', 'preheader' => 'Choose a new password for your account.'])
     );
 }
 

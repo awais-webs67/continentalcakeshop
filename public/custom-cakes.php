@@ -65,16 +65,9 @@ if (is_post()) {
          $data['servings'] ?: null, $data['flavour'] ?: null, $data['budget'] ?: null, $data['details'], $image]
     );
 
-    $notify = setting('order_notification_email');
-    if ($notify !== '') {
-        send_mail(
-            $notify,
-            'Custom cake request: ' . $data['occasion'] . ' on ' . $data['event_date'],
-            "Name: {$data['name']}\nPhone: {$data['phone']}\nEmail: {$data['email']}\nOccasion: {$data['occasion']}\n"
-            . "Date: {$data['event_date']}\nServings: {$data['servings']}\nFlavour: {$data['flavour']}\nBudget: {$data['budget']}\n\n{$data['details']}"
-            . ($image ? "\n\nA reference photo was uploaded." : ''),
-            $data['email']
-        );
+    $request = db_one('SELECT * FROM custom_requests WHERE id = ?', [(int) db()->lastInsertId()]);
+    if ($request) {
+        send_custom_request_emails($request);
     }
 
     forget_input();

@@ -6,9 +6,15 @@ DirectoryIndex index.php
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Redirect to HTTPS (uncomment once SSL is active on the domain)
+    # Redirect to HTTPS (uncomment once SSL is active). Only needed when the domain points
+    # straight at public/; with the project in public_html use the root .htaccess instead.
     # RewriteCond %{HTTPS} off
     # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Admin panel front controller
+    RewriteRule ^admin/?$ admin/index.php [L,QSA]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^admin/(.+)$ admin/index.php?route=$1 [L,QSA]
 
     RewriteRule ^shop$                  shop.php [L,QSA]
     RewriteRule ^shop/([a-z0-9-]+)$     shop.php?category=$1 [L,QSA]

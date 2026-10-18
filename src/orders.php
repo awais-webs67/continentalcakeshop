@@ -66,12 +66,27 @@ function create_order(array $data, array $items): array
                 $item['price'], $item['qty'], $item['message'] !== '' ? $item['message'] : null, $item['line_total'],
             ]);
         }
+        log_order_event($orderId, 'placed', 'Order placed online, paying by ' . payment_method_label($data['payment_method']) . '.');
         $pdo->commit();
     } catch (Throwable $e) {
         $pdo->rollBack();
         throw $e;
     }
     return get_order($orderId);
+}
+
+function log_order_event(int $orderId, string $event, string $message, ?int $adminId = null): void
+{
+    db_run('INSERT INTO order_events (order_id, admin_id, event, message) VALUES (?, ?, ?, ?)', [$orderId, $adminId, $event, str_limit($message, 500)]);
+}
+
+function get_order_events(int $orderId): array
+{
+    return db_all(
+        'SELECT e.*, a.name AS admin_name FROM order_events e LEFT JOIN admins a ON a.id = e.admin_id
+         WHERE e.order_id = ? ORDER BY e.created_at DESC, e.id DESC',
+        [$orderId]
+    );
 }
 
 function get_order(int $id): ?array
@@ -104,6 +119,7 @@ function mark_order_paid(array $order, string $reference): void
         [$reference, $order['id']]
     )->rowCount();
     if ($updated > 0) {
+        log_order_event((int) $order['id'], 'paid', 'Card payment received through Stripe.');
         send_order_emails(get_order((int) $order['id']));
     }
 }

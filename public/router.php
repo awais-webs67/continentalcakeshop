@@ -8,6 +8,13 @@ if ($path !== '/' && is_file(__DIR__ . $path) && !str_ends_with($path, '.php')) 
     return false;
 }
 
+if (preg_match('#^/admin(?:/(.*))?$#', $path, $m) && !is_file(__DIR__ . $path)) {
+    $_GET['route'] = $m[1] ?? '';
+    chdir(__DIR__ . '/admin');
+    require __DIR__ . '/admin/index.php';
+    return true;
+}
+
 $routes = [
     '#^/$#'                         => ['index.php', []],
     '#^/shop$#'                     => ['shop.php', []],

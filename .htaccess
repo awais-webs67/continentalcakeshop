@@ -1,10 +1,21 @@
-# Lets the site run from a sub-folder such as XAMPP's htdocs/continentalcakeshop.
-# Every request is passed to the public/ folder, so config/, src/ and storage/ stay private.
-# On a live server, point the domain's document root at public/ instead.
+# Lets the site run when the whole project sits in the web root, for example
+# cPanel public_html (cloned or extracted there) or XAMPP htdocs/continentalcakeshop.
+# Every request is passed to the public/ folder, so config/, src/, database/ and storage/
+# can never be opened from a browser.
 
 Options -Indexes
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
+
+    # Force HTTPS on the live site. Remove the # from the next two lines once SSL is active.
+    # RewriteCond %{HTTPS} off
+    # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
     RewriteRule ^(.*)$ public/$1 [L]
 </IfModule>
+
+# Extra safety in case mod_rewrite is ever switched off.
+<FilesMatch "\.(sql|md|lock|log|env|example)$">
+    Require all denied
+</FilesMatch>

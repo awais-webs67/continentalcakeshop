@@ -36,6 +36,7 @@ require __DIR__ . '/auth.php';
 require __DIR__ . '/content.php';
 require __DIR__ . '/seo.php';
 require __DIR__ . '/icons.php';
+require __DIR__ . '/migrations.php';
 
 if (session_status() === PHP_SESSION_NONE && PHP_SAPI !== 'cli') {
     session_name('ccs_session');

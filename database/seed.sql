@@ -56,6 +56,7 @@ INSERT INTO settings (setting_key, setting_value) VALUES
 ('bank_account_number',     ''),
 
 -- Notifications
+('email_accent_note',       'Thank you for choosing a local Canberra cake shop.'),
 ('order_notification_email', 'continentalcakeshopcanberra@gmail.com'),
 ('send_customer_emails',     '1'),
 
@@ -369,3 +370,7 @@ INSERT IGNORE INTO faqs (category, question, answer, sort_order) VALUES
 ('Custom cakes', 'How do I order a custom cake?', '<p>Fill in our <a href="{url:custom-cakes}">custom cake form</a>, call us, or visit the shop. We will reply with a quote and help you choose the size, flavour and decorations.</p>', 13),
 ('Custom cakes', 'Can you make a cake from a photo?', '<p>Yes. Upload a photo with your request and we will match the design as closely as we can.</p>', 14),
 ('Cancellations', 'Can I cancel my order?', '<p>Please contact us as early as possible. See our <a href="{url:refund-policy}">Refund and Cancellation Policy</a> for details.</p>', 15);
+
+-- A fresh install already contains every migration.
+INSERT IGNORE INTO schema_migrations (migration) VALUES
+('001_customer_accounts.sql'), ('002_pages_and_faqs.sql'), ('003_hero_image_setting.sql'), ('004_teal_hero_cake.sql'), ('005_admin_panel.sql');
