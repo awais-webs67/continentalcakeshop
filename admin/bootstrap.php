@@ -284,10 +284,18 @@ function save_content_image(string $field, int $maxWidth = 1600): array
     return ['content/' . $name, null];
 }
 
-/** Deletes a file in public/uploads that the panel created. */
+/**
+ * Deletes a file in public/uploads that the panel created, but only when nothing uses it any more.
+ * Call it after the row that used the photo has been changed or deleted.
+ */
 function delete_public_image(?string $path): void
 {
     if (!$path || str_contains($path, '..')) {
+        return;
+    }
+    $inUse = db_value('SELECT 1 FROM products WHERE image = ? UNION SELECT 1 FROM categories WHERE image = ? UNION SELECT 1 FROM gallery_images WHERE image = ?', [$path, $path, $path])
+        || in_array($path, [setting('hero_image'), setting('popup_image')], true);
+    if ($inUse) {
         return;
     }
     $full = BASE_PATH . '/public/uploads/' . $path;

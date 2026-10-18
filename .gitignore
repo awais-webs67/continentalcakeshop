@@ -6,3 +6,7 @@
 /storage/logs/*
 !/storage/logs/.gitkeep
 /storage/app.key
+/public/uploads/content/*
+!/public/uploads/content/.gitkeep
+/public/uploads/popup/*
+!/public/uploads/popup/.gitkeep

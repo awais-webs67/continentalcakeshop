@@ -32,13 +32,14 @@ if (is_post()) {
     } elseif (input('remove_image') === '1') {
         $values['popup_image'] = '';
     }
-    if (isset($values['popup_image']) && str_starts_with(setting('popup_image'), 'popup/') && setting('popup_image') !== $values['popup_image']) {
-        delete_public_image(setting('popup_image'));
-    }
+    $oldImage = setting('popup_image');
     // A new version makes visitors who closed the old popup see this one.
     $values['popup_version'] = (string) time();
     foreach ($values as $key => $value) {
         setting_save($key, $value);
+    }
+    if (str_starts_with($oldImage, 'popup/') && $oldImage !== setting('popup_image')) {
+        delete_public_image($oldImage);
     }
     flash('success', $values['popup_enabled'] === '1' ? 'Popup saved and live on the website.' : 'Popup saved. It is switched off.');
     redirect(admin_url('popup'));
