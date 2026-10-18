@@ -4,6 +4,7 @@ declare(strict_types=1);
 // Inline SVG icons (Lucide, ISC licence). Inline icons need no extra requests and inherit text colour.
 
 const ICON_PATHS = [
+    'user'     => '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
     'menu'     => '<path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/>',
     'close'    => '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
     'bag'      => '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>',
@@ -85,4 +86,30 @@ function drip_svg(string $class = '', int $seed = 7): string
     $d .= 'Z';
 
     return '<svg class="drip ' . e($class) . '" viewBox="0 0 ' . $width . ' 46" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path fill="currentColor" d="' . $d . '"/></svg>';
+}
+
+function google_logo(int $size = 20): string
+{
+    return '<svg class="google-logo" width="' . $size . '" height="' . $size . '" viewBox="0 0 48 48" aria-hidden="true" focusable="false">'
+        . '<path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.7-.4-3.9z"/>'
+        . '<path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>'
+        . '<path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2A12 12 0 0 1 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/>'
+        . '<path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3a12 12 0 0 1-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.7-.4-3.9z"/></svg>';
+}
+
+/** Five stars with the fill trimmed to the rating, e.g. 4.3 shows four and a third stars. */
+function rating_stars(float $rating, int $size = 18): string
+{
+    $percent = max(0, min(100, $rating / 5 * 100));
+    $stars = str_repeat(icon('star', '', $size), 5);
+    return '<span class="rating-stars" role="img" aria-label="Rated ' . e(number_format($rating, 1)) . ' out of 5">'
+        . '<span class="rating-stars__base">' . $stars . '</span>'
+        . '<span class="rating-stars__fill" style="width:' . round($percent, 1) . '%">' . $stars . '</span></span>';
+}
+
+/** Stable soft colour for a reviewer's initial. */
+function avatar_colour(string $name): string
+{
+    $colours = ['#B5174F', '#2F6F5E', '#5B4BB7', '#C46A1B', '#1F6FA8', '#8E3E86'];
+    return $colours[crc32($name) % count($colours)];
 }

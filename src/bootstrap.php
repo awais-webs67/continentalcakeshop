@@ -32,6 +32,7 @@ require __DIR__ . '/uploads.php';
 require __DIR__ . '/payments.php';
 require __DIR__ . '/orders.php';
 require __DIR__ . '/mail.php';
+require __DIR__ . '/auth.php';
 require __DIR__ . '/seo.php';
 require __DIR__ . '/icons.php';
 

@@ -9,6 +9,8 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS order_items;
 DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS password_resets;
+DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS product_sizes;
 DROP TABLE IF EXISTS products;
 DROP TABLE IF EXISTS categories;
@@ -79,9 +81,34 @@ CREATE TABLE product_sizes (
     CONSTRAINT fk_sizes_product FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Customer accounts. Guests can still check out without one.
+CREATE TABLE users (
+    id              INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    name            VARCHAR(120) NOT NULL,
+    email           VARCHAR(190) NOT NULL UNIQUE,
+    phone           VARCHAR(40) NULL,
+    password_hash   VARCHAR(255) NOT NULL,
+    failed_logins   INT UNSIGNED NOT NULL DEFAULT 0,
+    locked_until    DATETIME NULL,
+    last_login_at   DATETIME NULL,
+    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE password_resets (
+    id          INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    user_id     INT UNSIGNED NOT NULL,
+    token_hash  CHAR(64) NOT NULL UNIQUE,
+    expires_at  DATETIME NOT NULL,
+    used_at     DATETIME NULL,
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_resets_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE orders (
     id                INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     order_number      VARCHAR(30) NOT NULL UNIQUE,
+    user_id           INT UNSIGNED NULL,
     access_token      CHAR(32) NOT NULL,
     customer_name     VARCHAR(120) NOT NULL,
     customer_email    VARCHAR(190) NOT NULL,
@@ -104,7 +131,9 @@ CREATE TABLE orders (
     updated_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     KEY idx_orders_pickup (pickup_date, pickup_time),
     KEY idx_orders_status (order_status, payment_status),
-    KEY idx_orders_stripe (stripe_session_id)
+    KEY idx_orders_stripe (stripe_session_id),
+    KEY idx_orders_user (user_id, created_at),
+    CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE order_items (

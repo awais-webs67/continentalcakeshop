@@ -3,6 +3,7 @@
 $page = page_meta($page ?? []);
 $navCategories = get_categories();
 $cartCount = cart_count();
+$user = current_user();
 $phone = setting('store_phone');
 $phoneHref = 'tel:' . setting('store_phone_e164');
 $navLinks = [
@@ -17,6 +18,7 @@ $navLinks = [
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>document.documentElement.classList.add('js');</script>
 <title><?= e($page['title']) ?></title>
 <meta name="description" content="<?= e($page['description']) ?>">
 <?php if ($page['noindex']): ?>
@@ -93,6 +95,14 @@ $navLinks = [
 
         <div class="header-actions">
             <a class="icon-btn header-phone" href="<?= e($phoneHref) ?>" aria-label="Call us on <?= e($phone) ?>"><?= icon('phone', '', 22) ?></a>
+            <?php if ($user): ?>
+                <a class="icon-btn account-link" href="<?= e(url('account')) ?>" aria-label="My account"><?= icon('user', '', 23) ?></a>
+            <?php else: ?>
+                <a class="icon-btn account-link account-link--nudge" href="<?= e(url('login')) ?>" aria-label="Log in or create an account to save your order history">
+                    <?= icon('user', '', 23) ?>
+                    <span class="account-link__tip" aria-hidden="true">Log in to save your orders</span>
+                </a>
+            <?php endif; ?>
             <a class="icon-btn cart-link" href="<?= e(url('cart')) ?>" aria-label="Cart, <?= $cartCount ?> item<?= $cartCount === 1 ? '' : 's' ?>">
                 <?= icon('bag', '', 24) ?>
                 <span class="cart-count" data-cart-count <?= $cartCount ? '' : 'hidden' ?>><?= $cartCount ?></span>
@@ -132,6 +142,11 @@ $navLinks = [
                 <a href="<?= e(url($path)) ?>" <?= is_active_path($path) ? 'aria-current="page"' : '' ?>><?= e($label) ?> <?= icon('chevron', '', 18) ?></a>
             <?php endforeach; ?>
             <a href="<?= e(url('cart')) ?>">Cart<?= $cartCount ? ' (' . $cartCount . ')' : '' ?> <?= icon('chevron', '', 18) ?></a>
+            <?php if ($user): ?>
+                <a href="<?= e(url('account')) ?>">My Account <?= icon('chevron', '', 18) ?></a>
+            <?php else: ?>
+                <a href="<?= e(url('login')) ?>">Log In / Create Account <?= icon('chevron', '', 18) ?></a>
+            <?php endif; ?>
         </nav>
 
         <div class="drawer__foot">

@@ -16,6 +16,7 @@ $deliveryEnabled = setting_bool('delivery_enabled');
 $fulfilmentOptions = array_keys(array_filter(['pickup' => $pickupEnabled, 'delivery' => $deliveryEnabled]));
 $subtotal = cart_subtotal($items);
 $deliveryFee = (float) setting('delivery_fee', '0');
+$user = current_user();
 
 if (is_post()) {
     verify_csrf();
@@ -32,7 +33,10 @@ if (is_post()) {
         'payment_reference' => str_limit(input('payment_reference'), 190),
         'notes'             => str_limit(input('notes'), 1000),
         'payment_proof'     => null,
+        'user_id'           => $user['id'] ?? null,
     ];
+    $createAccount = !$user && input('create_account') === '1';
+    $accountPassword = (string) ($_POST['account_password'] ?? '');
 
     $errors = [];
     if ($data['name'] === '') {
@@ -59,6 +63,13 @@ if (is_post()) {
     } elseif ($method['needs_proof'] && !has_upload('payment_proof')) {
         $errors['payment_proof'] = 'Please upload a screenshot of your payment.';
     }
+    if ($createAccount) {
+        if (mb_strlen($accountPassword) < PASSWORD_MIN_LENGTH) {
+            $errors['account_password'] = 'Please use at least ' . PASSWORD_MIN_LENGTH . ' characters for your password.';
+        } elseif (!isset($errors['email']) && find_user_by_email($data['email'])) {
+            $errors['email'] = 'This email already has an account. Please log in to save this order to it.';
+        }
+    }
     if (input('agree') !== '1') {
         $errors['agree'] = 'Please confirm your order details.';
     }
@@ -72,10 +83,18 @@ if (is_post()) {
     }
 
     if ($errors) {
-        remember_input(array_diff_key($data, ['payment_proof' => true]));
+        remember_input(array_diff_key($data, ['payment_proof' => true, 'user_id' => true]) + ['create_account' => $createAccount ? '1' : '', 'agree' => input('agree')]);
         $_SESSION['form_errors'] = $errors;
         flash('error', 'Please check the highlighted fields.');
         redirect('checkout');
+    }
+
+    if ($createAccount) {
+        [$newUserId] = register_user($data['name'], $data['email'], $data['phone'], $accountPassword);
+        if ($newUserId) {
+            login_user($newUserId);
+            $data['user_id'] = $newUserId;
+        }
     }
 
     $order = create_order($data, $items);
@@ -135,23 +154,41 @@ render('header', compact('page'));
 
                 <fieldset class="checkout-step">
                     <legend class="checkout-step__title"><span>1</span> Your details</legend>
+                    <?php if ($user): ?>
+                        <p class="account-note"><?= icon('user', '', 18) ?> <span>Logged in as <strong><?= e($user['email']) ?></strong>. This order will be saved to your account.</span></p>
+                    <?php else: ?>
+                        <p class="account-note"><?= icon('user', '', 18) ?> <span>Have an account? <a href="<?= e(url('login') . '?next=checkout') ?>">Log in</a> to save this order to your order history.</span></p>
+                    <?php endif; ?>
                     <div class="field">
                         <label class="field-label" for="name">Full name</label>
-                        <input class="input" id="name" name="name" type="text" autocomplete="name" value="<?= e(old('name')) ?>" required <?= $invalid('name') ?>>
+                        <input class="input" id="name" name="name" type="text" autocomplete="name" value="<?= e(old('name', $user['name'] ?? '')) ?>" required <?= $invalid('name') ?>>
                         <?= $fieldError('name') ?>
                     </div>
                     <div class="field-row">
                         <div class="field">
                             <label class="field-label" for="email">Email</label>
-                            <input class="input" id="email" name="email" type="email" autocomplete="email" value="<?= e(old('email')) ?>" required <?= $invalid('email') ?>>
+                            <input class="input" id="email" name="email" type="email" autocomplete="email" value="<?= e(old('email', $user['email'] ?? '')) ?>" required <?= $invalid('email') ?> <?= $user ? 'readonly' : '' ?>>
                             <?= $fieldError('email') ?>
                         </div>
                         <div class="field">
                             <label class="field-label" for="phone">Mobile number</label>
-                            <input class="input" id="phone" name="phone" type="tel" autocomplete="tel" placeholder="04xx xxx xxx" value="<?= e(old('phone')) ?>" required <?= $invalid('phone') ?>>
+                            <input class="input" id="phone" name="phone" type="tel" autocomplete="tel" placeholder="04xx xxx xxx" value="<?= e(old('phone', (string) ($user['phone'] ?? ''))) ?>" required <?= $invalid('phone') ?>>
                             <?= $fieldError('phone') ?>
                         </div>
                     </div>
+                    <?php if (!$user): ?>
+                        <div class="create-account">
+                            <label class="check">
+                                <input type="checkbox" name="create_account" value="1" <?= old('create_account') === '1' ? 'checked' : '' ?> data-create-account>
+                                <span><strong>Create an account</strong> to save this order and follow its progress</span>
+                            </label>
+                            <div class="field" data-account-password <?= old('create_account') === '1' ? '' : 'hidden' ?>>
+                                <label class="field-label" for="account_password">Choose a password</label>
+                                <input class="input" id="account_password" name="account_password" type="password" autocomplete="new-password" minlength="<?= PASSWORD_MIN_LENGTH ?>" <?= $invalid('account_password') ?>>
+                                <?= $fieldError('account_password') ?: '<p class="field-help">At least ' . PASSWORD_MIN_LENGTH . ' characters.</p>' ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 </fieldset>
 
                 <fieldset class="checkout-step">

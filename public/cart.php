@@ -113,6 +113,15 @@ render('header', compact('page'));
                     <a class="btn btn--primary btn--lg btn--block" href="<?= e(url('checkout')) ?>">Checkout <?= icon('arrow', '', 18) ?></a>
                     <p class="summary-note"><?= icon('calendar', '', 16) ?> You will choose your pickup date and time on the next step.</p>
                     <a class="link-arrow summary-card__back" href="<?= e(url('shop')) ?>">Continue shopping</a>
+                    <?php if (!is_logged_in()): ?>
+                        <div class="account-prompt">
+                            <?= icon('user', '', 20) ?>
+                            <div>
+                                <strong>Save your order history</strong>
+                                <span><a href="<?= e(url('login') . '?next=checkout') ?>">Log in</a> or <a href="<?= e(url('register') . '?next=checkout') ?>">create an account</a> to keep track of your orders.</span>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 </aside>
             </div>
         <?php endif; ?>

@@ -10,5 +10,8 @@ echo "Disallow: /cart\n";
 echo "Disallow: /checkout\n";
 echo "Disallow: /order/\n";
 echo "Disallow: /api/\n";
+echo "Disallow: /account\n";
+echo "Disallow: /login\n";
+echo "Disallow: /register\n";
 echo "Disallow: /admin/\n";
 echo "\nSitemap: " . url('sitemap.xml') . "\n";

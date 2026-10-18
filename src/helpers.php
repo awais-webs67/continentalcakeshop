@@ -153,3 +153,28 @@ function render(string $template, array $data = []): void
     extract($data, EXTR_SKIP);
     require BASE_PATH . '/templates/' . $template . '.php';
 }
+
+/** Field errors stored by the previous POST, shown once. */
+function take_form_errors(): array
+{
+    $errors = $_SESSION['form_errors'] ?? [];
+    unset($_SESSION['form_errors']);
+    return $errors;
+}
+
+function fail_form(array $errors, array $input, string $to): never
+{
+    remember_input($input);
+    $_SESSION['form_errors'] = $errors;
+    redirect($to);
+}
+
+function field_error(array $errors, string $field): string
+{
+    return isset($errors[$field]) ? '<p class="field-error" id="' . e($field) . '-error">' . e($errors[$field]) . '</p>' : '';
+}
+
+function invalid_attr(array $errors, string $field): string
+{
+    return isset($errors[$field]) ? 'aria-invalid="true" aria-describedby="' . e($field) . '-error"' : '';
+}

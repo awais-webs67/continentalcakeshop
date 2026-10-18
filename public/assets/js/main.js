@@ -48,6 +48,44 @@
 
     window.matchMedia('(min-width: 1024px)').addEventListener('change', function (mq) { if (mq.matches) closeMenu(); });
 
+    /* ---------- Scroll reveal ---------- */
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var revealTargets = $$('.section-head, .tile, .product-card, .reviews__summary, .review-card, .mosaic__item, .custom-feature__copy, .visit__info, .visit__map, .gallery-grid figure, .order-card, .usp__item');
+    if ('IntersectionObserver' in window && !reduceMotion) {
+        var observer = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (!entry.isIntersecting) return;
+                entry.target.classList.add('is-visible');
+                observer.unobserve(entry.target);
+            });
+        }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+        revealTargets.forEach(function (el) {
+            // Stagger siblings so cards appear one after another.
+            var index = Array.prototype.indexOf.call(el.parentNode.children, el) % 4;
+            el.style.setProperty('--reveal-delay', (index * 0.08) + 's');
+            el.classList.add('reveal');
+            observer.observe(el);
+        });
+    }
+
+    /* ---------- Account nudge tooltip (once per visit) ---------- */
+    var nudge = $('.account-link--nudge');
+    if (nudge) {
+        var seen = false;
+        try { seen = sessionStorage.getItem('ccsTipSeen') === '1'; } catch (e) {}
+        if (!seen) {
+            setTimeout(function () { nudge.classList.add('show-tip'); }, 2500);
+            setTimeout(function () { nudge.classList.remove('show-tip'); }, 7000);
+            try { sessionStorage.setItem('ccsTipSeen', '1'); } catch (e) {}
+        }
+    }
+
+    /* ---------- Cart count bump after adding ---------- */
+    var countEl = $('[data-cart-count]');
+    if (countEl && $('.toast.alert--success') && /added to your cart/i.test($('.toast.alert--success').textContent)) {
+        countEl.classList.add('is-bumping');
+    }
+
     /* ---------- Toast messages ---------- */
     $$('.toast').forEach(function (toast) {
         var hide = function () {
@@ -84,6 +122,15 @@
 
     $$('[data-auto-submit]').forEach(function (el) {
         el.addEventListener('change', function () { el.form.submit(); });
+    });
+
+    $$('.product-card__action').forEach(function (form) {
+        if (form.tagName !== 'FORM') return;
+        form.addEventListener('submit', function () {
+            var btn = $('button', form);
+            btn.disabled = true;
+            btn.lastChild.textContent = ' Adding...';
+        });
     });
 
     /* ---------- Product page ---------- */
@@ -191,6 +238,16 @@
             }
         };
         $$('[data-payment-method]', checkout).forEach(function (r) { r.addEventListener('change', updatePayment); });
+
+        // Optional account creation
+        var createToggle = $('[data-create-account]', checkout);
+        var passwordField = $('[data-account-password]', checkout);
+        if (createToggle && passwordField) {
+            createToggle.addEventListener('change', function () {
+                passwordField.hidden = !createToggle.checked;
+                if (createToggle.checked) $('input', passwordField).focus();
+            });
+        }
 
         checkout.addEventListener('submit', function () {
             if (submitBtn) {

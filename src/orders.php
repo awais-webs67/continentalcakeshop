@@ -42,12 +42,12 @@ function create_order(array $data, array $items): array
         $number = generate_order_number();
         $token = bin2hex(random_bytes(16));
         db_run(
-            'INSERT INTO orders (order_number, access_token, customer_name, customer_email, customer_phone, fulfilment,
+            'INSERT INTO orders (order_number, user_id, access_token, customer_name, customer_email, customer_phone, fulfilment,
                                  delivery_address, pickup_date, pickup_time, subtotal, delivery_fee, total, payment_method,
                                  payment_status, payment_reference, payment_proof, notes)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
-                $number, $token, $data['name'], $data['email'], $data['phone'], $data['fulfilment'],
+                $number, $data['user_id'] ?? null, $token, $data['name'], $data['email'], $data['phone'], $data['fulfilment'],
                 $data['delivery_address'] ?: null, $data['pickup_date'], $data['pickup_time'] . ':00',
                 $subtotal, $deliveryFee, $total, $data['payment_method'],
                 $data['payment_proof'] ? 'awaiting_verification' : 'pending',

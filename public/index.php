@@ -51,7 +51,8 @@ render('header', compact('page'));
                 <a class="btn btn--outline btn--lg" href="<?= e(url('custom-cakes')) ?>">Request a Custom Cake</a>
             </div>
             <a class="hero__rating" href="<?= e(setting('google_reviews_url')) ?>" target="_blank" rel="noopener">
-                <span class="stars" aria-hidden="true"><?= str_repeat(icon('star', '', 16), 5) ?></span>
+                <?= google_logo(18) ?>
+                <?= rating_stars((float) setting('google_rating'), 16) ?>
                 <span><strong><?= e(setting('google_rating')) ?></strong> from <?= e(setting('google_review_count')) ?> Google reviews</span>
             </a>
         </div>
@@ -154,20 +155,29 @@ render('header', compact('page'));
 </section>
 
 <?php if ($reviews): ?>
-<section class="section section--tint">
-    <div class="container">
-        <div class="section-head section-head--center">
-            <h2 class="section-title">What Canberra says about us</h2>
-            <a class="rating-pill" href="<?= e(setting('google_reviews_url')) ?>" target="_blank" rel="noopener">
-                <span class="stars" aria-hidden="true"><?= str_repeat(icon('star', '', 16), 5) ?></span>
-                <?= e(setting('google_rating')) ?> on Google &middot; <?= e(setting('google_review_count')) ?> reviews
-            </a>
+<section class="section section--tint reviews">
+    <div class="container reviews__grid">
+        <div class="reviews__summary">
+            <p class="reviews__brand"><?= google_logo(22) ?> Google Reviews</p>
+            <h2 class="section-title">Loved by Canberra</h2>
+            <div class="reviews__score">
+                <strong><?= e(setting('google_rating')) ?></strong>
+                <div>
+                    <?= rating_stars((float) setting('google_rating'), 20) ?>
+                    <span>Based on <?= e(setting('google_review_count')) ?> reviews</span>
+                </div>
+            </div>
+            <a class="btn btn--outline btn--sm" href="<?= e(setting('google_reviews_url')) ?>" target="_blank" rel="noopener">Read all reviews on Google</a>
         </div>
-        <div class="review-grid">
+        <div class="reviews__list">
             <?php foreach ($reviews as $review): ?>
                 <figure class="review-card">
+                    <figcaption class="review-card__head">
+                        <span class="review-card__avatar" style="--avatar: <?= e(avatar_colour($review['author'])) ?>" aria-hidden="true"><?= e(mb_strtoupper(mb_substr($review['author'], 0, 1))) ?></span>
+                        <span class="review-card__who"><strong><?= e($review['author']) ?></strong><span><?= e($review['source']) ?> review</span></span>
+                        <?= google_logo(18) ?>
+                    </figcaption>
                     <blockquote><?= e($review['body']) ?></blockquote>
-                    <figcaption><strong><?= e($review['author']) ?></strong> &middot; <?= e($review['source']) ?> review</figcaption>
                 </figure>
             <?php endforeach; ?>
         </div>
