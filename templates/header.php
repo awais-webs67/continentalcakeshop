@@ -34,7 +34,7 @@ $navLinks = [
 <meta property="og:image" content="<?= e($page['image']) ?>">
 <meta property="og:locale" content="en_AU">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#0F6E5F">
+<meta name="theme-color" content="#1A8670">
 <link rel="icon" href="<?= e(asset('img/logo.svg')) ?>" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
