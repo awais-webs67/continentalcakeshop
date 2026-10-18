@@ -49,10 +49,10 @@ $navLinks = [
 <body class="<?= e($page['body_class']) ?>">
 <a class="skip-link" href="#main">Skip to content</a>
 
-<div class="topbar">
+<?php $announcement = setting('announcement_text'); ?>
+<div class="topbar<?= $announcement === '' ? ' topbar--no-text' : '' ?>">
     <div class="container topbar__inner">
-        <?php $announcement = setting('announcement_text'); $short = strtok($announcement, '.'); ?>
-        <p class="topbar__text"><?= icon('halal', '', 16) ?> <span class="topbar__full"><?= e($announcement) ?></span><span class="topbar__short"><?= e($short) ?></span></p>
+        <?php if ($announcement !== ''): ?><p class="topbar__text"><?= icon('truck', '', 17) ?> <?= e($announcement) ?></p><?php endif; ?>
         <div class="topbar__meta">
             <span><?= icon('clock', '', 16) ?> <?= e(today_hours_label()) ?></span>
             <a href="<?= e($phoneHref) ?>"><?= icon('phone', '', 16) ?> <?= e($phone) ?></a>

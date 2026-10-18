@@ -163,7 +163,7 @@ $mask = static function (string $key): string {
                 <label class="field"><span>Small line above the title</span><input class="input" name="hero_eyebrow" value="<?= $v('hero_eyebrow') ?>"></label>
                 <label class="field"><span>Main title</span><input class="input" name="hero_title" value="<?= $v('hero_title') ?>"></label>
                 <label class="field"><span>Text under the title</span><textarea class="input" name="hero_subtitle" rows="3"><?= $v('hero_subtitle') ?></textarea></label>
-                <label class="field"><span>Announcement bar <small>the thin strip at the very top, leave empty to hide</small></span><input class="input" name="announcement_text" value="<?= $v('announcement_text') ?>"></label>
+                <label class="field"><span>Announcement bar <small>the thin strip at the very top, next to a delivery icon. Leave empty to show only the hours and phone</small></span><input class="input" name="announcement_text" value="<?= $v('announcement_text') ?>"></label>
             </div>
             <div class="form-stack">
                 <span class="label">Main photo</span>

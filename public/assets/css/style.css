@@ -154,13 +154,13 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 /* ---------- Top bar ---------- */
 
-.topbar { background: var(--brand-deep); color: var(--white); font-size: 13px; }
+.topbar { background: var(--brand-mint); color: var(--brand-deep); font-size: 13px; font-weight: 600; }
+.topbar--no-text { display: none; }
+@media (min-width: 900px) { .topbar--no-text { display: block; } }
 .topbar__inner { display: flex; align-items: center; justify-content: center; gap: 24px; min-height: 36px; }
 .topbar__text { display: flex; align-items: center; gap: 8px; margin: 0; text-align: center; }
-.topbar__full { display: none; }
-@media (min-width: 640px) { .topbar__full { display: inline; } .topbar__short { display: none; } }
 .topbar__meta { display: none; align-items: center; gap: 20px; }
-.topbar__meta span, .topbar__meta a { display: inline-flex; align-items: center; gap: 6px; color: var(--white); text-decoration: none; }
+.topbar__meta span, .topbar__meta a { display: inline-flex; align-items: center; gap: 6px; color: var(--brand-deep); text-decoration: none; }
 .topbar__meta a:hover { text-decoration: underline; }
 
 @media (min-width: 900px) {
