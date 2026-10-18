@@ -10,10 +10,6 @@ DirectoryIndex index.php
     # RewriteCond %{HTTPS} off
     # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-    # Remove trailing slashes so every page has one URL
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^(.+)/$ /$1 [L,R=301]
-
     RewriteRule ^shop$                  shop.php [L,QSA]
     RewriteRule ^shop/([a-z0-9-]+)$     shop.php?category=$1 [L,QSA]
     RewriteRule ^cakes/([a-z0-9-]+)$    product.php?slug=$1 [L,QSA]
@@ -28,12 +24,12 @@ DirectoryIndex index.php
     RewriteRule ^sitemap\.xml$          sitemap.php [L]
     RewriteRule ^robots\.txt$           robots.php [L]
 
-    # Old .php addresses redirect to the clean URLs
-    RewriteCond %{THE_REQUEST} \s/(shop|cart|checkout|custom-cakes|about|contact)\.php[\s?]
-    RewriteRule ^ /%1 [L,R=301]
+    # Anything else that is not a real file shows the 404 page.
+    # (Relative rules keep this working both at the domain root and inside a sub-folder.)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ 404.php [L]
 </IfModule>
-
-ErrorDocument 404 /404.php
 
 <IfModule mod_headers.c>
     Header always set X-Content-Type-Options "nosniff"

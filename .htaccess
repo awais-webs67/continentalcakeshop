@@ -1,0 +1,10 @@
+# Lets the site run from a sub-folder such as XAMPP's htdocs/continentalcakeshop.
+# Every request is passed to the public/ folder, so config/, src/ and storage/ stay private.
+# On a live server, point the domain's document root at public/ instead.
+
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

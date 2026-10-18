@@ -40,11 +40,15 @@ The admin panel only needs to read and write these tables, using the same functi
 4. Point the domain's document root at the `public/` folder (Apache with `mod_rewrite`).
 5. Make `storage/uploads` and `public/uploads` writable by PHP.
 
-Local development:
+Local development, either way works:
 
-```
-php -S 127.0.0.1:8000 -t public public/router.php
-```
+- **XAMPP (Apache):** put the project in `htdocs/continentalcakeshop`, set `'app_url' => 'http://localhost/continentalcakeshop'` in `config/config.php`, and open that address. The root `.htaccess` passes every request to `public/`.
+- **PHP built-in server:** set `'app_url' => 'http://localhost:8000'` and run
+  ```
+  php -S localhost:8000 -t public public/router.php
+  ```
+
+Always open the site at exactly the address in `app_url`, otherwise the session (cart and forms) will not work.
 
 ## Settings to fill in before going live
 
