@@ -26,10 +26,16 @@ $page = [
         : 'Order Cakes Online in Canberra | ' . setting('store_short_name'),
     'description' => $category
         ? ($category['meta_description'] ?: content_text((string) $category['description']))
-        : 'Browse tortes, velvet cakes, mud cakes and cheesecakes from The Continental Cake Shop. Order online and pick up from Greenway, Canberra.',
+        : 'Order tortes, velvet cakes, mud cakes and cheesecakes online from The Continental Cake Shop. 100% Halal. Pickup in Greenway or delivery across Canberra.',
     'canonical'   => $baseUrl,
-    'noindex'     => $search !== '' || $sort !== 'featured',
-    'schema'      => [breadcrumb_schema($crumbs)],
+    // Search and sort versions repeat the same cakes: keep them out of Google but follow their links.
+    'robots'      => $search !== '' || $sort !== 'featured' ? 'noindex, follow' : '',
+    'schema'      => [breadcrumb_schema($crumbs), [
+        '@context'        => 'https://schema.org',
+        '@type'           => 'ItemList',
+        'name'            => $category['name'] ?? 'Cakes',
+        'itemListElement' => array_map(static fn ($p, $i) => ['@type' => 'ListItem', 'position' => $i + 1, 'url' => product_url($p), 'name' => $p['name']], $products, array_keys($products)),
+    ]],
 ];
 render('header', compact('page'));
 ?>

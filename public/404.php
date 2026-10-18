@@ -3,8 +3,12 @@ declare(strict_types=1);
 
 if (!defined('BASE_PATH')) {
     require dirname(__DIR__) . '/src/bootstrap.php';
-    http_response_code(404);
 }
+// Addresses from the old website move permanently to the new pages.
+if ($target = legacy_redirect_target(current_path())) {
+    redirect($target, 301);
+}
+http_response_code(404);
 
 $page = [
     'title'   => 'Page not found | ' . setting('store_short_name'),

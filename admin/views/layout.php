@@ -11,6 +11,7 @@ $nav = [
         ['custom-requests', 'Custom requests', 'gift', $badges['custom']],
         ['messages', 'Messages', 'mail', $badges['messages']],
         ['customers', 'Customers', 'user', null],
+        ['reports', 'Sales reports', 'chart', null],
         ['coupons', 'Coupons', 'tag', null],
     ],
     'Catalogue' => [
@@ -27,6 +28,13 @@ $nav = [
         ['settings', 'Settings', 'pen', null],
     ],
 ];
+// Hide links the account may not open.
+foreach ($nav as $group => $links) {
+    $nav[$group] = array_values(array_filter($links, static fn ($link) => ($section = admin_route_section($link[0])) === null || admin_can($section, $admin)));
+    if (!$nav[$group]) {
+        unset($nav[$group]);
+    }
+}
 if ($admin['role'] === 'owner') {
     $nav['Website'][] = ['admins', 'Staff accounts', 'user', null];
     $nav['Website'][] = ['system', 'System check', 'check', null];
@@ -70,10 +78,12 @@ if ($admin['role'] === 'owner') {
 <div class="admin-main">
     <header class="topbar">
         <button class="topbar__menu" type="button" data-sidebar-open aria-label="Open menu"><?= icon('menu', '', 22) ?></button>
+        <?php if (admin_can('orders', $admin)): ?>
         <form class="topbar__search" method="get" action="<?= e(admin_url('orders')) ?>">
             <?= icon('search', '', 18) ?>
             <input type="search" name="q" placeholder="Search orders by number, name, email or phone" value="<?= e((string) ($_GET['q'] ?? '')) ?>">
         </form>
+        <?php else: ?><div class="topbar__search"></div><?php endif; ?>
         <div class="topbar__user">
             <a href="<?= e(admin_url('account')) ?>" class="topbar__avatar" title="My account"><?= e(mb_strtoupper(mb_substr($admin['name'], 0, 1))) ?></a>
             <div class="topbar__who"><strong><?= e($admin['name']) ?></strong><span><?= e(ADMIN_ROLES[$admin['role']]) ?></span></div>

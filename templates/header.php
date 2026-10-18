@@ -25,6 +25,8 @@ $navLinks = [
 <meta name="robots" content="noindex, nofollow">
 <?php else: ?>
 <link rel="canonical" href="<?= e($page['canonical']) ?>">
+<?php if ($page['robots'] !== ''): ?><meta name="robots" content="<?= e($page['robots']) ?>">
+<?php endif; ?>
 <?php endif; ?>
 <meta property="og:type" content="<?= e($page['type']) ?>">
 <meta property="og:site_name" content="<?= e(setting('store_name')) ?>">
@@ -34,6 +36,11 @@ $navLinks = [
 <meta property="og:image" content="<?= e($page['image']) ?>">
 <meta property="og:locale" content="en_AU">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="<?= e($page['title']) ?>">
+<meta name="twitter:description" content="<?= e($page['description']) ?>">
+<meta name="twitter:image" content="<?= e($page['image']) ?>">
+<meta name="geo.region" content="AU-ACT">
+<meta name="geo.placename" content="<?= e(setting('store_suburb', 'Canberra')) ?>, Canberra">
 <meta name="theme-color" content="#1A8670">
 <link rel="icon" href="<?= e(asset('img/logo.svg')) ?>" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -41,6 +48,7 @@ $navLinks = [
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&text=THECONTINALKSPBR&display=swap">
 <link rel="stylesheet" href="<?= e(asset('css/style.css')) ?>">
+<?= analytics_tags() ?>
 <?= json_ld(local_business_schema()) ?>
 <?php foreach ($page['schema'] as $schema): ?>
 <?= json_ld($schema) ?>

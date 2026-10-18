@@ -1,0 +1,10 @@
+# Public photos only. Scripts in this folder are never run, even if someone manages to upload one.
+Options -Indexes -ExecCGI
+<FilesMatch "\.(php\d?|phtml|phar|pl|py|cgi|sh|html?|svg)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+</FilesMatch>
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>

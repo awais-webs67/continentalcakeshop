@@ -5,6 +5,21 @@ declare(strict_types=1);
 
 const ADMIN_ROLES = ['owner' => 'Owner', 'staff' => 'Staff'];
 const ADMIN_PER_PAGE = 20;
+// Parts of the admin panel, and the pages in each, so the owner can choose what staff may open.
+const ADMIN_SECTIONS = [
+    'orders'    => ['Orders, pickups and deliveries', ['orders', 'orders/view', 'orders/print', 'pickups']],
+    'custom'    => ['Custom cake requests', ['custom-requests', 'custom-requests/view']],
+    'messages'  => ['Customer messages', ['messages', 'messages/view']],
+    'customers' => ['Customers', ['customers', 'customers/view']],
+    'reports'   => ['Sales reports and exports', ['reports', 'reports/export']],
+    'coupons'   => ['Coupons', ['coupons']],
+    'products'  => ['Products and categories', ['products', 'products/edit', 'products/import', 'categories', 'categories/edit']],
+    'gallery'   => ['Gallery and reviews', ['gallery', 'reviews']],
+    'content'   => ['Homepage, popup, pages and FAQs', ['homepage', 'popup', 'pages', 'pages/edit', 'faqs', 'upload-image']],
+    'settings'  => ['Settings', ['settings']],
+];
+const OWNER_ONLY_ROUTES = ['admins', 'system'];
+
 const CUSTOM_STATUSES = ['new' => 'New', 'quoted' => 'Quoted', 'confirmed' => 'Confirmed', 'closed' => 'Closed'];
 
 // ---------------------------------------------------------------------------
@@ -16,7 +31,7 @@ function current_admin(): ?array
     static $admin = false;
     if ($admin === false) {
         $id = (int) ($_SESSION['admin_id'] ?? 0);
-        $admin = $id ? db_one('SELECT id, name, email, role FROM admins WHERE id = ? AND is_active = 1', [$id]) : null;
+        $admin = $id ? db_one('SELECT id, name, email, role, permissions FROM admins WHERE id = ? AND is_active = 1', [$id]) : null;
         if ($id && !$admin) {
             unset($_SESSION['admin_id']);
         }
@@ -38,6 +53,33 @@ function require_admin(?string $role = null): array
         redirect(admin_url());
     }
     return $admin;
+}
+
+/** Sections a staff account may open. Owners can open everything. */
+function admin_permissions(array $admin): array
+{
+    if ($admin['role'] === 'owner' || $admin['permissions'] === null) {
+        return array_keys(ADMIN_SECTIONS);
+    }
+    $list = json_decode((string) $admin['permissions'], true);
+    return is_array($list) ? array_values(array_intersect($list, array_keys(ADMIN_SECTIONS))) : [];
+}
+
+function admin_can(string $section, ?array $admin = null): bool
+{
+    $admin ??= current_admin();
+    return $admin !== null && in_array($section, admin_permissions($admin), true);
+}
+
+/** The section a route belongs to, or null for pages every admin may open. */
+function admin_route_section(string $route): ?string
+{
+    foreach (ADMIN_SECTIONS as $key => [, $routes]) {
+        if (in_array($route, $routes, true)) {
+            return $key;
+        }
+    }
+    return null;
 }
 
 function admin_count(): int
@@ -196,18 +238,29 @@ function save_public_image(string $field, string $folder, int $width, int $heigh
     if ($file['size'] > 10 * 1024 * 1024) {
         return [null, 'Please upload a photo under 10 MB.'];
     }
-    $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']) ?: '';
+    return store_image_file($file['tmp_name'], $folder, $width, $height, $name);
+}
+
+/**
+ * Crops a photo on disk to the target shape, scales it down and saves it as WebP in public/uploads/{folder}.
+ * Used for uploads and for photos downloaded during a product import.
+ *
+ * @return array{0:?string,1:?string}
+ */
+function store_image_file(string $path, string $folder, int $width, int $height, string $name = ''): array
+{
+    $mime = (new finfo(FILEINFO_MIME_TYPE))->file($path) ?: '';
     $source = match ($mime) {
-        'image/jpeg' => @imagecreatefromjpeg($file['tmp_name']),
-        'image/png'  => @imagecreatefrompng($file['tmp_name']),
-        'image/webp' => @imagecreatefromwebp($file['tmp_name']),
+        'image/jpeg' => @imagecreatefromjpeg($path),
+        'image/png'  => @imagecreatefrompng($path),
+        'image/webp' => @imagecreatefromwebp($path),
         default      => false,
     };
     if (!$source) {
-        return [null, 'Please upload a JPG, PNG or WebP photo.'];
+        return [null, 'Please use a JPG, PNG or WebP photo.'];
     }
     if ($mime === 'image/jpeg' && function_exists('exif_read_data')) {
-        $orientation = (int) (@exif_read_data($file['tmp_name'])['Orientation'] ?? 1);
+        $orientation = (int) (@exif_read_data($path)['Orientation'] ?? 1);
         $source = match ($orientation) {
             3 => imagerotate($source, 180, 0),
             6 => imagerotate($source, -90, 0),
@@ -315,6 +368,8 @@ function admin_badges(): array
         'orders'   => (int) db_value("SELECT COUNT(*) FROM orders WHERE order_status = 'new' OR (fulfilment = 'delivery' AND pickup_time IS NULL AND order_status NOT IN ('cancelled', 'completed'))"),
         'payments' => (int) db_value("SELECT COUNT(*) FROM orders WHERE payment_status = 'awaiting_verification'"),
         'custom'   => (int) db_value("SELECT COUNT(*) FROM custom_requests WHERE status = 'new'"),
-        'messages' => (int) db_value('SELECT COUNT(*) FROM contact_messages WHERE is_read = 0'),
+        'messages' => unread_thread_count(),
     ];
 }
+require __DIR__ . '/reports.php';
+require __DIR__ . '/product-import.php';

@@ -20,6 +20,7 @@ DirectoryIndex index.php
     RewriteRule ^shop/([a-z0-9-]+)$     shop.php?category=$1 [L,QSA]
     RewriteRule ^cakes/([a-z0-9-]+)$    product.php?slug=$1 [L,QSA]
     RewriteRule ^order/([A-Za-z0-9-]+)$ order.php?number=$1 [L,QSA]
+    RewriteRule ^messages/([a-f0-9]{32})$ messages.php?token=$1 [L,QSA]
     RewriteRule ^cart$                  cart.php [L,QSA]
     RewriteRule ^checkout$              checkout.php [L,QSA]
     RewriteRule ^custom-cakes$          custom-cakes.php [L,QSA]

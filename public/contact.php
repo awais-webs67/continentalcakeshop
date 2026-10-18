@@ -21,8 +21,9 @@ if (is_post()) {
     if (mb_strlen($data['message']) < 5) {
         $errors['message'] = 'Please enter your message.';
     }
-    // Honeypot field: real visitors never see or fill it.
-    if (input('website') !== '') {
+    // Bots fill the hidden field or send the form instantly; real people are not affected.
+    if (is_spam_submission('contact')) {
+        flash('error', 'Sorry, we could not send your message. Please wait a moment and try again, or call us.');
         redirect('contact');
     }
 
@@ -33,11 +34,12 @@ if (is_post()) {
         redirect('contact');
     }
 
-    db_run('INSERT INTO contact_messages (name, email, phone, message) VALUES (?, ?, ?, ?)',
-        [$data['name'], $data['email'], $data['phone'] ?: null, $data['message']]);
-    send_contact_notification($data);
+    // Each message starts a conversation the customer can follow from the link in our email.
+    $thread = create_thread('Website message', $data['name'], $data['email'], $data['phone'], ['user_id' => current_user()['id'] ?? null]);
+    customer_message($thread, $data['message']);
+    send_contact_confirmation($thread, $data['message']);
     forget_input();
-    flash('success', 'Thanks for your message. We will get back to you soon.');
+    flash('success', 'Thanks for your message. We have emailed you a copy and will reply soon.');
     redirect('contact');
 }
 
@@ -96,10 +98,7 @@ render('header', compact('page'));
         <form class="form-card" method="post" action="<?= e(url('contact')) ?>" novalidate>
             <?= csrf_field() ?>
             <h2 class="form-card__title">Send a message</h2>
-            <div class="hp-field" aria-hidden="true">
-                <label for="website">Website</label>
-                <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">
-            </div>
+            <?= spam_trap_fields() ?>
             <div class="field">
                 <label class="field-label" for="name">Full name</label>
                 <input class="input" id="name" name="name" type="text" autocomplete="name" value="<?= e(old('name')) ?>" required <?= $invalid('name') ?>>

@@ -1291,3 +1291,30 @@ body.promo-open { overflow: hidden; }
 
 .home-text__inner { max-width: 820px; }
 .home-text .section-title { margin-bottom: 14px; }
+
+/* ---------- Messages (customer side) ---------- */
+
+.chat { display: grid; gap: 18px; max-width: 760px; }
+.chat__list { display: flex; flex-direction: column; gap: 14px; }
+.chat__empty { display: flex; gap: 10px; align-items: center; margin: 0; padding: 16px 18px; border-radius: 14px; background: var(--brand-softer); color: var(--text); }
+.chat__empty .icon { color: var(--brand); flex: 0 0 auto; }
+.chat__msg { display: flex; flex-direction: column; max-width: 85%; }
+.chat__msg--customer { align-self: flex-end; align-items: flex-end; }
+.chat__msg--shop { align-self: flex-start; }
+.chat__bubble { padding: 12px 16px; border-radius: 18px; line-height: 1.6; word-break: break-word; }
+.chat__msg--customer .chat__bubble { background: var(--brand); color: var(--white); border-bottom-right-radius: 6px; }
+.chat__msg--shop .chat__bubble { background: var(--white); color: var(--ink); border: 1px solid var(--line); border-bottom-left-radius: 6px; box-shadow: var(--shadow-sm); }
+.chat__meta { margin: 4px 6px 0; font-size: 12px; color: var(--muted); }
+.chat__form textarea { margin-top: 6px; }
+.chat__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; margin-top: 12px; }
+.chat__actions .field-help { margin: 0; }
+
+.thread-list { margin: 0; padding: 0; list-style: none; }
+.thread-list li + li { border-top: 1px solid var(--line); }
+.thread-list a { display: flex; flex-direction: column; gap: 2px; padding: 10px 0; color: var(--text); text-decoration: none; }
+.thread-list a:hover strong { color: var(--brand); }
+.thread-list span { font-size: 14px; color: var(--muted); }
+.badge-dot { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: var(--brand); color: var(--white) !important; font-size: 11px; font-weight: 700; vertical-align: middle; }
+.order-help { text-align: center; }
+.order-help p { margin: 0 0 12px; }
+.order-help__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }

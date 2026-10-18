@@ -5,6 +5,10 @@ require dirname(__DIR__) . '/src/bootstrap.php';
 
 if (is_post()) {
     verify_csrf();
+    if (is_spam_submission('forgot', 5)) {
+        flash('error', 'Sorry, that did not go through. Please wait a moment and try again, or call us.');
+        redirect('forgot-password');
+    }
     $email = str_limit(input('email'), 190);
     if (valid_email($email)) {
         send_password_reset($email);
@@ -21,6 +25,7 @@ render('header', compact('page'));
     <div class="container container--narrow">
         <form class="form-card auth-card auth-card--single" method="post" action="<?= e(url('forgot-password')) ?>" novalidate>
             <?= csrf_field() ?>
+            <?= spam_trap_fields() ?>
             <h1 class="form-card__title">Forgot your password?</h1>
             <p class="form-card__lead">Enter your email and we will send you a link to choose a new one.</p>
             <div class="field">

@@ -7,6 +7,8 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS thread_messages;
+DROP TABLE IF EXISTS threads;
 DROP TABLE IF EXISTS order_events;
 DROP TABLE IF EXISTS coupons;
 DROP TABLE IF EXISTS order_items;
@@ -24,6 +26,7 @@ DROP TABLE IF EXISTS gallery_images;
 DROP TABLE IF EXISTS pages;
 DROP TABLE IF EXISTS faqs;
 DROP TABLE IF EXISTS settings;
+DROP TABLE IF EXISTS admin_password_resets;
 DROP TABLE IF EXISTS admins;
 DROP TABLE IF EXISTS schema_migrations;
 
@@ -257,6 +260,7 @@ CREATE TABLE admins (
     email          VARCHAR(190) NOT NULL UNIQUE,
     password_hash  VARCHAR(255) NOT NULL,
     role           ENUM('owner','staff') NOT NULL DEFAULT 'staff',
+    permissions    TEXT NULL COMMENT 'JSON list of admin sections a staff account may open; NULL = all',
     is_active      TINYINT(1) NOT NULL DEFAULT 1,
     failed_logins  INT UNSIGNED NOT NULL DEFAULT 0,
     locked_until   DATETIME NULL,
@@ -294,6 +298,52 @@ CREATE TABLE coupons (
     is_active      TINYINT(1) NOT NULL DEFAULT 1,
     created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE admin_password_resets (
+    id          INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    admin_id    INT UNSIGNED NOT NULL,
+    token_hash  CHAR(64) NOT NULL UNIQUE,
+    expires_at  DATETIME NOT NULL,
+    used_at     DATETIME NULL,
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_admin_resets_admin FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE threads (
+    id                 INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    token              CHAR(32) NOT NULL UNIQUE,
+    subject            VARCHAR(160) NOT NULL,
+    customer_name      VARCHAR(120) NOT NULL,
+    customer_email     VARCHAR(190) NOT NULL,
+    customer_phone     VARCHAR(40) NULL,
+    user_id            INT UNSIGNED NULL,
+    order_id           INT UNSIGNED NULL,
+    custom_request_id  INT UNSIGNED NULL,
+    status             ENUM('open','closed') NOT NULL DEFAULT 'open',
+    unread_admin       TINYINT(1) NOT NULL DEFAULT 0,
+    unread_customer    TINYINT(1) NOT NULL DEFAULT 0,
+    last_message_at    DATETIME NULL,
+    created_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_threads_order (order_id),
+    UNIQUE KEY uq_threads_custom (custom_request_id),
+    KEY idx_threads_inbox (status, last_message_at),
+    KEY idx_threads_email (customer_email),
+    CONSTRAINT fk_threads_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL,
+    CONSTRAINT fk_threads_order FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE,
+    CONSTRAINT fk_threads_custom FOREIGN KEY (custom_request_id) REFERENCES custom_requests (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE thread_messages (
+    id          INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    thread_id   INT UNSIGNED NOT NULL,
+    sender      ENUM('customer','shop') NOT NULL,
+    admin_id    INT UNSIGNED NULL,
+    body        TEXT NOT NULL,
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_thread_messages (thread_id, created_at),
+    CONSTRAINT fk_thread_messages_thread FOREIGN KEY (thread_id) REFERENCES threads (id) ON DELETE CASCADE,
+    CONSTRAINT fk_thread_messages_admin FOREIGN KEY (admin_id) REFERENCES admins (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE schema_migrations (

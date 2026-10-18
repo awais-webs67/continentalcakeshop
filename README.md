@@ -37,7 +37,12 @@ Open `/admin`. The first visit creates the owner account. Everything below is ma
 - **Homepage**: switch each homepage section on or off, change the order and edit its text and buttons
 - **Text editor** for policy pages, FAQs, product and category descriptions and homepage text: headings, bold, italic, underline, alignment and justify, lists, quotes, links, pictures (uploaded and resized) and an HTML view
 - **Email settings** (Settings > Emails): SMTP server, port, security, username and password (stored encrypted, never shown), sender name and address, with a test email that shows the server's error message
-- **Duplicate** a product to add a similar cake quickly
+- **Duplicate** a product to add a similar cake quickly, or **import** many from Excel/CSV (template download, preview, then import; also used to update prices in bulk)
+- **Messages**: customers write from the contact page, their order page or the "Reply to us" button in every email; staff answer from one inbox and the customer is emailed
+- **Sales reports**: sales, paid, discounts, delivery fees, refunds, net and GST, by day, payment method, category and cake, with CSV exports for Excel
+- **Staff access**: the owner chooses which parts of the panel each staff account can open
+- **Morning email** before the shop opens, sent by `cron/run.php` (see DEPLOY.md)
+- **Security**: payment screenshots and custom cake photos are stored in `storage/` and can only be opened by logged-in staff; private folders are blocked even if mod_rewrite is off; spam protection on public forms; admin password reset by email
 - **Settings**: shop details, opening hours, ordering rules and closed dates, payment methods on or off with their details (Stripe keys, PayID, bank), email alerts and a test email, homepage text, Google rating, social links and SEO
 - **Staff accounts** (owner only): add staff, change roles, reset passwords, disable logins
 - **System check** (owner only): server requirements, folder permissions, live-site warnings, and one-click database updates

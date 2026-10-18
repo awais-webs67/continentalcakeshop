@@ -1,1 +1,9 @@
-Require all denied
+# Private files: payment screenshots, custom cake photos, logs and the encryption key.
+# Never served to a browser. Staff open them through the admin panel only.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

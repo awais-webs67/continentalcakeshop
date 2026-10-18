@@ -175,6 +175,7 @@ function render_email(string $name, array $data): string
     $content = (string) ob_get_clean();
     $title = $data['title'] ?? setting('store_short_name');
     $preheader = $data['preheader'] ?? '';
+    $reply_url = $data['reply_url'] ?? null;
     ob_start();
     require BASE_PATH . '/templates/emails/layout.php';
     return (string) ob_get_clean();
@@ -206,7 +207,9 @@ function send_order_emails(array $order): void
         send_mail(
             $order['customer_email'],
             "Order {$order['order_number']} received - {$shop}",
-            render_email('order-confirmation', ['order' => $order, 'items' => $items, 'title' => 'Thank you for your order', 'preheader' => 'Order ' . $order['order_number'] . ' for ' . order_when($order)])
+            render_email('order-confirmation', ['order' => $order, 'items' => $items, 'title' => 'Thank you for your order', 'preheader' => 'Order ' . $order['order_number'] . ' for ' . order_when($order), 'reply_url' => thread_url(order_thread($order))]),
+            null,
+            setting('store_email')
         );
     }
     $notify = setting('order_notification_email');
@@ -231,7 +234,10 @@ function send_order_update_email(array $order, string $headline, string $message
             'order' => $order, 'items' => get_order_items((int) $order['id']),
             'headline' => $headline, 'message' => $message,
             'title' => $headline, 'preheader' => $message,
-        ])
+            'reply_url' => thread_url(order_thread($order)),
+        ]),
+        null,
+        setting('store_email')
     );
 }
 
@@ -240,7 +246,9 @@ function send_custom_request_emails(array $request): void
     send_mail(
         $request['email'],
         'We received your custom cake request - ' . setting('store_short_name'),
-        render_email('custom-request-customer', ['request' => $request, 'title' => 'Thanks for your custom cake request', 'preheader' => 'We will be in touch with a quote soon.'])
+        render_email('custom-request-customer', ['request' => $request, 'title' => 'Thanks for your custom cake request', 'preheader' => 'We will be in touch with a quote soon.', 'reply_url' => thread_url(custom_request_thread($request))]),
+        null,
+        setting('store_email')
     );
     $notify = setting('order_notification_email');
     if ($notify !== '') {
@@ -259,7 +267,19 @@ function send_custom_quote_email(array $request, string $message): bool
     return send_mail(
         $request['email'],
         'Your custom cake quote - ' . setting('store_short_name'),
-        render_email('custom-quote', ['request' => $request, 'message' => $message, 'title' => 'Your custom cake quote', 'preheader' => $request['quoted_price'] ? 'Quote: ' . money($request['quoted_price']) : 'A reply about your custom cake']),
+        render_email('custom-quote', ['request' => $request, 'message' => $message, 'title' => 'Your custom cake quote', 'preheader' => $request['quoted_price'] ? 'Quote: ' . money($request['quoted_price']) : 'A reply about your custom cake', 'reply_url' => thread_url(custom_request_thread($request))]),
+        null,
+        setting('store_email')
+    );
+}
+
+/** Confirms a contact form message to the customer, with the link to follow the conversation. */
+function send_contact_confirmation(array $thread, string $message): void
+{
+    send_mail(
+        $thread['customer_email'],
+        'We received your message - ' . setting('store_short_name'),
+        render_email('contact-customer', ['thread' => $thread, 'message' => $message, 'title' => 'Thanks for your message', 'preheader' => 'We will reply soon.', 'reply_url' => thread_url($thread)]),
         null,
         setting('store_email')
     );

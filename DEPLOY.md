@@ -127,7 +127,23 @@ In the admin panel, **Settings**:
 
 Then place a small test order on the website to see the full flow and the emails.
 
-## Step 9. Stripe card payments
+## Step 9. The morning email (cron job)
+
+Every open day, a plan for the day (pickups, deliveries, payments to check, messages) is emailed before the shop opens. It also shows straight away if email stops working.
+
+1. cPanel > **Cron Jobs** > **Add New Cron Job**.
+2. Common settings: **Once Per Fifteen Minutes** (`*/15 * * * *`).
+3. Command (change `cpaneluser` to your cPanel username, and the folder if the site is not in `public_html`):
+
+```
+/usr/local/bin/php /home/cpaneluser/public_html/cron/run.php >/dev/null 2>&1
+```
+
+4. In **Admin > Settings > Emails** choose who receives it and how many minutes before opening. **Send today's morning email now** sends one straight away to try it.
+
+**Admin > System check** shows whether the cron job is running.
+
+## Step 10. Stripe card payments
 
 1. Log in at [dashboard.stripe.com](https://dashboard.stripe.com) and finish the account activation.
 2. **Developers** > **API keys**: copy the **Secret key** (`sk_live_...`) into Admin > Settings > Payments.
@@ -138,6 +154,13 @@ Then place a small test order on the website to see the full flow and the emails
 5. Switch **Accept card payments** on, save, and click **Test Stripe connection**.
 
 To try it first without real money, use the `sk_test_...` key and the test card `4242 4242 4242 4242`, then swap in the live key.
+
+## Step 11. Google
+
+1. In [Google Search Console](https://search.google.com/search-console) add the domain, choose **HTML tag**, and paste the code into **Admin > Settings > Social & SEO**. Then submit `https://www.yourdomain.com.au/sitemap.xml` under **Sitemaps**.
+2. Optional: create a Google Analytics 4 property and paste the `G-...` ID in the same place.
+3. Keep `app_url` as the same address the old site used (for example `https://www.continentalcakeshop.com.au`). The old pages such as `/allcakes`, `/mud-cakes`, `/about-us` and `/celebration-cakes` already redirect to the new pages, so existing Google rankings carry over.
+4. Update the website link in your **Google Business Profile** if it changes.
 
 ## Updating the site later
 

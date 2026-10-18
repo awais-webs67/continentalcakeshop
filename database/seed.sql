@@ -516,5 +516,13 @@ INSERT IGNORE INTO settings (setting_key, setting_value) VALUES
 ('smtp_username',          ''),
 ('smtp_password_encrypted', '');
 
+-- Morning email settings (same as migration 011)
+INSERT IGNORE INTO settings (setting_key, setting_value) VALUES
+('daily_email_enabled',        '1'),
+('daily_email_to',             ''),
+('daily_email_minutes_before', '60'),
+('daily_email_last_sent',      ''),
+('cron_last_run',              '');
+
 INSERT IGNORE INTO schema_migrations (migration) VALUES
-('001_customer_accounts.sql'), ('002_pages_and_faqs.sql'), ('003_hero_image_setting.sql'), ('004_teal_hero_cake.sql'), ('005_admin_panel.sql'), ('006_delivery_announcement.sql'), ('007_delivery_and_sizes.sql'), ('008_coupons_popup_delivery_windows.sql'), ('009_homepage_sections_and_mail.sql');
+('001_customer_accounts.sql'), ('002_pages_and_faqs.sql'), ('003_hero_image_setting.sql'), ('004_teal_hero_cake.sql'), ('005_admin_panel.sql'), ('006_delivery_announcement.sql'), ('007_delivery_and_sizes.sql'), ('008_coupons_popup_delivery_windows.sql'), ('009_homepage_sections_and_mail.sql'), ('010_messages_reports_permissions.sql'), ('011_daily_email_settings.sql');

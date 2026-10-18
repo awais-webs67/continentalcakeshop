@@ -37,6 +37,15 @@ $mask = static function (string $key): string {
             <label class="field"><span>Postcode</span><input class="input" name="store_postcode" value="<?= $v('store_postcode') ?>"></label>
             <label class="field"><span>Since</span><input class="input" name="store_founded" value="<?= $v('store_founded') ?>"></label>
         </div>
+        <label class="field"><span>ABN <small>shown in the footer and on order emails</small></span><input class="input" name="store_abn" value="<?= $v('store_abn') ?>" placeholder="12 345 678 901"></label>
+        <label class="switch" style="align-self:end"><input type="checkbox" name="gst_registered" value="1" <?= $on('gst_registered') ?>><span class="switch__track"></span><span>Registered for GST (orders show the GST included)</span></label>
+        <?= field_error($errors, 'store_abn') ?>
+        <div class="form-grid" style="gap:12px">
+            <label class="field"><span>Map latitude <small>optional</small></span><input class="input" name="store_latitude" value="<?= $v('store_latitude') ?>" placeholder="-35.4167"></label>
+            <label class="field"><span>Map longitude</span><input class="input" name="store_longitude" value="<?= $v('store_longitude') ?>" placeholder="149.0667"></label>
+        </div>
+        <p class="hint" style="align-self:end">Helps Google show the shop on the map. In Google Maps, right-click the shop and click the numbers to copy them.</p>
+        <?= field_error($errors, 'store_latitude') ?><?= field_error($errors, 'store_longitude') ?>
     </div>
 
 <?php elseif ($tab === 'hours'): ?>
@@ -171,6 +180,18 @@ $mask = static function (string $key): string {
         <label class="switch"><input type="checkbox" name="send_customer_emails" value="1" <?= $on('send_customer_emails') ?>><span class="switch__track"></span><span>Email customers their order confirmation and updates</span></label>
         <label class="field"><span>Thank-you line <small>shown at the bottom of customer emails</small></span><input class="input" name="email_accent_note" value="<?= $v('email_accent_note') ?>"></label>
     </div>
+    <div class="card__body form-stack" style="border-top:1px solid var(--line)">
+        <h3 class="label">Morning email</h3>
+        <label class="switch"><input type="checkbox" name="daily_email_enabled" value="1" <?= $on('daily_email_enabled') ?>><span class="switch__track"></span><span>Send a plan for the day before the shop opens</span></label>
+        <p class="hint" style="margin-top:-6px">Today's pickups and deliveries, payments to check, deliveries without a time, custom cakes this week and unread messages. It arrives every open day, so you also know straight away if email stops working.</p>
+        <div class="form-grid">
+            <label class="field"><span>Send to <small>empty = the order alerts address</small></span><input class="input" type="email" name="daily_email_to" value="<?= $v('daily_email_to') ?>" placeholder="<?= $v('order_notification_email') ?>"></label>
+            <label class="field"><span>Minutes before opening</span><input class="input" type="number" min="0" max="600" name="daily_email_minutes_before" value="<?= $v('daily_email_minutes_before') ?>"></label>
+        </div>
+        <?= field_error($errors, 'daily_email_to') ?>
+        <?php $cronRun = setting('cron_last_run'); ?>
+        <p class="hint">Scheduled job: <?= $cronRun !== '' ? 'last ran ' . e(time_ago($cronRun)) . (strtotime($cronRun) < time() - 3600 ? ' ' . status_badge('pending', 'Not running') : ' ' . status_badge('active', 'Running')) : status_badge('pending', 'Not set up yet') . ' Add the cron job from DEPLOY.md in cPanel &gt; Cron Jobs.' ?><?= setting('daily_email_last_sent') !== '' ? ' &middot; last morning email ' . e(date('j M Y', strtotime(setting('daily_email_last_sent')))) : '' ?></p>
+    </div>
     <?php
     // Show what is in use now: the admin settings once saved, otherwise config.php.
     $mv = static fn (string $key, string $configKey): string => e((string) ($s[$key] ?? '') !== '' ? (string) $s[$key] : (string) config('mail.' . $configKey, ''));
@@ -256,7 +277,23 @@ $mask = static function (string $key): string {
             <span class="serp__title"><?= $v('seo_home_title') ?></span>
             <span class="serp__desc"><?= $v('seo_home_description') ?></span>
         </div>
-        <p class="hint">Products, categories and pages have their own search settings on their edit screens. The sitemap is at <a href="<?= e(url('sitemap.xml')) ?>" target="_blank"><?= e(url('sitemap.xml')) ?></a>.</p>
+        <p class="hint">Products, categories and pages have their own search settings on their edit screens. The sitemap is at <a href="<?= e(url('sitemap.xml')) ?>" target="_blank"><?= e(url('sitemap.xml')) ?></a> and robots.txt at <a href="<?= e(url('robots.txt')) ?>" target="_blank"><?= e(url('robots.txt')) ?></a>.</p>
+    </div>
+    <div class="card__body form-stack" style="border-top:1px solid var(--line)">
+        <h3 class="label">Google and Bing</h3>
+        <div class="form-grid form-grid--3">
+            <label class="field"><span>Google Analytics ID <small>GA4</small></span><input class="input" name="seo_ga4_id" value="<?= $v('seo_ga4_id') ?>" placeholder="G-ABC123XYZ"></label>
+            <label class="field"><span>Google Search Console code</span><input class="input" name="seo_google_verification" value="<?= $v('seo_google_verification') ?>" placeholder="Paste the code or the whole meta tag"></label>
+            <label class="field"><span>Bing Webmaster code</span><input class="input" name="seo_bing_verification" value="<?= $v('seo_bing_verification') ?>"></label>
+        </div>
+        <?= field_error($errors, 'seo_ga4_id') ?>
+        <p class="hint">After verifying in Search Console, submit the sitemap address above so Google finds every cake quickly.</p>
+    </div>
+    <div class="card__body form-stack" style="border-top:1px solid var(--line)">
+        <h3 class="label">Redirects from old addresses</h3>
+        <p class="hint" style="margin-top:-6px">The old website's pages (/allcakes, /mud-cakes, /about-us, /celebration-cakes and others) already send visitors to the new pages. Add more here, one per line: old address, a space, new address.</p>
+        <textarea class="input" name="seo_redirects" rows="4" placeholder="/old-page /shop/tortes"><?= $v('seo_redirects') ?></textarea>
+        <?= field_error($errors, 'seo_redirects') ?>
     </div>
 <?php endif; ?>
 
@@ -267,6 +304,7 @@ $mask = static function (string $key): string {
         <?php endif; ?>
         <?php if ($tab === 'emails'): ?>
             <button class="btn btn--secondary" type="submit" name="action" value="test_email" formnovalidate><?= icon('mail', '', 18) ?> Send a test email</button>
+            <button class="btn btn--secondary" type="submit" name="action" value="daily_now" formnovalidate>Send today's morning email now</button>
         <?php endif; ?>
     </div>
 </form>

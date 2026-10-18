@@ -6,4 +6,5 @@
     <label class="field"><span>Password</span><input class="input" type="password" name="password" autocomplete="current-password" required></label>
     <button class="btn btn--primary btn--block" type="submit">Log in</button>
 </form>
+<p class="auth-box__alt"><a href="<?= e(admin_url('forgot-password')) ?>">Forgot your password?</a></p>
 <?php forget_input(); ?>

@@ -12,18 +12,19 @@ const SETTINGS_TABS = [
 
 // Plain text settings each tab may change. Anything not listed here is ignored.
 const SETTINGS_FIELDS = [
-    'store'    => ['store_name' => 120, 'store_short_name' => 80, 'store_phone' => 40, 'store_email' => 190, 'store_street' => 120, 'store_suburb' => 80, 'store_state' => 10, 'store_postcode' => 10, 'store_founded' => 4],
+    'store'    => ['store_name' => 120, 'store_short_name' => 80, 'store_phone' => 40, 'store_email' => 190, 'store_street' => 120, 'store_suburb' => 80, 'store_state' => 10, 'store_postcode' => 10, 'store_founded' => 4, 'store_abn' => 20, 'store_latitude' => 12, 'store_longitude' => 12],
     'ordering' => ['min_lead_hours' => 4, 'custom_lead_days' => 3, 'max_advance_days' => 4, 'slot_interval_minutes' => 3, 'last_slot_buffer_minutes' => 4, 'max_orders_per_slot' => 4, 'max_deliveries_per_day' => 4, 'delivery_fee' => 10, 'delivery_free_over' => 10, 'delivery_min_order' => 10, 'delivery_note' => 255, 'delivery_postcodes' => 255],
     'payments' => ['payment_stripe_label' => 60, 'payment_stripe_note' => 255, 'payment_payid_label' => 60, 'payment_payid_note' => 255, 'payment_bank_label' => 60, 'payment_bank_note' => 255, 'payid_identifier' => 120, 'payid_account_name' => 120, 'bank_account_name' => 120, 'bank_bsb' => 7, 'bank_account_number' => 20, 'stripe_publishable_key' => 255],
-    'emails'   => ['order_notification_email' => 190, 'email_accent_note' => 255, 'mail_from_address' => 190, 'mail_from_name' => 120, 'smtp_host' => 190, 'smtp_port' => 5, 'smtp_username' => 190],
+    'emails'   => ['order_notification_email' => 190, 'email_accent_note' => 255, 'daily_email_to' => 190, 'daily_email_minutes_before' => 4, 'mail_from_address' => 190, 'mail_from_name' => 120, 'smtp_host' => 190, 'smtp_port' => 5, 'smtp_username' => 190],
     'homepage' => ['hero_eyebrow' => 120, 'hero_title' => 120, 'hero_subtitle' => 400, 'announcement_text' => 200, 'google_rating' => 3, 'google_review_count' => 10, 'google_reviews_url' => 500],
-    'seo'      => ['social_facebook' => 255, 'social_instagram' => 255, 'social_pinterest' => 255, 'seo_home_title' => 160, 'seo_home_description' => 300],
+    'seo'      => ['social_facebook' => 255, 'social_instagram' => 255, 'social_pinterest' => 255, 'seo_home_title' => 160, 'seo_home_description' => 300, 'seo_ga4_id' => 20, 'seo_google_verification' => 120, 'seo_bing_verification' => 120],
 ];
 
 const SETTINGS_SWITCHES = [
     'ordering' => ['pickup_enabled', 'delivery_enabled'],
     'payments' => ['payment_stripe_enabled', 'payment_payid_enabled', 'payment_bank_enabled'],
-    'emails'   => ['send_customer_emails'],
+    'emails'   => ['send_customer_emails', 'daily_email_enabled'],
+    'store'    => ['gst_registered'],
 ];
 
 if (($_GET['tab'] ?? '') === 'homepage') {
@@ -44,6 +45,11 @@ if (is_post()) {
         flash($ok ? 'success' : 'error', $ok
             ? (mail_config('driver') === 'log' ? 'The test email was saved to storage/logs/mail (the sending method is "Save to a file").' : 'A test email was sent to ' . $to . '. Check the inbox and the spam folder.')
             : 'The test email could not be sent.' . ($reason !== '' ? ' The server said: ' . $reason : ' Check the settings below.'));
+        redirect($self);
+    }
+    if ($action === 'daily_now') {
+        $ok = send_daily_summary(date('Y-m-d'));
+        flash($ok ? 'success' : 'error', $ok ? "Today's morning email was sent to " . daily_email_recipient() . '.' : 'The morning email could not be sent. ' . ($GLOBALS['mail_last_error'] ?? 'Add an email address first.'));
         redirect($self);
     }
     if ($action === 'test_stripe') {
@@ -87,6 +93,15 @@ if (is_post()) {
         }
         if (!valid_email($values['store_email'])) {
             $errors['store_email'] = 'Please enter a valid email address.';
+        }
+        $values['store_abn'] = trim(preg_replace('/(\d{2})(\d{3})(\d{3})(\d{3})/', '$1 $2 $3 $4', preg_replace('/\D/', '', $values['store_abn'])));
+        if ($values['store_abn'] !== '' && strlen(str_replace(' ', '', $values['store_abn'])) !== 11) {
+            $errors['store_abn'] = 'An ABN has 11 digits.';
+        }
+        foreach (['store_latitude' => 90, 'store_longitude' => 180] as $key => $limit) {
+            if ($values[$key] !== '' && (!is_numeric($values[$key]) || abs((float) $values[$key]) > $limit)) {
+                $errors[$key] = 'Use a number like -35.4167 (copy it from Google Maps).';
+            }
         }
         $digits = preg_replace('/\D/', '', $values['store_phone']);
         $values['store_phone_e164'] = $digits !== '' ? '+61' . ltrim(str_starts_with($digits, '61') ? substr($digits, 2) : $digits, '0') : '';
@@ -175,6 +190,10 @@ if (is_post()) {
         if ($values['order_notification_email'] !== '' && !valid_email($values['order_notification_email'])) {
             $errors['order_notification_email'] = 'Please enter a valid email address.';
         }
+        if ($values['daily_email_to'] !== '' && !valid_email($values['daily_email_to'])) {
+            $errors['daily_email_to'] = 'Please enter a valid email address.';
+        }
+        $values['daily_email_minutes_before'] = (string) min(600, max(0, (int) $values['daily_email_minutes_before']));
         $values['mail_driver'] = in_array(input('mail_driver'), ['mail', 'smtp', 'log'], true) ? input('mail_driver') : 'mail';
         $values['smtp_encryption'] = in_array(input('smtp_encryption'), ['ssl', 'tls', 'none'], true) ? input('smtp_encryption') : 'ssl';
         $values['smtp_port'] = (string) ((int) $values['smtp_port'] ?: ($values['smtp_encryption'] === 'tls' ? 587 : 465));
@@ -215,6 +234,27 @@ if (is_post()) {
     }
 
     if ($tab === 'seo') {
+        $values['seo_ga4_id'] = strtoupper($values['seo_ga4_id']);
+        if ($values['seo_ga4_id'] !== '' && !preg_match('/^G-[A-Z0-9]{4,}$/', $values['seo_ga4_id'])) {
+            $errors['seo_ga4_id'] = 'The Google Analytics ID looks like G-ABC123XYZ.';
+        }
+        // Accept either the code or the whole <meta> tag Google gives you.
+        foreach (['seo_google_verification', 'seo_bing_verification'] as $key) {
+            if (preg_match('/content="([^"]+)"/', $values[$key], $m)) {
+                $values[$key] = $m[1];
+            }
+            $values[$key] = preg_replace('/[^A-Za-z0-9_-]/', '', $values[$key]);
+        }
+        $lines = [];
+        foreach (preg_split('/\R/', input('seo_redirects')) as $line) {
+            $parts = preg_split('/\s+/', trim($line));
+            if (count($parts) === 2 && $parts[0] !== '') {
+                $lines[] = '/' . trim(parse_url($parts[0], PHP_URL_PATH) ?: $parts[0], '/') . ' ' . (preg_match('#^https?://#', $parts[1]) ? $parts[1] : '/' . trim($parts[1], '/'));
+            } elseif (trim($line) !== '') {
+                $errors['seo_redirects'] = 'Each line needs an old address and a new address, separated by a space.';
+            }
+        }
+        $values['seo_redirects'] = implode("\n", $lines);
         foreach (['social_facebook', 'social_instagram', 'social_pinterest'] as $key) {
             if ($values[$key] !== '' && !filter_var($values[$key], FILTER_VALIDATE_URL)) {
                 $errors[$key] = 'Please paste the full link, starting with https://';

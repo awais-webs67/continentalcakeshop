@@ -49,6 +49,12 @@ if (is_post()) {
 
 $errors = take_form_errors();
 $orders = get_user_orders((int) $user['id']);
+// Conversations with messages, linked to the account or sent from the same email.
+$threads = db_all(
+    'SELECT t.*, (SELECT body FROM thread_messages m WHERE m.thread_id = t.id ORDER BY m.id DESC LIMIT 1) AS last_body
+     FROM threads t WHERE (t.user_id = ? OR t.customer_email = ?) AND t.last_message_at IS NOT NULL ORDER BY t.last_message_at DESC LIMIT 20',
+    [$user['id'], $user['email']]
+);
 $progress = ['new', 'confirmed', 'in_progress', 'ready', 'completed'];
 
 $page = ['title' => 'My Account | ' . setting('store_short_name'), 'noindex' => true];
@@ -104,6 +110,18 @@ render('header', compact('page'));
         </div>
 
         <aside class="account-side" id="details">
+            <div class="info-card" id="messages">
+                <h2>Messages</h2>
+                <?php if (!$threads): ?>
+                    <p class="field-help">No messages yet. Use "Message us" on an order, or our <a href="<?= e(url('contact')) ?>">contact form</a>.</p>
+                <?php else: ?>
+                    <ul class="thread-list">
+                        <?php foreach ($threads as $t): ?>
+                            <li><a href="<?= e(thread_url($t)) ?>"><strong><?= e($t['subject']) ?><?= $t['unread_customer'] ? ' <span class="badge-dot">New reply</span>' : '' ?></strong><span><?= e(mb_strimwidth((string) $t['last_body'], 0, 70, '...')) ?></span></a></li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
+            </div>
             <form class="info-card" method="post" action="<?= e(url('account')) ?>" novalidate>
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="profile">

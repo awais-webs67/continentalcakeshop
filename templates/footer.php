@@ -46,7 +46,7 @@ $socials = array_filter([
     </div>
 
     <div class="container site-footer__bottom">
-        <p>&copy; <?= date('Y') ?> <?= e(setting('store_name')) ?></p>
+        <p>&copy; <?= date('Y') ?> <?= e(setting('store_name')) ?><?= setting('store_abn') !== '' ? ' &middot; ABN ' . e(setting('store_abn')) : '' ?></p>
         <ul class="footer-inline">
             <li><a href="<?= e(url('faq')) ?>">FAQ</a></li>
             <li><a href="<?= e(url('allergens')) ?>">Allergens</a></li>

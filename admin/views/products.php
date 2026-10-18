@@ -1,7 +1,10 @@
 <?php /** @var array $result @var array $categories */ ?>
 <div class="page-head">
     <div><h1>Products</h1><p>Cakes shown in the shop, with their sizes and prices.</p></div>
-    <div class="page-head__actions"><a class="btn btn--primary" href="<?= e(admin_url('products/edit')) ?>"><?= icon('plus', '', 18) ?> Add product</a></div>
+    <div class="page-head__actions">
+        <a class="btn btn--secondary" href="<?= e(admin_url('products/import')) ?>"><?= icon('upload', '', 18) ?> Import from Excel</a>
+        <a class="btn btn--primary" href="<?= e(admin_url('products/edit')) ?>"><?= icon('plus', '', 18) ?> Add product</a>
+    </div>
 </div>
 <section class="card">
     <form class="toolbar" method="get" action="<?= e(admin_url('products')) ?>">

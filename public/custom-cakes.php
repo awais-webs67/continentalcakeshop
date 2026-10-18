@@ -13,6 +13,10 @@ $minDate = (new DateTimeImmutable('today'))->modify("+{$leadDays} days")->format
 
 if (is_post()) {
     verify_csrf();
+    if (is_spam_submission('custom', 5)) {
+        flash('error', 'Sorry, that did not go through. Please wait a moment and try again, or call us.');
+        redirect('custom-cakes#quote');
+    }
     $data = [
         'name'       => str_limit(input('name'), 120),
         'email'      => str_limit(input('email'), 190),
@@ -121,6 +125,7 @@ render('header', compact('page'));
     <div class="container custom-layout">
         <form class="form-card" method="post" action="<?= e(url('custom-cakes')) ?>" enctype="multipart/form-data" novalidate>
             <?= csrf_field() ?>
+            <?= spam_trap_fields() ?>
             <h2 class="form-card__title">Request a quote</h2>
             <p class="form-card__lead">Fill in what you know. We will contact you to go over the details and confirm the price.</p>
 

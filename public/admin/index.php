@@ -16,6 +16,8 @@ const ADMIN_ROUTES = [
     'login'                => 'login',
     'logout'               => 'logout',
     'setup'                => 'setup',
+    'forgot-password'      => 'forgot-password',
+    'reset-password'       => 'reset-password',
     'orders'               => 'orders',
     'orders/view'          => 'order-view',
     'coupons'              => 'coupons',
@@ -31,6 +33,10 @@ const ADMIN_ROUTES = [
     'custom-requests'      => 'custom-requests',
     'custom-requests/view' => 'custom-request-view',
     'messages'             => 'messages',
+    'messages/view'        => 'message-view',
+    'reports'              => 'reports',
+    'reports/export'       => 'reports-export',
+    'products/import'      => 'products-import',
     'customers'            => 'customers',
     'customers/view'       => 'customer-view',
     'reviews'              => 'reviews',
@@ -55,6 +61,20 @@ if ($controller === null) {
 // First run: no admin accounts yet, so send everyone to the setup page.
 if ($controller !== 'setup' && admin_count() === 0) {
     redirect(admin_url('setup'));
+}
+
+// Staff only see the parts of the panel the owner allowed.
+$signedIn = current_admin();
+if ($signedIn) {
+    $section = admin_route_section($route);
+    $blocked = ($section !== null && !admin_can($section, $signedIn))
+        || (in_array($route, OWNER_ONLY_ROUTES, true) && $signedIn['role'] !== 'owner')
+        // Private files (payment screenshots, cake photos) need access to orders, requests or messages.
+        || ($route === 'file' && !array_intersect(['orders', 'custom', 'messages'], admin_permissions($signedIn)));
+    if ($blocked) {
+        flash('error', 'Your account does not have access to that page. Ask the owner if you need it.');
+        redirect(admin_url());
+    }
 }
 
 if (is_post()) {

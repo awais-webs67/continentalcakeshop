@@ -20,6 +20,8 @@ if (is_post()) {
         }
         db_run("UPDATE custom_requests SET quoted_price = ?, status = IF(status = 'new', 'quoted', status) WHERE id = ?", [$price > 0 ? round($price, 2) : null, $request['id']]);
         $request = db_one('SELECT * FROM custom_requests WHERE id = ?', [$request['id']]);
+        // Keep the quote in the conversation, so the customer's answer lands next to it.
+        add_thread_message(custom_request_thread($request), 'shop', ($request['quoted_price'] ? 'Quote: ' . money($request['quoted_price']) . "\n\n" : '') . $message, (int) $admin['id']);
         if (send_custom_quote_email($request, $message)) {
             flash('success', 'Your reply was emailed to ' . $request['email'] . '.');
         } else {

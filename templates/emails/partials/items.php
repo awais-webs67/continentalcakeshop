@@ -16,7 +16,7 @@
         <tr><td style="padding:8px 0;color:#66666E">Delivery</td><td align="right" style="padding:8px 0;color:#66666E"><?= e(money($order['delivery_fee'])) ?></td></tr>
     <?php endif; ?>
     <tr>
-        <td style="padding:12px 0 0;font-size:16px;font-weight:bold;color:#1B1B1F">Total</td>
+        <td style="padding:12px 0 0;font-size:16px;font-weight:bold;color:#1B1B1F">Total<?= setting_bool('gst_registered') ? ' <span style="font-size:12px;font-weight:normal;color:#66666E">(includes GST of ' . e(money(round((float) $order['total'] / 11, 2))) . ')</span>' : '' ?></td>
         <td align="right" style="padding:12px 0 0;font-size:18px;font-weight:bold;color:#1B1B1F"><?= e(money($order['total'])) ?></td>
     </tr>
 </table>

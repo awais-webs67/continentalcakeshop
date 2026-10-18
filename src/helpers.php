@@ -13,6 +13,12 @@ function url(string $path = ''): string
 }
 
 /** Asset URL with a version stamp so browsers pick up changes after a deploy. */
+/** Asset address without the ?v= cache-busting suffix (for sitemaps and structured data). */
+function asset_url_plain(string $path): string
+{
+    return url('assets/' . ltrim($path, '/'));
+}
+
 function asset(string $path): string
 {
     $file = BASE_PATH . '/public/assets/' . ltrim($path, '/');
@@ -177,4 +183,38 @@ function field_error(array $errors, string $field): string
 function invalid_attr(array $errors, string $field): string
 {
     return isset($errors[$field]) ? 'aria-invalid="true" aria-describedby="' . e($field) . '-error"' : '';
+}
+
+// ---------------------------------------------------------------------------
+// Spam protection for public forms: a hidden field people never fill, a minimum time
+// to fill the form, and a limit on how often one visitor can send it.
+// ---------------------------------------------------------------------------
+
+function spam_trap_fields(): string
+{
+    $issued = (string) time();
+    return '<div class="hp-field" aria-hidden="true"><label for="website">Website</label>'
+        . '<input id="website" name="website" type="text" tabindex="-1" autocomplete="off"></div>'
+        . '<input type="hidden" name="_ts" value="' . $issued . '.' . hash_hmac('sha256', $issued, csrf_token()) . '">';
+}
+
+/**
+ * True when the submission looks automated. $limit sends per $minutes are allowed per visitor.
+ */
+function is_spam_submission(string $form, int $limit = 5, int $minutes = 10): bool
+{
+    if (input('website') !== '') {
+        return true;
+    }
+    [$issued, $signature] = array_pad(explode('.', input('_ts'), 2), 2, '');
+    if (!hash_equals(hash_hmac('sha256', $issued, csrf_token()), $signature) || time() - (int) $issued < 3) {
+        return true;
+    }
+    $recent = array_filter($_SESSION['form_sends'][$form] ?? [], static fn ($t) => $t > time() - $minutes * 60);
+    if (count($recent) >= $limit) {
+        return true;
+    }
+    $recent[] = time();
+    $_SESSION['form_sends'][$form] = array_values($recent);
+    return false;
 }

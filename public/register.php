@@ -9,6 +9,10 @@ if (is_logged_in()) {
 
 if (is_post()) {
     verify_csrf();
+    if (is_spam_submission('register', 5)) {
+        flash('error', 'Sorry, that did not go through. Please wait a moment and try again, or call us.');
+        redirect('register');
+    }
     $input = [
         'name'  => str_limit(input('name'), 120),
         'email' => str_limit(input('email'), 190),
@@ -37,6 +41,7 @@ render('header', compact('page'));
     <div class="container auth-layout">
         <form class="form-card auth-card" method="post" action="<?= e(url('register')) ?>" novalidate>
             <?= csrf_field() ?>
+            <?= spam_trap_fields() ?>
             <h1 class="form-card__title">Create an account</h1>
             <p class="form-card__lead">Save your order history and check out faster next time.</p>
             <div class="field">

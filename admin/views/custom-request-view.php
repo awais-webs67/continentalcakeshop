@@ -4,6 +4,7 @@
     <div><h1><?= e($request['occasion']) ?> cake for <?= e($request['name']) ?></h1>
         <p>Received <?= e(date('j M Y, g:ia', strtotime($request['created_at']))) ?> &middot; <?= status_badge($request['status'], CUSTOM_STATUSES[$request['status']]) ?></p></div>
     <div class="page-head__actions">
+        <a class="btn btn--secondary" href="<?= e(admin_url('messages/view', ['request' => $request['id']])) ?>"><?= icon('mail', '', 18) ?> Conversation</a>
         <a class="btn btn--secondary" href="tel:<?= e(preg_replace('/[^\d+]/', '', $request['phone'])) ?>"><?= icon('phone', '', 18) ?> Call</a>
     </div>
 </div>

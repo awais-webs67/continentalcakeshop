@@ -322,4 +322,28 @@
         });
         if (location.hash && $(location.hash)) $(location.hash).open = true;
     }
+
+    // New staff form: the access list only applies to staff accounts
+    var roleSelect = $('[data-role-select]');
+    var staffPerms = $('[data-staff-permissions]');
+    if (roleSelect && staffPerms) {
+        var syncRole = function () { staffPerms.hidden = roleSelect.value !== 'staff'; };
+        roleSelect.addEventListener('change', syncRole);
+        syncRole();
+    }
+
+    // Conversations open at the newest message
+    $$('.chat-admin').forEach(function (box) { box.scrollTop = box.scrollHeight; });
+
+    // Phone layout: give every table cell its column name so tables can stack as cards.
+    $$('table.table').forEach(function (table) {
+        var heads = $$('thead th', table).map(function (th) { return th.textContent.trim(); });
+        if (!heads.length) return;
+        $$('tbody tr', table).forEach(function (row) {
+            $$('td', row).forEach(function (td, i) {
+                if (!td.hasAttribute('data-label')) td.setAttribute('data-label', heads[i] || '');
+            });
+        });
+        table.classList.add('is-stacked');
+    });
 })();

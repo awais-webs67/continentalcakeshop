@@ -112,9 +112,16 @@ render('header', compact('page'));
                 <?php endif; ?>
             </dl>
             <div class="summary-total"><span>Total</span><strong><?= e(money($order['total'])) ?></strong></div>
+            <?php if (setting_bool('gst_registered')): ?><p class="field-help">Includes GST of <?= e(money(round((float) $order['total'] / 11, 2))) ?><?= setting('store_abn') !== '' ? ' &middot; ABN ' . e(setting('store_abn')) : '' ?></p><?php endif; ?>
         </div>
 
-        <p class="order-help">Need to change something? Call us on <a href="tel:<?= e(setting('store_phone_e164')) ?>"><?= e(setting('store_phone')) ?></a> and quote your order number.</p>
+        <div class="order-help">
+            <p>Need to change something or have a question?</p>
+            <div class="order-help__actions">
+                <a class="btn btn--primary" href="<?= e(thread_url(order_thread($order))) ?>"><?= icon('mail', '', 18) ?> Message us about this order</a>
+                <a class="btn btn--outline" href="tel:<?= e(setting('store_phone_e164')) ?>"><?= icon('phone', '', 18) ?> <?= e(setting('store_phone')) ?></a>
+            </div>
+        </div>
     </div>
 </section>
 
