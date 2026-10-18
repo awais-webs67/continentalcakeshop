@@ -21,7 +21,7 @@ INSERT INTO settings (setting_key, setting_value) VALUES
 ('opening_hours',         '{"mon":["08:00","19:00"],"tue":["08:00","19:00"],"wed":["08:00","19:00"],"thu":["08:00","19:00"],"fri":["08:00","19:00"],"sat":["09:00","18:00"],"sun":["09:00","18:00"]}'),
 
 ('announcement_text',     '100% Halal ingredients. Order online and pick up from our Greenway shop.'),
-('hero_image',            'gallery/custom-24.webp'),
+('hero_image',            'gallery/hero-cake-teal.webp'),
 ('hero_eyebrow',          'Baked in Greenway, Canberra since 2015'),
 ('hero_title',            'Fresh cakes for every celebration'),
 ('hero_subtitle',         'Tortes, mud cakes, velvet cakes and cheesecakes made in our shop with 100% Halal ingredients. Order online, choose your pickup time, and we will have it ready.'),
