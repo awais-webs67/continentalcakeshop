@@ -345,5 +345,27 @@
             });
         });
         table.classList.add('is-stacked');
+        if (heads.length >= 6) table.classList.add('is-wide');
+    });
+
+    // Top bar menus: only one open at a time, closed by a click outside or Esc
+    var dropdowns = $$('details.dropdown, details.row-menu');
+    dropdowns.forEach(function (d) {
+        d.addEventListener('toggle', function () {
+            if (d.open) dropdowns.forEach(function (o) { if (o !== d) o.open = false; });
+        });
+    });
+    document.addEventListener('click', function (e) {
+        dropdowns.forEach(function (d) { if (d.open && !d.contains(e.target)) d.open = false; });
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') dropdowns.forEach(function (d) { d.open = false; });
+        var search = $('[data-search-input]');
+        var typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName) || document.activeElement.isContentEditable;
+        if (e.key === '/' && search && !typing && !e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+            search.focus();
+            search.select();
+        }
     });
 })();
