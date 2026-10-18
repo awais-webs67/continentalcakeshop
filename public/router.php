@@ -1,0 +1,39 @@
+<?php
+// Router for PHP's built-in server during local development only:
+//   php -S localhost:8000 -t public public/router.php
+// On the live site Apache uses public/.htaccess instead.
+
+$path = rawurldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '/');
+if ($path !== '/' && is_file(__DIR__ . $path) && !str_ends_with($path, '.php')) {
+    return false;
+}
+
+$routes = [
+    '#^/$#'                         => ['index.php', []],
+    '#^/shop$#'                     => ['shop.php', []],
+    '#^/shop/([a-z0-9-]+)$#'        => ['shop.php', ['category']],
+    '#^/cakes/([a-z0-9-]+)$#'       => ['product.php', ['slug']],
+    '#^/order/([A-Za-z0-9-]+)$#'    => ['order.php', ['number']],
+    '#^/cart$#'                     => ['cart.php', []],
+    '#^/checkout$#'                 => ['checkout.php', []],
+    '#^/custom-cakes$#'             => ['custom-cakes.php', []],
+    '#^/about$#'                    => ['about.php', []],
+    '#^/contact$#'                  => ['contact.php', []],
+    '#^/api/slots$#'                => ['api/slots.php', []],
+    '#^/stripe-webhook$#'           => ['stripe-webhook.php', []],
+    '#^/sitemap\.xml$#'             => ['sitemap.php', []],
+    '#^/robots\.txt$#'              => ['robots.php', []],
+];
+
+foreach ($routes as $pattern => [$file, $params]) {
+    if (preg_match($pattern, $path, $m)) {
+        foreach ($params as $i => $name) {
+            $_GET[$name] = $m[$i + 1];
+        }
+        chdir(dirname(__DIR__ . '/' . $file));
+        require __DIR__ . '/' . $file;
+        return true;
+    }
+}
+
+require __DIR__ . '/404.php';

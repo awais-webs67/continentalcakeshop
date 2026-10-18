@@ -1,0 +1,56 @@
+# Apache configuration. Point the domain's document root at this public/ folder.
+
+Options -Indexes
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Redirect to HTTPS (uncomment once SSL is active on the domain)
+    # RewriteCond %{HTTPS} off
+    # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Remove trailing slashes so every page has one URL
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.+)/$ /$1 [L,R=301]
+
+    RewriteRule ^shop$                  shop.php [L,QSA]
+    RewriteRule ^shop/([a-z0-9-]+)$     shop.php?category=$1 [L,QSA]
+    RewriteRule ^cakes/([a-z0-9-]+)$    product.php?slug=$1 [L,QSA]
+    RewriteRule ^order/([A-Za-z0-9-]+)$ order.php?number=$1 [L,QSA]
+    RewriteRule ^cart$                  cart.php [L,QSA]
+    RewriteRule ^checkout$              checkout.php [L,QSA]
+    RewriteRule ^custom-cakes$          custom-cakes.php [L,QSA]
+    RewriteRule ^about$                 about.php [L,QSA]
+    RewriteRule ^contact$               contact.php [L,QSA]
+    RewriteRule ^api/slots$             api/slots.php [L,QSA]
+    RewriteRule ^stripe-webhook$        stripe-webhook.php [L,QSA]
+    RewriteRule ^sitemap\.xml$          sitemap.php [L]
+    RewriteRule ^robots\.txt$           robots.php [L]
+
+    # Old .php addresses redirect to the clean URLs
+    RewriteCond %{THE_REQUEST} \s/(shop|cart|checkout|custom-cakes|about|contact)\.php[\s?]
+    RewriteRule ^ /%1 [L,R=301]
+</IfModule>
+
+ErrorDocument 404 /404.php
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set X-Frame-Options "SAMEORIGIN"
+</IfModule>
+
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+</IfModule>
+
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml application/xml text/plain
+</IfModule>
