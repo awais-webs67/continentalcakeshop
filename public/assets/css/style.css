@@ -531,7 +531,7 @@ a.chip:hover { border-color: var(--pink); color: var(--pink); }
 
 /* ---------- Reviews ---------- */
 
-.rating-stars { position: relative; display: inline-flex; line-height: 0; vertical-align: middle; }
+.rating-stars { position: relative; display: inline-flex; width: max-content; align-self: flex-start; line-height: 0; vertical-align: middle; }
 .rating-stars__base { display: inline-flex; gap: 2px; color: #E3DCDF; }
 .rating-stars__fill { position: absolute; inset: 0 auto 0 0; display: inline-flex; gap: 2px; overflow: hidden; white-space: nowrap; color: var(--star); }
 .rating-stars .icon { flex-shrink: 0; }
