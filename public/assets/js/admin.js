@@ -116,4 +116,46 @@
         input.addEventListener('input', update);
         update();
     });
+
+    // Random coupon code, avoiding letters that are easy to mix up (O/0, I/1)
+    $$('[data-generate-code]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', code = 'CAKE';
+            for (var i = 0; i < 5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+            var input = $('[data-coupon-code-input]');
+            input.value = code;
+            input.focus();
+        });
+    });
+    $$('[data-coupon-code-input]').forEach(function (input) {
+        input.addEventListener('input', function () { input.value = input.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ''); });
+    });
+
+    // Live preview of the promo popup
+    var previewInputs = $$('[data-preview]');
+    if (previewInputs.length) {
+        var show = function (el, value) { el.textContent = value; };
+        previewInputs.forEach(function (input) {
+            var update = function () {
+                var kind = input.getAttribute('data-preview');
+                if (kind === 'title') show($('[data-preview-title]'), input.value);
+                if (kind === 'text') show($('[data-preview-text]'), input.value);
+                if (kind === 'button') {
+                    var btn = $('[data-preview-button]');
+                    show(btn, input.value);
+                    btn.hidden = input.value.trim() === '';
+                }
+                if (kind === 'coupon') {
+                    var opt = input.options[input.selectedIndex];
+                    $('[data-preview-coupon]').hidden = !input.value;
+                    if (input.value) {
+                        show($('[data-preview-code]'), opt.getAttribute('data-code'));
+                        show($('[data-preview-summary]'), 'Use this code at checkout to get ' + opt.getAttribute('data-summary') + '.');
+                    }
+                }
+            };
+            input.addEventListener('input', update);
+            input.addEventListener('change', update);
+        });
+    }
 })();

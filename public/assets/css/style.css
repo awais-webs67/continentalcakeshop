@@ -830,6 +830,21 @@ select.input {
 .summary-lines { margin: 0; }
 .summary-lines div { display: flex; justify-content: space-between; padding: 6px 0; color: var(--muted); }
 .summary-lines dt, .summary-lines dd { margin: 0; }
+.summary-lines div[hidden] { display: none; }
+.summary-lines__discount { color: var(--brand); font-weight: 700; }
+.coupon-box { margin: 4px 0 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.coupon-box__toggle { display: inline-flex; align-items: center; gap: 8px; padding: 6px 0; border: 0; background: none; color: var(--brand); font: 600 15px var(--font-body); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.coupon-box__toggle:hover { color: var(--brand-dark); }
+.coupon-box__form { display: flex; gap: 8px; margin-top: 8px; }
+.coupon-box__form[hidden] { display: none; }
+.coupon-box__form .input { flex: 1; min-width: 0; text-transform: uppercase; letter-spacing: .04em; }
+.coupon-box__form .btn { flex: 0 0 auto; padding-left: 18px; padding-right: 18px; }
+.coupon-box .field-error { margin: 8px 0 0; }
+.coupon-box__applied { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1.5px dashed var(--brand); border-radius: 12px; background: var(--brand-softer); font-size: 14px; }
+.coupon-box__applied[hidden] { display: none; }
+.coupon-box__applied > span { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; color: var(--ink); }
+.coupon-box__applied .icon { color: var(--brand); }
+.coupon-box__remove { border: 0; background: none; color: var(--muted); font: 600 13px var(--font-body); text-decoration: underline; cursor: pointer; }
 .summary-total { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 0 18px; margin-top: 8px; border-top: 1px solid var(--line); }
 .summary-total span { font-weight: 600; color: var(--ink); }
 .summary-total strong { font-family: var(--font-head); font-size: 24px; color: var(--ink); }
@@ -1225,3 +1240,40 @@ details[open] > summary .faq-item__icon { transform: rotate(45deg); }
     .js .reveal { opacity: 1; transform: none; }
 }
 .related { border-top: 1px solid var(--line); }
+
+/* ---------- Promo popup ---------- */
+
+.promo { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 16px; }
+.promo[hidden] { display: none; }
+.promo__backdrop { position: absolute; inset: 0; background: rgba(14, 84, 71, .55); backdrop-filter: blur(3px); opacity: 0; transition: opacity .3s; }
+.promo__card {
+    position: relative; width: 100%; max-width: 420px; max-height: calc(100vh - 32px); overflow: auto;
+    border-radius: 24px; background: var(--white); box-shadow: 0 30px 80px rgba(14, 84, 71, .35); text-align: center;
+    opacity: 0; transform: translateY(18px) scale(.97); transition: opacity .3s, transform .35s cubic-bezier(.2, .8, .2, 1);
+}
+.promo.is-open .promo__backdrop { opacity: 1; }
+.promo.is-open .promo__card { opacity: 1; transform: none; }
+.promo__close { position: absolute; top: 12px; right: 12px; z-index: 2; display: grid; place-items: center; width: 38px; height: 38px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .92); color: var(--ink); cursor: pointer; box-shadow: 0 2px 10px rgba(0, 0, 0, .12); }
+.promo__close:hover { background: var(--white); color: var(--brand); }
+.promo__image { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.promo__ribbon { display: grid; place-items: center; height: 120px; background: linear-gradient(135deg, var(--brand) 0%, var(--brand-mint) 100%); color: var(--white); }
+.promo__ribbon .icon { width: 54px; height: 54px; padding: 12px; border-radius: 50%; background: rgba(255, 255, 255, .18); }
+.promo__body { padding: 24px 24px 18px; }
+.promo__eyebrow { display: inline-block; margin: 0 0 8px; padding: 4px 12px; border-radius: 999px; background: var(--brand-soft); color: var(--brand-dark); font-weight: 700; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; }
+.promo__title { margin: 0 0 8px; font-size: clamp(1.5rem, 5vw, 1.85rem); line-height: 1.15; }
+.promo__text { margin: 0 0 14px; color: var(--text); }
+.promo__coupon { display: flex; align-items: stretch; justify-content: center; gap: 8px; margin: 6px 0 10px; }
+.promo__code { display: inline-flex; align-items: center; padding: 10px 18px; border: 2px dashed var(--brand); border-radius: 12px; background: var(--brand-softer); color: var(--brand-dark); font: 700 1.3rem ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; }
+.promo__copy { display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; border: 0; border-radius: 12px; background: var(--brand); color: var(--white); font: 600 14px var(--font-head); cursor: pointer; }
+.promo__copy:hover { background: var(--brand-dark); }
+.promo__terms { margin: 0 0 18px; color: var(--muted); font-size: 13px; }
+.promo__later { margin-top: 10px; padding: 6px 10px; border: 0; background: none; color: var(--muted); font: 500 14px var(--font-body); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .promo__card, .promo__backdrop { transition: none; } }
+body.promo-open { overflow: hidden; }
+
+/* ---------- Custom cake form ---------- */
+
+.serving-picks { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: -6px 0 18px; font-size: 14px; color: var(--muted); }
+.serving-pick { display: inline-flex; align-items: baseline; gap: 4px; padding: 6px 12px; border: 1.5px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); font: 600 14px var(--font-body); cursor: pointer; transition: border-color .2s, background-color .2s; }
+.serving-pick small { color: var(--brand); font-weight: 600; }
+.serving-pick:hover, .serving-pick.is-active { border-color: var(--brand); background: var(--brand-softer); }

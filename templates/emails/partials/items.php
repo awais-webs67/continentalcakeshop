@@ -9,6 +9,9 @@
             <td align="right" valign="top" style="padding:10px 0;border-bottom:1px solid #E3EAE8;font-size:15px;color:#1B1B1F;white-space:nowrap"><?= e(money($item['line_total'])) ?></td>
         </tr>
     <?php endforeach; ?>
+    <?php if ((float) ($order['discount'] ?? 0) > 0): ?>
+        <tr><td style="padding:8px 0;color:#1A8670">Discount (<?= e((string) $order['coupon_code']) ?>)</td><td align="right" style="padding:8px 0;color:#1A8670">-<?= e(money($order['discount'])) ?></td></tr>
+    <?php endif; ?>
     <?php if ((float) $order['delivery_fee'] > 0): ?>
         <tr><td style="padding:8px 0;color:#66666E">Delivery</td><td align="right" style="padding:8px 0;color:#66666E"><?= e(money($order['delivery_fee'])) ?></td></tr>
     <?php endif; ?>

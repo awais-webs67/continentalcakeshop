@@ -10,9 +10,8 @@ const ORDER_STATUSES = [
     'cancelled'   => 'Cancelled',
 ];
 
-// The customer's preferred delivery window. The shop then sets the exact time.
-const DELIVERY_WINDOWS = [
-    'any'       => 'Any time',
+// Window names used by orders placed before the windows became editable in Settings.
+const LEGACY_DELIVERY_WINDOWS = [
     'morning'   => 'Morning (9am to 12pm)',
     'afternoon' => 'Afternoon (12pm to 4pm)',
     'evening'   => 'Evening (4pm to 7pm)',
@@ -26,6 +25,11 @@ const PAYMENT_STATUSES = [
     'refunded'              => 'Refunded',
 ];
 
+/** Thrown when a coupon runs out between applying it and placing the order. */
+final class CouponUnavailable extends RuntimeException
+{
+}
+
 function generate_order_number(): string
 {
     do {
@@ -38,28 +42,30 @@ function generate_order_number(): string
  * Saves the order and its lines in one transaction. Prices come from $items,
  * which cart_items() has already loaded from the database.
  */
-function create_order(array $data, array $items): array
+function create_order(array $data, array $items, ?array $coupon = null): array
 {
-    $subtotal = cart_subtotal($items);
-    $deliveryFee = $data['fulfilment'] === 'delivery' ? (float) setting('delivery_fee', '0') : 0.0;
-    $total = round($subtotal + $deliveryFee, 2);
+    $totals = order_totals(cart_subtotal($items), $data['fulfilment'], $coupon);
 
     $pdo = db();
     $pdo->beginTransaction();
     try {
+        // Count the coupon use inside the transaction, so a code with one use left cannot be used twice.
+        if ($coupon && !redeem_coupon($coupon)) {
+            throw new CouponUnavailable('Sorry, the coupon ' . $coupon['code'] . ' has just been used up. Please remove it to continue.');
+        }
         $number = generate_order_number();
         $token = bin2hex(random_bytes(16));
         db_run(
             'INSERT INTO orders (order_number, user_id, access_token, customer_name, customer_email, customer_phone, fulfilment,
                                  delivery_address, delivery_suburb, delivery_postcode, delivery_window, pickup_date, pickup_time,
-                                 subtotal, delivery_fee, total, payment_method, payment_status, payment_reference, payment_proof, notes)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                                 subtotal, delivery_fee, coupon_code, discount, total, payment_method, payment_status, payment_reference, payment_proof, notes)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 $number, $data['user_id'] ?? null, $token, $data['name'], $data['email'], $data['phone'], $data['fulfilment'],
                 $data['delivery_address'] ?: null, $data['delivery_suburb'] ?: null, $data['delivery_postcode'] ?: null,
-                $data['fulfilment'] === 'delivery' ? $data['delivery_window'] : null,
+                $data['fulfilment'] === 'delivery' && $data['delivery_window'] !== '' ? $data['delivery_window'] : null,
                 $data['pickup_date'], $data['fulfilment'] === 'pickup' ? $data['pickup_time'] . ':00' : null,
-                $subtotal, $deliveryFee, $total, $data['payment_method'],
+                $totals['subtotal'], $totals['delivery_fee'], $coupon['code'] ?? null, $totals['discount'], $totals['total'], $data['payment_method'],
                 $data['payment_proof'] ? 'awaiting_verification' : 'pending',
                 $data['payment_reference'] ?: null, $data['payment_proof'], $data['notes'] ?: null,
             ]
@@ -76,7 +82,8 @@ function create_order(array $data, array $items): array
                 $item['price'], $item['qty'], $item['message'] !== '' ? $item['message'] : null, $item['line_total'],
             ]);
         }
-        log_order_event($orderId, 'placed', 'Order placed online, paying by ' . payment_method_label($data['payment_method']) . '.');
+        log_order_event($orderId, 'placed', 'Order placed online, paying by ' . payment_method_label($data['payment_method']) . '.'
+            . ($coupon ? ' Coupon ' . $coupon['code'] . ' saved ' . money($totals['discount']) . '.' : ''));
         $pdo->commit();
     } catch (Throwable $e) {
         $pdo->rollBack();
@@ -104,21 +111,39 @@ function order_status_label(array $order, ?string $status = null): string
     return ORDER_STATUSES[$status] ?? ucfirst($status);
 }
 
-/** Full date and time, e.g. "Saturday 2 November 2026, 3:00pm", or the date plus "time to be confirmed". */
-function order_when(array $order): string
+/** Delivery time windows the customer can prefer, set in Admin > Settings > Ordering. */
+function delivery_windows(): array
 {
-    $when = format_pickup($order['pickup_date'], $order['pickup_time'] ?: null);
-    return $order['pickup_time'] ? $when : $when . ', time to be confirmed';
+    $windows = json_decode(setting('delivery_windows', '[]'), true);
+    return is_array($windows) ? array_values(array_filter(array_map('strval', $windows), static fn ($w) => trim($w) !== '')) : [];
 }
 
-/** Short time for lists: "3pm", or the delivery window while the time is not set. */
+function delivery_window_label(?string $window): string
+{
+    if ($window === null || $window === '' || $window === 'any') {
+        return 'Any time';
+    }
+    return LEGACY_DELIVERY_WINDOWS[$window] ?? $window;
+}
+
+/** Full date and time, e.g. "Saturday 2 November 2026, 1pm to 3pm", or the date plus "time to be confirmed". */
+function order_when(array $order): string
+{
+    if (!$order['pickup_time']) {
+        return format_pickup($order['pickup_date'], null) . ', time to be confirmed';
+    }
+    return format_pickup($order['pickup_date'], null) . ', ' . order_time_label($order);
+}
+
+/** Short time for lists: "3pm", "1pm to 3pm", or the delivery window while the time is not set. */
 function order_time_label(array $order): string
 {
     if ($order['pickup_time']) {
-        return format_time($order['pickup_time']);
+        $to = $order['delivery_time_to'] ?? null;
+        return format_time($order['pickup_time']) . ($to ? ' to ' . format_time($to) : '');
     }
-    $window = DELIVERY_WINDOWS[$order['delivery_window'] ?? ''] ?? null;
-    return 'Time to confirm' . ($window && $order['delivery_window'] !== 'any' ? ' (' . strtolower(strtok($window, ' ')) . ')' : '');
+    $window = $order['delivery_window'] ?? null;
+    return 'Time to confirm' . ($window && $window !== 'any' ? ' (' . delivery_window_label($window) . ')' : '');
 }
 
 function order_address(array $order): string

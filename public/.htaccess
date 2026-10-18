@@ -35,6 +35,7 @@ DirectoryIndex index.php
     RewriteRule ^(privacy-policy|terms|refund-policy|allergens)$ page.php?slug=$1 [L,QSA]
     RewriteRule ^api/slots$             api/slots.php [L,QSA]
     RewriteRule ^api/upload$            api/upload.php [L,QSA]
+    RewriteRule ^api/coupon$            api/coupon.php [L,QSA]
     RewriteRule ^stripe-webhook$        stripe-webhook.php [L,QSA]
     RewriteRule ^sitemap\.xml$          sitemap.php [L]
     RewriteRule ^robots\.txt$           robots.php [L]

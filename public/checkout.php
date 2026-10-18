@@ -16,11 +16,35 @@ $deliveryEnabled = setting_bool('delivery_enabled');
 $fulfilmentOptions = array_keys(array_filter(['pickup' => $pickupEnabled, 'delivery' => $deliveryEnabled]));
 $subtotal = cart_subtotal($items);
 $deliveryFee = (float) setting('delivery_fee', '0');
+$freeOver = (float) setting('delivery_free_over', '0');
+$coupon = coupons_enabled() ? active_coupon($subtotal) : null;
+// A code applied earlier that no longer works (expired, used up, cart now too small) is dropped with a note.
+if (!$coupon && applied_coupon_code() !== '') {
+    $couponNotice = coupon_error(find_coupon(applied_coupon_code()), $subtotal);
+    remove_coupon();
+    if (!is_post()) {
+        flash('error', 'Your coupon was removed: ' . $couponNotice);
+    }
+}
 $deliveryMin = (float) setting('delivery_min_order', '0');
 $user = current_user();
 
 if (is_post()) {
     verify_csrf();
+
+    // Apply or remove a coupon without placing the order (used when JavaScript is off).
+    if (in_array(input('coupon_action'), ['apply', 'remove'], true)) {
+        if (input('coupon_action') === 'remove') {
+            remove_coupon();
+            flash('info', 'Coupon removed.');
+        } elseif ($error = apply_coupon(input('coupon_code'), $subtotal)) {
+            flash('error', $error);
+        } else {
+            flash('success', 'Coupon applied.');
+        }
+        remember_input(array_map(static fn ($v) => is_string($v) ? $v : '', array_diff_key($_POST, ['_token' => 1, 'account_password' => 1, 'coupon_action' => 1])));
+        redirect('checkout');
+    }
 
     $data = [
         'name'              => str_limit(input('name'), 120),
@@ -30,7 +54,7 @@ if (is_post()) {
         'delivery_address'  => str_limit(input('delivery_address'), 255),
         'delivery_suburb'   => str_limit(input('delivery_suburb'), 80),
         'delivery_postcode' => preg_replace('/\D/', '', input('delivery_postcode')),
-        'delivery_window'   => isset(DELIVERY_WINDOWS[input('delivery_window')]) ? input('delivery_window') : 'any',
+        'delivery_window'   => in_array(input('delivery_window'), delivery_windows(), true) ? input('delivery_window') : '',
         'pickup_date'       => input('fulfilment') === 'delivery' ? input('delivery_date') : input('pickup_date'),
         'pickup_time'       => input('pickup_time'),
         'payment_method'    => input('payment_method'),
@@ -90,6 +114,9 @@ if (is_post()) {
             $errors['email'] = 'This email already has an account. Please log in to save this order to it.';
         }
     }
+    if (!empty($couponNotice)) {
+        $errors['coupon'] = 'Your coupon could not be used: ' . $couponNotice . ' Please check the new total.';
+    }
     if (input('agree') !== '1') {
         $errors['agree'] = 'Please confirm your order details.';
     }
@@ -121,8 +148,16 @@ if (is_post()) {
         }
     }
 
-    $order = create_order($data, $items);
+    try {
+        $order = create_order($data, $items, $coupon);
+    } catch (CouponUnavailable $e) {
+        remove_coupon();
+        remember_input(array_diff_key($data, ['payment_proof' => true, 'user_id' => true]) + ['payment_proof_token' => input('payment_proof_token')]);
+        flash('error', $e->getMessage());
+        redirect('checkout');
+    }
     forget_async_upload(input('payment_proof_token'));
+    remove_coupon();
     cart_clear();
     forget_input();
 
@@ -149,6 +184,7 @@ $selectedDeliveryDate = old('delivery_date', $firstDelivery ?? '');
 $slots = $selectedDate !== '' ? pickup_slots($selectedDate, $leadHours) : [];
 $selectedFulfilment = old('fulfilment', $fulfilmentOptions[0] ?? 'pickup');
 $selectedMethod = old('payment_method', (string) array_key_first($methods));
+$totals = order_totals($subtotal, $selectedFulfilment, $coupon);
 $closedDays = array_map(static fn ($d) => DAY_NAMES[$d], closed_week_days());
 
 $fieldError = static function (string $field) use ($errors): string {
@@ -173,10 +209,15 @@ render('header', compact('page'));
     <div class="container">
         <?php if (!$methods): ?>
             <div class="alert alert--info">Online payment is not available right now. Please call us on <a href="tel:<?= e(setting('store_phone_e164')) ?>"><?= e(setting('store_phone')) ?></a> to place your order.</div>
+            <?php if (!empty($_SESSION['admin_id'])): ?>
+                <div class="alert alert--error"><strong>Shop admin:</strong> no payment method is live yet. Add your PayID, bank details or Stripe key and switch the method on in <a href="<?= e(url('admin/settings') . '?tab=payments') ?>">Admin &gt; Settings &gt; Payments</a>. Customers only see methods that are switched on and filled in.</div>
+            <?php endif; ?>
         <?php endif; ?>
 
         <form class="checkout-layout" method="post" action="<?= e(url('checkout')) ?>" enctype="multipart/form-data" data-checkout novalidate>
             <?= csrf_field() ?>
+            <?php // Pressing Enter in a field submits with the first button in the form, so make that "Place order" and not the coupon buttons. ?>
+            <button type="submit" class="sr-only" tabindex="-1" aria-hidden="true" <?= $methods ? '' : 'disabled' ?>>Place order</button>
             <div class="checkout-main">
 
                 <fieldset class="checkout-step">
@@ -230,7 +271,7 @@ render('header', compact('page'));
                             </label>
                             <label class="option-card">
                                 <input type="radio" name="fulfilment" value="delivery" <?= $selectedFulfilment === 'delivery' ? 'checked' : '' ?> data-fulfilment>
-                                <span class="option-card__box"><?= icon('truck', '', 22) ?><span><strong>Delivery</strong><span><?= $deliveryFee > 0 ? e(money($deliveryFee)) . ' &middot; ' : 'Free &middot; ' ?><?= e(setting('delivery_note', 'All over Canberra')) ?></span></span></span>
+                                <span class="option-card__box"><?= icon('truck', '', 22) ?><span><strong>Delivery</strong><span><?= $deliveryFee > 0 ? e(money($deliveryFee)) . ($freeOver > 0 ? ', free over ' . e(money($freeOver)) : '') . ' &middot; ' : 'Free &middot; ' ?><?= e(setting('delivery_note', 'All over Canberra')) ?></span></span></span>
                             </label>
                         </div>
                     <?php else: ?>
@@ -276,8 +317,9 @@ render('header', compact('page'));
                             <div class="field">
                                 <label class="field-label" for="delivery_window">Preferred time</label>
                                 <select class="input" id="delivery_window" name="delivery_window">
-                                    <?php foreach (DELIVERY_WINDOWS as $key => $label): ?>
-                                        <option value="<?= e($key) ?>" <?= old('delivery_window', 'any') === $key ? 'selected' : '' ?>><?= e($label) ?></option>
+                                    <option value="">Any time</option>
+                                    <?php foreach (delivery_windows() as $window): ?>
+                                        <option <?= old('delivery_window') === $window ? 'selected' : '' ?>><?= e($window) ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
@@ -328,7 +370,7 @@ render('header', compact('page'));
                                                     <dd><span><?= e($value) ?></span> <button type="button" class="copy-btn" data-copy="<?= e($value) ?>">Copy</button></dd>
                                                 </div>
                                             <?php endforeach; ?>
-                                            <div><dt>Amount</dt><dd><strong data-pay-amount><?= e(money($subtotal)) ?></strong></dd></div>
+                                            <div><dt>Amount</dt><dd><strong data-pay-amount><?= e(money($totals['total'])) ?></strong></dd></div>
                                         </dl>
                                         <p class="field-help">Please use your name as the payment reference.</p>
                                     </div>
@@ -379,14 +421,33 @@ render('header', compact('page'));
                         </li>
                     <?php endforeach; ?>
                 </ul>
+                <?php if (coupons_enabled()): ?>
+                <div class="coupon-box" id="coupon" data-coupon data-coupon-url="<?= e(url('api/coupon')) ?>">
+                    <div class="coupon-box__applied" data-coupon-applied <?= $coupon ? '' : 'hidden' ?>>
+                        <span><?= icon('gift', '', 18) ?> <strong data-coupon-code><?= e($coupon['code'] ?? '') ?></strong> <span data-coupon-label><?= $coupon ? e(coupon_value_label($coupon)) : '' ?></span></span>
+                        <button type="submit" class="coupon-box__remove" name="coupon_action" value="remove" formnovalidate data-coupon-remove>Remove</button>
+                    </div>
+                    <div data-coupon-entry <?= $coupon ? 'hidden' : '' ?>>
+                        <button type="button" class="coupon-box__toggle" data-coupon-toggle aria-expanded="<?= old('coupon_code') !== '' || isset($errors['coupon']) ? 'true' : 'false' ?>"><?= icon('gift', '', 18) ?> Have a coupon code?</button>
+                        <div class="coupon-box__form" data-coupon-form <?= old('coupon_code') !== '' || isset($errors['coupon']) ? '' : 'hidden' ?>>
+                            <label class="sr-only" for="coupon_code">Coupon code</label>
+                            <input class="input" id="coupon_code" name="coupon_code" type="text" autocomplete="off" autocapitalize="characters" placeholder="Enter code" value="<?= e(old('coupon_code')) ?>">
+                            <button type="submit" class="btn btn--outline" name="coupon_action" value="apply" formnovalidate data-coupon-apply>Apply</button>
+                        </div>
+                        <p class="field-error" data-coupon-error <?= isset($errors['coupon']) ? '' : 'hidden' ?>><?= e($errors['coupon'] ?? '') ?></p>
+                    </div>
+                </div>
+                <?php endif; ?>
                 <dl class="summary-lines">
                     <div><dt>Subtotal</dt><dd><?= e(money($subtotal)) ?></dd></div>
-                    <div data-delivery-fee-row <?= $selectedFulfilment === 'delivery' ? '' : 'hidden' ?>><dt>Delivery</dt><dd><?= e(money($deliveryFee)) ?></dd></div>
+                    <div data-discount-row <?= $coupon ? '' : 'hidden' ?>><dt>Discount</dt><dd class="summary-lines__discount" data-discount-value>-<?= e(money($totals['discount'])) ?></dd></div>
+                    <div data-delivery-fee-row <?= $selectedFulfilment === 'delivery' ? '' : 'hidden' ?>><dt>Delivery</dt><dd data-delivery-fee-value><?= ($feeNow = delivery_fee_for($subtotal - $totals['discount'])) > 0 ? e(money($feeNow)) : 'Free' ?></dd></div>
                 </dl>
                 <div class="summary-total">
                     <span>Total</span>
-                    <strong data-order-total data-subtotal="<?= e(number_format($subtotal, 2, '.', '')) ?>" data-delivery-fee="<?= e(number_format($deliveryFee, 2, '.', '')) ?>">
-                        <?= e(money($subtotal + ($selectedFulfilment === 'delivery' ? $deliveryFee : 0))) ?>
+                    <strong data-order-total data-subtotal="<?= e(number_format($subtotal, 2, '.', '')) ?>" data-discount="<?= e(number_format($totals['discount'], 2, '.', '')) ?>"
+                            data-delivery-fee="<?= e(number_format($deliveryFee, 2, '.', '')) ?>" data-free-over="<?= e(number_format($freeOver, 2, '.', '')) ?>">
+                        <?= e(money($totals['total'])) ?>
                     </strong>
                 </div>
                 <button class="btn btn--primary btn--lg btn--block" type="submit" <?= $methods ? '' : 'disabled' ?> data-submit-label-card="Continue to Payment" data-submit-label-default="Place Order">

@@ -14,8 +14,8 @@ const SETTINGS_TABS = [
 // Plain text settings each tab may change. Anything not listed here is ignored.
 const SETTINGS_FIELDS = [
     'store'    => ['store_name' => 120, 'store_short_name' => 80, 'store_phone' => 40, 'store_email' => 190, 'store_street' => 120, 'store_suburb' => 80, 'store_state' => 10, 'store_postcode' => 10, 'store_founded' => 4],
-    'ordering' => ['min_lead_hours' => 4, 'custom_lead_days' => 3, 'max_advance_days' => 4, 'slot_interval_minutes' => 3, 'last_slot_buffer_minutes' => 4, 'max_orders_per_slot' => 4, 'max_deliveries_per_day' => 4, 'delivery_fee' => 10, 'delivery_min_order' => 10, 'delivery_note' => 255, 'delivery_postcodes' => 255],
-    'payments' => ['payid_identifier' => 120, 'payid_account_name' => 120, 'bank_account_name' => 120, 'bank_bsb' => 7, 'bank_account_number' => 20, 'stripe_publishable_key' => 255],
+    'ordering' => ['min_lead_hours' => 4, 'custom_lead_days' => 3, 'max_advance_days' => 4, 'slot_interval_minutes' => 3, 'last_slot_buffer_minutes' => 4, 'max_orders_per_slot' => 4, 'max_deliveries_per_day' => 4, 'delivery_fee' => 10, 'delivery_free_over' => 10, 'delivery_min_order' => 10, 'delivery_note' => 255, 'delivery_postcodes' => 255],
+    'payments' => ['payment_stripe_label' => 60, 'payment_stripe_note' => 255, 'payment_payid_label' => 60, 'payment_payid_note' => 255, 'payment_bank_label' => 60, 'payment_bank_note' => 255, 'payid_identifier' => 120, 'payid_account_name' => 120, 'bank_account_name' => 120, 'bank_bsb' => 7, 'bank_account_number' => 20, 'stripe_publishable_key' => 255],
     'emails'   => ['order_notification_email' => 190, 'email_accent_note' => 255],
     'homepage' => ['hero_eyebrow' => 120, 'hero_title' => 120, 'hero_subtitle' => 400, 'announcement_text' => 200, 'google_rating' => 3, 'google_review_count' => 10, 'google_reviews_url' => 500],
     'seo'      => ['social_facebook' => 255, 'social_instagram' => 255, 'social_pinterest' => 255, 'seo_home_title' => 160, 'seo_home_description' => 300],
@@ -109,6 +109,9 @@ if (is_post()) {
             $values[$key] = (string) min($max, max($min, (int) $values[$key]));
         }
         $values['delivery_fee'] = number_format(max(0, (float) str_replace(['$', ','], '', $values['delivery_fee'])), 2, '.', '');
+        $values['delivery_free_over'] = number_format(max(0, (float) str_replace(['$', ','], '', $values['delivery_free_over'])), 2, '.', '');
+        $windows = array_values(array_unique(array_filter(array_map(static fn ($w) => str_limit(trim($w), 40), preg_split('/\R/', input('delivery_windows'))))));
+        $values['delivery_windows'] = json_encode(array_slice($windows, 0, 12));
         $values['delivery_min_order'] = number_format(max(0, (float) str_replace(['$', ','], '', $values['delivery_min_order'])), 2, '.', '');
         $values['delivery_postcodes'] = implode(', ', array_filter(array_map('trim', explode(',', $values['delivery_postcodes']))));
         if ($values['delivery_postcodes'] !== '' && !preg_match('/^\d{4}(-\d{4})?(, \d{4}(-\d{4})?)*$/', $values['delivery_postcodes'])) {
@@ -133,6 +136,11 @@ if (is_post()) {
         }
         if ($values['stripe_publishable_key'] !== '' && !preg_match('/^pk_(test|live)_[A-Za-z0-9]+$/', $values['stripe_publishable_key'])) {
             $errors['stripe_publishable_key'] = 'The publishable key starts with pk_live_ or pk_test_.';
+        }
+        foreach (['stripe', 'payid', 'bank'] as $method) {
+            if ($values["payment_{$method}_label"] === '') {
+                $errors["payment_{$method}_label"] = 'Please give each payment method a name.';
+            }
         }
         $values['bank_bsb'] = preg_replace('/\D/', '', $values['bank_bsb']);
         if ($values['bank_bsb'] !== '') {

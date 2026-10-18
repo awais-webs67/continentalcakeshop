@@ -5,11 +5,8 @@ require dirname(__DIR__) . '/src/bootstrap.php';
 
 const OCCASIONS = ['Birthday', 'Kids birthday', 'Wedding', 'Engagement', 'Baby shower', 'Gender reveal', 'Anniversary', 'Graduation', 'Corporate event', 'Other'];
 
-// Serving sizes the customer can pick. Midi and Large match the sizes in the shop.
-const CUSTOM_SERVINGS = [
-    '8 people (Midi)', '14 people (Large)', '20 people', '30 people', '40 people',
-    '50 people', '60 people', '80 people', '100 or more people', 'Not sure yet',
-];
+// Quick picks for the number of people. Midi and Large match the standard cake sizes.
+const SERVING_SUGGESTIONS = [8 => 'Midi', 14 => 'Large', 20 => '', 30 => '', 50 => '', 100 => ''];
 
 $leadDays = (int) setting('custom_lead_days', '3');
 $minDate = (new DateTimeImmutable('today'))->modify("+{$leadDays} days")->format('Y-m-d');
@@ -22,7 +19,7 @@ if (is_post()) {
         'phone'      => str_limit(input('phone'), 40),
         'occasion'   => input('occasion'),
         'event_date' => input('event_date'),
-        'servings'   => in_array(input('servings'), CUSTOM_SERVINGS, true) ? input('servings') : '',
+        'servings'   => preg_replace('/\D/', '', input('servings')),
         'fulfilment' => input('fulfilment') === 'delivery' && setting_bool('delivery_enabled') ? 'delivery' : 'pickup',
         'flavour'    => str_limit(input('flavour'), 120),
         'budget'     => str_limit(input('budget'), 40),
@@ -46,8 +43,8 @@ if (is_post()) {
     if (!$date || $date->format('Y-m-d') < $minDate) {
         $errors['event_date'] = "Please choose a date at least {$leadDays} days from today.";
     }
-    if ($data['servings'] === '') {
-        $errors['servings'] = 'Please choose how many people the cake should serve.';
+    if ($data['servings'] === '' || (int) $data['servings'] < 1 || (int) $data['servings'] > 2000) {
+        $errors['servings'] = 'Please enter how many people the cake should serve.';
     }
     if (mb_strlen($data['details']) < 10) {
         $errors['details'] = 'Please tell us a little about the cake you would like.';
@@ -74,7 +71,7 @@ if (is_post()) {
         'INSERT INTO custom_requests (name, email, phone, occasion, event_date, fulfilment, servings, flavour, budget, details, reference_image)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [$data['name'], $data['email'], $data['phone'], $data['occasion'], $data['event_date'], $data['fulfilment'],
-         $data['servings'] ?: null, $data['flavour'] ?: null, $data['budget'] ?: null, $data['details'], $image]
+         (int) $data['servings'] . ' people', $data['flavour'] ?: null, $data['budget'] ?: null, $data['details'], $image]
     );
 
     $request = db_one('SELECT * FROM custom_requests WHERE id = ?', [(int) db()->lastInsertId()]);
@@ -172,13 +169,8 @@ render('header', compact('page'));
             <?php endif; ?>
             <div class="field-row field-row--3">
                 <div class="field">
-                    <label class="field-label" for="servings">Serving size</label>
-                    <select class="input" id="servings" name="servings" required <?= $invalid('servings') ?>>
-                        <option value="">How many people?</option>
-                        <?php foreach (CUSTOM_SERVINGS as $option): ?>
-                            <option <?= old('servings') === $option ? 'selected' : '' ?>><?= e($option) ?></option>
-                        <?php endforeach; ?>
-                    </select>
+                    <label class="field-label" for="servings">Number of people</label>
+                    <input class="input" id="servings" name="servings" type="number" min="1" max="2000" inputmode="numeric" placeholder="e.g. 25" value="<?= e(old('servings')) ?>" required <?= $invalid('servings') ?>>
                     <?= $fieldError('servings') ?>
                 </div>
                 <div class="field">
@@ -189,6 +181,12 @@ render('header', compact('page'));
                     <label class="field-label" for="budget">Budget <span class="field-hint">Optional</span></label>
                     <input class="input" id="budget" name="budget" type="text" placeholder="e.g. $150" value="<?= e(old('budget')) ?>">
                 </div>
+            </div>
+            <div class="serving-picks" aria-label="Quick pick for number of people">
+                <span>Quick pick:</span>
+                <?php foreach (SERVING_SUGGESTIONS as $people => $size): ?>
+                    <button type="button" class="serving-pick" data-serving="<?= $people ?>"><?= $people ?><?= $size ? ' <small>' . $size . '</small>' : '' ?></button>
+                <?php endforeach; ?>
             </div>
             <div class="field">
                 <label class="field-label" for="details">Describe your cake</label>

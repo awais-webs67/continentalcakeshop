@@ -10,6 +10,10 @@
     </div>
 </div>
 
+<?php if (!available_payment_methods()): ?>
+    <div class="alert alert--error" style="margin-bottom:16px"><strong>Customers cannot pay at checkout yet.</strong> Add your PayID, bank details or Stripe key and switch the method on in <a href="<?= e(admin_url('settings', ['tab' => 'payments'])) ?>">Settings &gt; Payments</a>.</div>
+<?php endif; ?>
+
 <div class="stats">
     <a class="stat" href="<?= e(admin_url('pickups')) ?>">
         <span class="stat__label"><?= icon('calendar', '', 18) ?> Due today</span>
@@ -65,7 +69,7 @@
                 <?php foreach ($toSchedule as $o): ?>
                     <tr>
                         <td><a class="row-link" href="<?= e(admin_url('orders/view', ['id' => $o['id']]) . '#when') ?>"><?= e($o['order_number']) ?></a><div class="muted"><?= e($o['customer_name']) ?></div></td>
-                        <td><strong><?= e(date('D j M', strtotime($o['pickup_date']))) ?></strong><div class="muted"><?= e(DELIVERY_WINDOWS[$o['delivery_window'] ?? 'any'] ?? 'Any time') ?></div></td>
+                        <td><strong><?= e(date('D j M', strtotime($o['pickup_date']))) ?></strong><div class="muted"><?= e(delivery_window_label($o['delivery_window'] ?? null)) ?></div></td>
                         <td><?= e((string) $o['delivery_suburb']) ?> <?= e((string) $o['delivery_postcode']) ?></td>
                         <td class="num"><a class="btn btn--primary btn--sm" href="<?= e(admin_url('orders/view', ['id' => $o['id']]) . '#when') ?>">Set time</a></td>
                     </tr>

@@ -23,6 +23,7 @@ $items = get_order_items((int) $order['id']);
             <tr><td><?= (int) $item['quantity'] ?></td><td><?= e($item['product_name']) ?></td><td><?= e($item['size_label']) ?></td><td><?= e((string) $item['cake_message']) ?></td></tr>
         <?php endforeach; ?>
     </table>
+    <?php if ((float) $order['discount'] > 0): ?><p><strong>Coupon:</strong> <?= e((string) $order['coupon_code']) ?> (-<?= e(money($order['discount'])) ?>)</p><?php endif; ?>
     <?php if ($order['notes']): ?><p><strong>Customer notes:</strong> <?= nl2br(e($order['notes'])) ?></p><?php endif; ?>
     <?php if ($order['admin_notes']): ?><p><strong>Staff notes:</strong> <?= nl2br(e($order['admin_notes'])) ?></p><?php endif; ?>
 </div>

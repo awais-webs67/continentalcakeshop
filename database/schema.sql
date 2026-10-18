@@ -8,6 +8,7 @@ SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS order_events;
+DROP TABLE IF EXISTS coupons;
 DROP TABLE IF EXISTS order_items;
 DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS password_resets;
@@ -123,11 +124,14 @@ CREATE TABLE orders (
     delivery_address  VARCHAR(255) NULL,
     delivery_suburb   VARCHAR(80) NULL,
     delivery_postcode VARCHAR(4) NULL,
-    delivery_window   VARCHAR(20) NULL COMMENT 'Customer preference; the shop sets the exact time',
+    delivery_window   VARCHAR(60) NULL COMMENT 'Customer preference; the shop sets the exact time',
     pickup_date       DATE NOT NULL,
     pickup_time       TIME NULL COMMENT 'Pickup time, or the delivery time once the shop sets it',
+    delivery_time_to  TIME NULL COMMENT 'End of the delivery time range',
     subtotal          DECIMAL(10,2) NOT NULL,
     delivery_fee      DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    coupon_code       VARCHAR(40) NULL,
+    discount          DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     total             DECIMAL(10,2) NOT NULL,
     payment_method    VARCHAR(20) NOT NULL,
     payment_status    ENUM('pending','awaiting_verification','paid','failed','refunded') NOT NULL DEFAULT 'pending',
@@ -276,6 +280,22 @@ CREATE TABLE order_events (
 
 
 -- Records which files in database/migrations are already included, so migrate.php skips them.
+CREATE TABLE coupons (
+    id             INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    code           VARCHAR(40) NOT NULL UNIQUE,
+    description    VARCHAR(160) NULL,
+    discount_type  ENUM('percent','fixed') NOT NULL DEFAULT 'percent',
+    discount_value DECIMAL(10,2) NOT NULL,
+    min_order      DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT '0 = any order',
+    max_uses       INT UNSIGNED NULL COMMENT 'NULL = unlimited',
+    used_count     INT UNSIGNED NOT NULL DEFAULT 0,
+    starts_at      DATE NULL,
+    expires_at     DATE NULL COMMENT 'Last day the code works; NULL = no expiry',
+    is_active      TINYINT(1) NOT NULL DEFAULT 1,
+    created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE schema_migrations (
     migration  VARCHAR(190) NOT NULL PRIMARY KEY,
     applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP

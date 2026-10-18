@@ -60,6 +60,7 @@ $socials = array_filter([
     </div>
 </footer>
 
+<?php render('partials/promo-popup'); ?>
 <script src="<?= e(asset('js/main.js')) ?>" defer></script>
 </body>
 </html>

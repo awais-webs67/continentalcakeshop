@@ -69,16 +69,23 @@ if (is_post()) {
     if ($action === 'pickup') {
         $date = input('pickup_date');
         $time = input('pickup_time');
+        $to = is_delivery($order) ? input('delivery_time_to') : '';
         $kind = is_delivery($order) ? 'Delivery' : 'Pickup';
+        if ($to !== '' && (!preg_match('/^\d{2}:\d{2}$/', $to) || $to <= $time)) {
+            flash('error', 'The end of the delivery time range must be after the start.');
+            redirect(admin_url('orders/view', ['id' => $id]) . '#when');
+        }
         if (DateTime::createFromFormat('Y-m-d H:i', $date . ' ' . $time)) {
             $first = is_delivery($order) && !$order['pickup_time'];
-            db_run('UPDATE orders SET pickup_date = ?, pickup_time = ? WHERE id = ?', [$date, $time . ':00', $id]);
-            log_order_event($id, 'pickup', $kind . ($first ? ' time set to ' : ' moved to ') . format_pickup($date, $time) . '.', $adminId);
+            db_run('UPDATE orders SET pickup_date = ?, pickup_time = ?, delivery_time_to = ? WHERE id = ?', [$date, $time . ':00', $to !== '' ? $to . ':00' : null, $id]);
+            $updated = get_order($id);
+            $when = order_when($updated);
+            log_order_event($id, 'pickup', $kind . ($first ? ' time set to ' : ' moved to ') . $when . '.', $adminId);
             if (input('notify') === '1') {
                 $message = $first
-                    ? 'Your delivery is booked for ' . format_pickup($date, $time) . '. Please make sure someone is home to receive the cake.'
-                    : 'Your ' . strtolower($kind) . ' time is now ' . format_pickup($date, $time) . '.';
-                send_order_update_email(get_order($id), $first ? 'Delivery time confirmed' : $kind . ' time changed', $message);
+                    ? 'Your delivery is booked for ' . $when . '. Please make sure someone is home to receive the cake.'
+                    : 'Your ' . strtolower($kind) . ' time is now ' . $when . '.';
+                send_order_update_email($updated, $first ? 'Delivery time confirmed' : $kind . ' time changed', $message);
                 log_order_event($id, 'email', 'Customer emailed the ' . strtolower($kind) . ' time.', $adminId);
             }
             flash('success', $kind . ' time saved.');

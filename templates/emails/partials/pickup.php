@@ -5,7 +5,7 @@
         <strong style="font-size:16px;color:#1B1B1F"><?= e(order_when($order)) ?></strong><br>
         <?= e(order_address($order)) ?>
         <?php if (is_delivery($order) && !$order['pickup_time']): ?>
-            <br><span style="color:#66666E">We will email you the delivery time before the day.<?= ($order['delivery_window'] ?? 'any') !== 'any' ? ' Your preference: ' . e(strtolower(DELIVERY_WINDOWS[$order['delivery_window']] ?? '')) . '.' : '' ?></span>
+            <br><span style="color:#66666E">We will email you the delivery time before the day.<?= ($order['delivery_window'] ?? 'any') !== 'any' && $order['delivery_window'] ? ' Your preferred time: ' . e(delivery_window_label($order['delivery_window'])) . '.' : '' ?></span>
         <?php endif; ?>
     </td></tr>
 </table>

@@ -27,7 +27,8 @@
                 </table>
                 <div class="totals">
                     <div><span>Subtotal</span><span><?= e(money($order['subtotal'])) ?></span></div>
-                    <?php if ((float) $order['delivery_fee'] > 0): ?><div><span>Delivery</span><span><?= e(money($order['delivery_fee'])) ?></span></div><?php endif; ?>
+                    <?php if ((float) $order['discount'] > 0): ?><div><span>Discount (<?= e((string) $order['coupon_code']) ?>)</span><span>-<?= e(money($order['discount'])) ?></span></div><?php endif; ?>
+                    <?php if (is_delivery($order)): ?><div><span>Delivery</span><span><?= (float) $order['delivery_fee'] > 0 ? e(money($order['delivery_fee'])) : 'Free' ?></span></div><?php endif; ?>
                     <div class="totals__grand"><span>Total</span><span><?= e(money($order['total'])) ?></span></div>
                 </div>
                 <?php if ($order['notes']): ?><p class="note-box" style="margin-top:16px"><strong>Customer notes:</strong> <?= nl2br(e($order['notes'])) ?></p><?php endif; ?>
@@ -124,12 +125,16 @@
                 <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $order['id'] ?>"><input type="hidden" name="action" value="pickup">
                 <p style="margin:0"><strong><?= e(order_when($order)) ?></strong></p>
                 <?php if (is_delivery($order)): ?>
-                    <p class="hint" style="margin:0">Customer prefers: <strong><?= e(DELIVERY_WINDOWS[$order['delivery_window'] ?? 'any'] ?? 'Any time') ?></strong></p>
+                    <p class="hint" style="margin:0">Customer prefers: <strong><?= e(delivery_window_label($order['delivery_window'] ?? null)) ?></strong></p>
                 <?php endif; ?>
+                <label class="field"><span>Date</span><input class="input" type="date" name="pickup_date" value="<?= e($order['pickup_date']) ?>" required></label>
                 <div class="form-grid">
-                    <label class="field"><span>Date</span><input class="input" type="date" name="pickup_date" value="<?= e($order['pickup_date']) ?>" required></label>
-                    <label class="field"><span>Time</span><input class="input" type="time" name="pickup_time" value="<?= e(substr((string) $order['pickup_time'], 0, 5)) ?>" step="300" required></label>
+                    <label class="field"><span><?= is_delivery($order) ? 'From' : 'Time' ?></span><input class="input" type="time" name="pickup_time" value="<?= e(substr((string) $order['pickup_time'], 0, 5)) ?>" step="300" required></label>
+                    <?php if (is_delivery($order)): ?>
+                        <label class="field"><span>To <small>optional</small></span><input class="input" type="time" name="delivery_time_to" value="<?= e(substr((string) ($order['delivery_time_to'] ?? ''), 0, 5)) ?>" step="300"></label>
+                    <?php endif; ?>
                 </div>
+                <?php if (is_delivery($order)): ?><p class="hint" style="margin:0">Give a range like 1pm to 3pm, or only a start time for an exact time.</p><?php endif; ?>
                 <label class="switch"><input type="checkbox" name="notify" value="1" checked><span class="switch__track"></span><span>Email the time to the customer</span></label>
                 <button class="btn <?= is_delivery($order) && !$order['pickup_time'] ? 'btn--primary' : 'btn--secondary' ?>" type="submit"><?= is_delivery($order) ? ($order['pickup_time'] ? 'Change delivery time' : 'Confirm delivery time') : 'Change pickup time' ?></button>
             </form>

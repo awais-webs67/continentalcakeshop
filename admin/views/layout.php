@@ -11,6 +11,7 @@ $nav = [
         ['custom-requests', 'Custom requests', 'gift', $badges['custom']],
         ['messages', 'Messages', 'mail', $badges['messages']],
         ['customers', 'Customers', 'user', null],
+        ['coupons', 'Coupons', 'tag', null],
     ],
     'Catalogue' => [
         ['products', 'Products', 'cake', null],
@@ -19,6 +20,7 @@ $nav = [
         ['reviews', 'Reviews', 'star', null],
     ],
     'Website' => [
+        ['popup', 'Promo popup', 'megaphone', null],
         ['pages', 'Policy pages', 'info', null],
         ['faqs', 'FAQs', 'search', null],
         ['settings', 'Settings', 'pen', null],

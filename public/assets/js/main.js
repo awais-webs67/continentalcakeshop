@@ -256,13 +256,55 @@
         });
     });
 
+    /* ---------- Promo popup ---------- */
+    // Shown once per campaign (or once per visit), after a short delay. Saving the popup
+    // in the admin panel starts a new campaign, so people see the new offer.
+    var promo = $('[data-promo]');
+    if (promo) {
+        var version = promo.getAttribute('data-promo-version');
+        var perVisit = promo.getAttribute('data-promo-frequency') === 'session';
+        var store = function () { try { return perVisit ? window.sessionStorage : window.localStorage; } catch (e) { return null; } };
+        var seen = false;
+        try { seen = store() && store().getItem('ccsPromo') === version; } catch (e) {}
+        var closePromo = function () {
+            promo.classList.remove('is-open');
+            document.body.classList.remove('promo-open');
+            setTimeout(function () { promo.hidden = true; }, 300);
+            try { store() && store().setItem('ccsPromo', version); } catch (e) {}
+        };
+        if (!seen) {
+            setTimeout(function () {
+                if (document.body.classList.contains('menu-open')) return;
+                promo.hidden = false;
+                document.body.classList.add('promo-open');
+                requestAnimationFrame(function () { promo.classList.add('is-open'); });
+                var close = $('.promo__close', promo);
+                close && close.focus();
+            }, Math.max(0, parseInt(promo.getAttribute('data-promo-delay'), 10) || 0) * 1000);
+            $$('[data-promo-close]', promo).forEach(function (el) { el.addEventListener('click', closePromo); });
+            var cta = $('[data-promo-cta]', promo);
+            cta && cta.addEventListener('click', function () { try { store() && store().setItem('ccsPromo', version); } catch (e) {} });
+            document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !promo.hidden) closePromo(); });
+        }
+    }
+
+    /* ---------- Custom cake: quick pick for number of people ---------- */
+    var servingsInput = $('#servings');
+    $$('[data-serving]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            servingsInput.value = btn.getAttribute('data-serving');
+            $$('[data-serving]').forEach(function (b) { b.classList.toggle('is-active', b === btn); });
+        });
+    });
+
     /* ---------- Copy buttons ---------- */
     $$('[data-copy]').forEach(function (btn) {
         btn.addEventListener('click', function () {
             var text = btn.getAttribute('data-copy');
+            var label = $('span', btn) || btn;
             var done = function () {
-                btn.textContent = 'Copied';
-                setTimeout(function () { btn.textContent = 'Copy'; }, 1600);
+                label.textContent = 'Copied';
+                setTimeout(function () { label.textContent = 'Copy'; }, 1600);
             };
             if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () {});
         });
@@ -302,17 +344,37 @@
         var payAmounts = $$('[data-pay-amount]', checkout);
         var formatMoney = function (n) { return '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); };
 
+        var feeValue = $('[data-delivery-fee-value]', checkout);
+        var discountRow = $('[data-discount-row]', checkout);
+        var discountValue = $('[data-discount-value]', checkout);
+
+        // Same sums as order_totals() in PHP: the discount comes off the cakes, then delivery is added.
+        var updateTotals = function () {
+            if (!totalEl) return;
+            var checked = $('[data-fulfilment]:checked', checkout) || $('input[name="fulfilment"]', checkout);
+            var delivery = checked && checked.value === 'delivery';
+            var num = function (name) { return parseFloat(totalEl.getAttribute(name)) || 0; };
+            var afterDiscount = num('data-subtotal') - num('data-discount');
+            var fee = num('data-delivery-fee');
+            var freeOver = num('data-free-over');
+            var deliveryFee = fee > 0 && !(freeOver > 0 && afterDiscount >= freeOver) ? fee : 0;
+            if (feeValue) feeValue.textContent = deliveryFee > 0 ? formatMoney(deliveryFee) : 'Free';
+            if (discountRow) {
+                discountRow.hidden = num('data-discount') <= 0;
+                discountValue.textContent = '-' + formatMoney(num('data-discount'));
+            }
+            var total = afterDiscount + (delivery ? deliveryFee : 0);
+            totalEl.textContent = formatMoney(total);
+            payAmounts.forEach(function (el) { el.textContent = formatMoney(total); });
+        };
+
         var updateFulfilment = function () {
             var checked = $('[data-fulfilment]:checked', checkout);
             var delivery = checked && checked.value === 'delivery';
             deliveryFields.forEach(function (el) { el.hidden = !delivery; });
             pickupFields.forEach(function (el) { el.hidden = delivery; });
             if (feeRow) feeRow.hidden = !delivery;
-            if (totalEl) {
-                var total = parseFloat(totalEl.getAttribute('data-subtotal')) + (delivery ? parseFloat(totalEl.getAttribute('data-delivery-fee')) : 0);
-                totalEl.textContent = formatMoney(total);
-                payAmounts.forEach(function (el) { el.textContent = formatMoney(total); });
-            }
+            updateTotals();
         };
         $$('[data-fulfilment]', checkout).forEach(function (r) { r.addEventListener('change', updateFulfilment); });
 
@@ -353,6 +415,67 @@
             }
         };
         $$('[data-payment-method]', checkout).forEach(function (r) { r.addEventListener('change', updatePayment); });
+
+        // Coupon code: apply or remove without reloading the page.
+        var couponBox = $('[data-coupon]', checkout);
+        if (couponBox) {
+            var entry = $('[data-coupon-entry]', couponBox);
+            var applied = $('[data-coupon-applied]', couponBox);
+            var couponForm = $('[data-coupon-form]', couponBox);
+            var couponInput = $('#coupon_code', couponBox);
+            var couponError = $('[data-coupon-error]', couponBox);
+            var toggle = $('[data-coupon-toggle]', couponBox);
+            var sendCoupon = function (fields) {
+                var body = new FormData();
+                body.append('_token', $('input[name="_token"]', checkout).value);
+                Object.keys(fields).forEach(function (k) { body.append(k, fields[k]); });
+                return fetch(couponBox.getAttribute('data-coupon-url'), { method: 'POST', body: body, credentials: 'same-origin' })
+                    .then(function (r) { return r.json(); });
+            };
+            toggle.addEventListener('click', function () {
+                couponForm.hidden = !couponForm.hidden;
+                toggle.setAttribute('aria-expanded', couponForm.hidden ? 'false' : 'true');
+                if (!couponForm.hidden) couponInput.focus();
+            });
+            couponInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') { e.preventDefault(); $('[data-coupon-apply]', couponBox).click(); }
+            });
+            $('[data-coupon-apply]', couponBox).addEventListener('click', function (e) {
+                e.preventDefault();
+                var btn = e.currentTarget;
+                if (!couponInput.value.trim()) { couponInput.focus(); return; }
+                btn.disabled = true;
+                sendCoupon({ action: 'apply', code: couponInput.value }).then(function (data) {
+                    btn.disabled = false;
+                    if (!data.ok) {
+                        couponError.textContent = data.message;
+                        couponError.hidden = false;
+                        return;
+                    }
+                    couponError.hidden = true;
+                    $('[data-coupon-code]', applied).textContent = data.code;
+                    $('[data-coupon-label]', applied).textContent = data.label;
+                    totalEl.setAttribute('data-discount', data.discount);
+                    applied.hidden = false;
+                    entry.hidden = true;
+                    updateTotals();
+                }).catch(function () {
+                    btn.disabled = false;
+                    couponError.textContent = 'We could not check the code. Please try again.';
+                    couponError.hidden = false;
+                });
+            });
+            $('[data-coupon-remove]', couponBox).addEventListener('click', function (e) {
+                e.preventDefault();
+                sendCoupon({ action: 'remove' }).then(function () {
+                    totalEl.setAttribute('data-discount', '0');
+                    applied.hidden = true;
+                    entry.hidden = false;
+                    couponInput.value = '';
+                    updateTotals();
+                }).catch(function () {});
+            });
+        }
 
         // Optional account creation
         var createToggle = $('[data-create-account]', checkout);

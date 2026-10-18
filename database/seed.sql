@@ -456,5 +456,30 @@ UPDATE products SET description = 'A tower of cream-filled profiteroles, finishe
 UPDATE products SET description = 'Crisp meringue with a soft centre, topped with fresh cream and fruit.' WHERE slug = 'pavlova';
 UPDATE products SET description = 'A moist orange and poppy seed tea cake. Lovely with a cup of tea or coffee.' WHERE slug = 'orange-poppy-seed-cake';
 
+-- ---------------------------------------------------------------------------
+-- Coupons, popup, delivery windows and payment texts (same as migration 008)
+-- ---------------------------------------------------------------------------
+INSERT IGNORE INTO settings (setting_key, setting_value) VALUES
+('delivery_windows',         '["9am to 12pm","12pm to 3pm","3pm to 6pm"]'),
+('delivery_free_over',       '0'),
+('coupons_enabled',          '1'),
+('payment_stripe_label',     'Credit or debit card'),
+('payment_stripe_note',      'Pay securely with Visa, Mastercard, Amex, Apple Pay or Google Pay through Stripe.'),
+('payment_payid_label',      'PayID'),
+('payment_payid_note',       'Send the total to our PayID from your banking app, then upload a screenshot of the payment.'),
+('payment_bank_label',       'Bank transfer'),
+('payment_bank_note',        'Transfer the total to our bank account, then upload a screenshot or PDF of the receipt.'),
+('popup_enabled',            '0'),
+('popup_title',              'Sweet deal for you'),
+('popup_text',               'Order your next cake online and save.'),
+('popup_coupon_id',          ''),
+('popup_image',              ''),
+('popup_button_text',        'Order Online'),
+('popup_button_url',         'shop'),
+('popup_delay_seconds',      '3'),
+('popup_pages',              'all'),
+('popup_frequency',          'once'),
+('popup_version',            '1');
+
 INSERT IGNORE INTO schema_migrations (migration) VALUES
-('001_customer_accounts.sql'), ('002_pages_and_faqs.sql'), ('003_hero_image_setting.sql'), ('004_teal_hero_cake.sql'), ('005_admin_panel.sql'), ('006_delivery_announcement.sql'), ('007_delivery_and_sizes.sql');
+('001_customer_accounts.sql'), ('002_pages_and_faqs.sql'), ('003_hero_image_setting.sql'), ('004_teal_hero_cake.sql'), ('005_admin_panel.sql'), ('006_delivery_announcement.sql'), ('007_delivery_and_sizes.sql'), ('008_coupons_popup_delivery_windows.sql');

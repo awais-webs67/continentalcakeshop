@@ -36,6 +36,7 @@ $routes = [
     '#^/(privacy-policy|terms|refund-policy|allergens)$#' => ['page.php', ['slug']],
     '#^/api/slots$#'                => ['api/slots.php', []],
     '#^/api/upload$#'               => ['api/upload.php', []],
+    '#^/api/coupon$#'               => ['api/coupon.php', []],
     '#^/stripe-webhook$#'           => ['stripe-webhook.php', []],
     '#^/sitemap\.xml$#'             => ['sitemap.php', []],
     '#^/robots\.txt$#'              => ['robots.php', []],

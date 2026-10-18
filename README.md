@@ -9,7 +9,10 @@ Plain PHP 8.1+ and MySQL/MariaDB, with no framework and no Composer packages, so
 - Cart with free cake message, quantity and size per line
 - Checkout with **pickup or delivery**. Pickup: the customer books a date and time slot. Delivery: the customer chooses a date, a preferred time of day and their address (checked against the delivery postcodes); the shop then sets the exact delivery time in the admin panel and the customer is emailed. Both respect opening hours, minimum notice, closed dates, how far ahead people can book and optional daily limits
 - Standard cakes in two sizes: **Midi (serves 8)** and **Large (serves 14)**. Specials can be set to "Price on request" so they show an Enquire button instead of Add to Cart
-- Custom cake requests with occasion, date, serving size, pickup or delivery, description and a reference photo
+- Delivery fee set by the shop (0 = free), with optional free delivery over an amount and a minimum order. The preferred delivery time windows are edited in Settings, and the shop confirms an exact time or a range such as 1pm to 3pm
+- **Coupons**: the shop creates codes (percentage or fixed amount) with an optional minimum order, number of uses, start and expiry date. Customers click "Have a coupon code?" at checkout; the discount is checked again when the order is placed and also applied on the Stripe payment page
+- **Promo popup**: a designed card shown when the site opens, edited in Admin > Promo popup (title, text, picture, button, linked coupon, pages, delay, how often)
+- Custom cake requests with occasion, date, number of people, pickup or delivery, description and a reference photo
 - Payment screenshots and custom cake photos upload as soon as they are chosen, with a progress bar in percent, and the form cannot be sent until the upload is complete
 - Payment options: **Stripe card payment**, **PayID** and **bank transfer** (both with a payment screenshot upload)
 - Private order page for the customer, order emails to the customer and the shop
@@ -30,6 +33,7 @@ Open `/admin`. The first visit creates the owner account. Everything below is ma
 - **Customers**: accounts with their orders and spend
 - **Products, Categories, Gallery, Reviews**: add, edit, hide, sort, upload photos (resized to WebP automatically), choose the homepage photo
 - **Policy pages and FAQs**: edit the wording with simple formatting
+- **Coupons** and **Promo popup**: discount codes and the campaign card shown on the website
 - **Settings**: shop details, opening hours, ordering rules and closed dates, payment methods on or off with their details (Stripe keys, PayID, bank), email alerts and a test email, homepage text, Google rating, social links and SEO
 - **Staff accounts** (owner only): add staff, change roles, reset passwords, disable logins
 - **System check** (owner only): server requirements, folder permissions, live-site warnings, and one-click database updates

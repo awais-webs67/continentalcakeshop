@@ -72,12 +72,16 @@ $mask = static function (string $key): string {
         <?= field_error($errors, 'fulfilment') ?>
         <div class="form-grid">
             <label class="field"><span>Delivery fee</span><div class="input-prefix"><span>$</span><input class="input" name="delivery_fee" inputmode="decimal" value="<?= $v('delivery_fee') ?>"></div></label>
+            <label class="field"><span>Free delivery for orders over <small>0 = never free</small></span><div class="input-prefix"><span>$</span><input class="input" name="delivery_free_over" inputmode="decimal" value="<?= $v('delivery_free_over') ?>"></div></label>
             <label class="field"><span>Minimum order for delivery <small>0 = none</small></span><div class="input-prefix"><span>$</span><input class="input" name="delivery_min_order" inputmode="decimal" value="<?= $v('delivery_min_order') ?>"></div></label>
             <label class="field"><span>Delivery area <small>shown at checkout</small></span><input class="input" name="delivery_note" value="<?= $v('delivery_note') ?>" placeholder="All over Canberra and Queanbeyan"></label>
             <label class="field"><span>Delivery postcodes <small>empty = anywhere</small></span><input class="input" name="delivery_postcodes" value="<?= $v('delivery_postcodes') ?>" placeholder="2600-2620, 2900-2914"></label>
             <?= field_error($errors, 'delivery_postcodes') ?>
         </div>
-        <p class="hint">Customers choose a delivery date and a preferred time of day. You set the exact time on the order and the customer is emailed.</p>
+        <p class="hint">Set the delivery fee to 0 to make delivery free for everyone.</p>
+        <label class="field"><span>Delivery time windows <small>one per line, customers pick one as their preferred time</small></span>
+            <textarea class="input" name="delivery_windows" rows="4" placeholder="9am to 12pm&#10;12pm to 3pm&#10;3pm to 6pm"><?= e(implode("\n", delivery_windows())) ?></textarea></label>
+        <p class="hint">Customers choose a delivery date and one of these windows (or "Any time"). On the order you then confirm the exact time or a range, such as 1pm to 3pm, and the customer is emailed.</p>
     </div>
 
 <?php elseif ($tab === 'payments'): ?>
@@ -93,6 +97,11 @@ $mask = static function (string $key): string {
         <div class="form-stack">
             <label class="switch"><input type="checkbox" name="payment_stripe_enabled" value="1" <?= $on('payment_stripe_enabled') ?>><span class="switch__track"></span><span>Accept card payments</span></label>
             <?= field_error($errors, 'payment_stripe_enabled') ?>
+            <div class="form-grid">
+                <label class="field"><span>Name at checkout</span><input class="input" name="payment_stripe_label" maxlength="60" value="<?= $v('payment_stripe_label') ?>"></label>
+                <label class="field"><span>Text under the name</span><input class="input" name="payment_stripe_note" maxlength="255" value="<?= $v('payment_stripe_note') ?>"></label>
+            </div>
+            <?= field_error($errors, 'payment_stripe_label') ?>
             <div class="form-grid">
                 <label class="field"><span>Secret key <small>Stripe dashboard, Developers, API keys</small></span>
                     <input class="input" type="password" name="stripe_secret_key" autocomplete="off" placeholder="<?= setting('stripe_secret_key') !== '' ? 'Saved. Paste a new key to replace it' : 'sk_live_...' ?>"></label>
@@ -122,6 +131,11 @@ $mask = static function (string $key): string {
             <label class="switch"><input type="checkbox" name="payment_payid_enabled" value="1" <?= $on('payment_payid_enabled') ?>><span class="switch__track"></span><span>Accept PayID</span></label>
             <?= field_error($errors, 'payment_payid_enabled') ?>
             <div class="form-grid">
+                <label class="field"><span>Name at checkout</span><input class="input" name="payment_payid_label" maxlength="60" value="<?= $v('payment_payid_label') ?>"></label>
+                <label class="field"><span>Text under the name</span><input class="input" name="payment_payid_note" maxlength="255" value="<?= $v('payment_payid_note') ?>"></label>
+            </div>
+            <?= field_error($errors, 'payment_payid_label') ?>
+            <div class="form-grid">
                 <label class="field"><span>PayID <small>phone number, email or ABN</small></span><input class="input" name="payid_identifier" value="<?= $v('payid_identifier') ?>" placeholder="e.g. 0412 345 678"></label>
                 <label class="field"><span>Name shown in the banking app</span><input class="input" name="payid_account_name" value="<?= $v('payid_account_name') ?>"></label>
             </div>
@@ -135,6 +149,11 @@ $mask = static function (string $key): string {
         <div class="form-stack">
             <label class="switch"><input type="checkbox" name="payment_bank_enabled" value="1" <?= $on('payment_bank_enabled') ?>><span class="switch__track"></span><span>Accept bank transfer</span></label>
             <?= field_error($errors, 'payment_bank_enabled') ?>
+            <div class="form-grid">
+                <label class="field"><span>Name at checkout</span><input class="input" name="payment_bank_label" maxlength="60" value="<?= $v('payment_bank_label') ?>"></label>
+                <label class="field"><span>Text under the name</span><input class="input" name="payment_bank_note" maxlength="255" value="<?= $v('payment_bank_note') ?>"></label>
+            </div>
+            <?= field_error($errors, 'payment_bank_label') ?>
             <div class="form-grid form-grid--3">
                 <label class="field"><span>Account name</span><input class="input" name="bank_account_name" value="<?= $v('bank_account_name') ?>"></label>
                 <label class="field"><span>BSB</span><input class="input" name="bank_bsb" value="<?= $v('bank_bsb') ?>" inputmode="numeric" placeholder="000-000"></label>

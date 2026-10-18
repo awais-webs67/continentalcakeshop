@@ -12,15 +12,15 @@ function payment_method_definitions(): array
 {
     return [
         PAYMENT_STRIPE => [
-            'label'        => 'Credit or debit card',
-            'description'  => 'Pay securely with Visa, Mastercard, Amex, Apple Pay or Google Pay through Stripe.',
+            'label'        => setting('payment_stripe_label', 'Credit or debit card'),
+            'description'  => setting('payment_stripe_note', 'Pay securely with Visa, Mastercard, Amex, Apple Pay or Google Pay through Stripe.'),
             'enabled'      => setting_bool('payment_stripe_enabled'),
             'configured'   => setting('stripe_secret_key') !== '',
             'needs_proof'  => false,
         ],
         PAYMENT_PAYID => [
-            'label'        => 'PayID',
-            'description'  => 'Send the total to our PayID from your banking app, then upload a screenshot of the payment.',
+            'label'        => setting('payment_payid_label', 'PayID'),
+            'description'  => setting('payment_payid_note', 'Send the total to our PayID from your banking app, then upload a screenshot of the payment.'),
             'enabled'      => setting_bool('payment_payid_enabled'),
             'configured'   => setting('payid_identifier') !== '',
             'needs_proof'  => true,
@@ -30,8 +30,8 @@ function payment_method_definitions(): array
             ],
         ],
         PAYMENT_BANK => [
-            'label'        => 'Bank transfer',
-            'description'  => 'Transfer the total to our bank account, then upload a screenshot or PDF of the receipt.',
+            'label'        => setting('payment_bank_label', 'Bank transfer'),
+            'description'  => setting('payment_bank_note', 'Transfer the total to our bank account, then upload a screenshot or PDF of the receipt.'),
             'enabled'      => setting_bool('payment_bank_enabled'),
             'configured'   => setting('bank_bsb') !== '' && setting('bank_account_number') !== '',
             'needs_proof'  => true,
@@ -120,6 +120,18 @@ function stripe_create_checkout(array $order, array $items): string
                 'product_data' => ['name' => 'Delivery'],
             ],
         ];
+    }
+
+    // A coupon discount becomes a one-off Stripe coupon for this exact amount.
+    if ((float) ($order['discount'] ?? 0) > 0) {
+        $stripeCoupon = stripe_request('POST', 'coupons', [
+            'amount_off'      => (int) round((float) $order['discount'] * 100),
+            'currency'        => 'aud',
+            'duration'        => 'once',
+            'max_redemptions' => 1,
+            'name'            => 'Coupon ' . $order['coupon_code'],
+        ]);
+        $params['discounts'] = [['coupon' => $stripeCoupon['id']]];
     }
 
     $session = stripe_request('POST', 'checkout/sessions', $params);

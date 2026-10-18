@@ -72,7 +72,7 @@ render('header', compact('page'));
                 <?php if (is_delivery($order)): ?>
                     <p><?= icon('pin', '', 18) ?> <?= e(order_address($order)) ?></p>
                     <?php if (!$order['pickup_time']): ?>
-                        <p class="order-box__note"><?= icon('clock', '', 18) ?> We will email you the delivery time before the day<?= ($order['delivery_window'] ?? 'any') !== 'any' ? ', keeping to your ' . e(strtolower(DELIVERY_WINDOWS[$order['delivery_window']] ?? '')) . ' preference where we can' : '' ?>.</p>
+                        <p class="order-box__note"><?= icon('clock', '', 18) ?> We will email you the delivery time before the day<?= ($order['delivery_window'] ?? 'any') !== 'any' && $order['delivery_window'] ? ', keeping to your preferred time (' . e(delivery_window_label($order['delivery_window'])) . ') where we can' : '' ?>.</p>
                     <?php endif; ?>
                 <?php else: ?>
                     <p><?= icon('store', '', 18) ?> <?= e(store_address_line()) ?></p>
@@ -104,8 +104,11 @@ render('header', compact('page'));
             </ul>
             <dl class="summary-lines">
                 <div><dt>Subtotal</dt><dd><?= e(money($order['subtotal'])) ?></dd></div>
-                <?php if ((float) $order['delivery_fee'] > 0): ?>
-                    <div><dt>Delivery</dt><dd><?= e(money($order['delivery_fee'])) ?></dd></div>
+                <?php if ((float) $order['discount'] > 0): ?>
+                    <div><dt>Discount (<?= e((string) $order['coupon_code']) ?>)</dt><dd>-<?= e(money($order['discount'])) ?></dd></div>
+                <?php endif; ?>
+                <?php if (is_delivery($order)): ?>
+                    <div><dt>Delivery</dt><dd><?= (float) $order['delivery_fee'] > 0 ? e(money($order['delivery_fee'])) : 'Free' ?></dd></div>
                 <?php endif; ?>
             </dl>
             <div class="summary-total"><span>Total</span><strong><?= e(money($order['total'])) ?></strong></div>
