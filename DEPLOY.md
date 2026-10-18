@@ -99,16 +99,13 @@ In File Manager, right-click each folder > **Change Permissions** > `755`:
 
 If photo uploads fail later, try `775` on the same folders.
 
-## Step 6. Turn on HTTPS
+## Step 6. HTTPS and email delivery
 
-Open `.htaccess` in `public_html` and remove the `#` from these two lines:
+**HTTPS.** Once the SSL certificate is active and `app_url` in `config.php` starts with `https://`, the site sends every visitor to that exact address by itself: `http://` goes to `https://`, and `continentalcakeshop.com.au` goes to `www.continentalcakeshop.com.au` (or the other way round, matching `app_url`). Nothing else to change.
 
-```
-# RewriteCond %{HTTPS} off
-# RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-```
+**Email delivery.** So order emails land in the inbox and not in spam: cPanel > **Email Deliverability**, find the domain and click **Repair** if SPF or DKIM shows a problem. If the domain's DNS is managed somewhere else (for example the domain registrar), copy the records cPanel shows into that DNS.
 
-(If the domain points straight at `public/`, do the same in `public/.htaccess` instead.)
+**Errors.** If a page ever shows "Sorry, something went wrong", the details are saved in `storage/logs/php-errors.log` (File Manager). Customers never see them.
 
 ## Step 7. Create the owner account
 
