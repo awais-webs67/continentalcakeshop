@@ -19,12 +19,30 @@ if (is_post()) {
         redirect(admin_url('products'));
     }
 
+    // Copy a product with its sizes, as a hidden draft, to add a similar cake quickly.
+    if (input('action') === 'duplicate' && $product) {
+        $copy = array_diff_key($product, array_flip(['id', 'created_at', 'updated_at']));
+        $copy['name'] = str_limit($product['name'] . ' (copy)', 160);
+        $copy['slug'] = unique_slug('products', slugify($copy['name']));
+        $copy['is_active'] = 0;
+        $copy['is_featured'] = 0;
+        $pdo = db();
+        $pdo->beginTransaction();
+        $columns = array_keys($copy);
+        db_run('INSERT INTO products (' . implode(', ', $columns) . ') VALUES (' . implode(', ', array_fill(0, count($columns), '?')) . ')', array_values($copy));
+        $newId = (int) $pdo->lastInsertId();
+        db_run('INSERT INTO product_sizes (product_id, label, servings, price, sort_order, is_active) SELECT ?, label, servings, price, sort_order, is_active FROM product_sizes WHERE product_id = ?', [$newId, $product['id']]);
+        $pdo->commit();
+        flash('success', 'Copy created. Change the name, photo and prices, then switch on "Show in the shop".');
+        redirect(admin_url('products/edit', ['id' => $newId]));
+    }
+
     $data = [
         'name'              => str_limit(input('name'), 160),
         'slug'              => slugify(input('slug') ?: input('name')),
         'category_id'       => post_int('category_id'),
         'short_description' => str_limit(input('short_description'), 255),
-        'description'       => str_limit(input('description'), 5000),
+        'description'       => clean_html(str_limit(input('description'), 20000)),
         'badge'             => str_limit(input('badge'), 40),
         'is_featured'       => input('is_featured') === '1' ? 1 : 0,
         'is_active'         => input('is_active') === '1' ? 1 : 0,

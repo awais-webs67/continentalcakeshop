@@ -25,7 +25,7 @@ $page = [
         ? ($category['meta_title'] ?: $category['name'] . ' | ' . setting('store_short_name'))
         : 'Order Cakes Online in Canberra | ' . setting('store_short_name'),
     'description' => $category
-        ? ($category['meta_description'] ?: $category['description'])
+        ? ($category['meta_description'] ?: content_text((string) $category['description']))
         : 'Browse tortes, velvet cakes, mud cakes and cheesecakes from The Continental Cake Shop. Order online and pick up from Greenway, Canberra.',
     'canonical'   => $baseUrl,
     'noindex'     => $search !== '' || $sort !== 'featured',
@@ -38,7 +38,11 @@ render('header', compact('page'));
     <div class="container">
         <?php render('partials/breadcrumbs', compact('crumbs')); ?>
         <h1 class="page-title"><?= e($category['name'] ?? 'Shop Cakes') ?></h1>
-        <p class="page-lead"><?= e($category['description'] ?? 'Fresh cakes made in our shop with 100% Halal ingredients. Choose a cake, pick your size and select a pickup time at checkout.') ?></p>
+        <?php if (!empty($category['description'])): ?>
+            <div class="page-lead prose"><?= rich_text($category['description']) ?></div>
+        <?php else: ?>
+            <p class="page-lead">Fresh cakes made in our shop with 100% Halal ingredients. Choose a cake, pick your size and choose pickup or delivery at checkout.</p>
+        <?php endif; ?>
     </div>
 </section>
 

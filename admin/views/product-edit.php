@@ -1,7 +1,13 @@
 <?php /** @var array $product @var array $categories @var array $sizeRows @var array $errors @var int $id */ ?>
 <a class="crumb" href="<?= e(admin_url('products')) ?>"><?= icon('arrow', '', 14) ?> Products</a>
 <div class="page-head">
-    <div><h1><?= $id ? e($product['name']) : 'Add product' ?></h1><?php if ($id): ?><p><a href="<?= e(url('cakes/' . $product['slug'])) ?>" target="_blank">View on website</a></p><?php endif; ?></div>
+    <div><h1><?= $id ? e($product['name']) : 'Add product' ?></h1><?php if ($id): ?><p><a href="<?= e(url('cakes/' . $product['slug'])) ?>" target="_blank">View on website</a><?= !$product['is_active'] ? ' &middot; ' . status_badge('inactive', 'Hidden') : '' ?></p><?php endif; ?></div>
+    <?php if ($id): ?>
+        <div class="page-head__actions">
+            <form method="post"><?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $id ?>"><input type="hidden" name="action" value="duplicate"><button class="btn btn--secondary" type="submit"><?= icon('copy', '', 18) ?> Duplicate</button></form>
+            <a class="btn btn--primary" href="<?= e(admin_url('products/edit')) ?>"><?= icon('plus', '', 18) ?> Add another</a>
+        </div>
+    <?php endif; ?>
 </div>
 <?php if ($errors): ?><div class="alert alert--error">Please fix the highlighted fields.</div><?php endif; ?>
 
@@ -24,7 +30,7 @@
                     <label class="field"><span>Web address <small>(slug)</small></span><input class="input" name="slug" value="<?= e($product['slug']) ?>" data-slug-target placeholder="made from the name"></label>
                     <?= field_error($errors, 'category_id') ?>
                     <label class="field span-2"><span>Short description <small>shown under the name</small></span><input class="input" name="short_description" maxlength="255" value="<?= e((string) $product['short_description']) ?>"></label>
-                    <label class="field span-2"><span>Full description <small>optional, shown in "About this cake"</small></span><textarea class="input" name="description" rows="4"><?= e((string) $product['description']) ?></textarea></label>
+                    <div class="field span-2"><span class="label">Full description <small>optional, shown in "About this cake"</small></span><textarea class="input" name="description" rows="4" data-rich-editor="simple"><?= e((string) $product['description']) ?></textarea></div>
                 </div>
             </section>
 

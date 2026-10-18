@@ -30,6 +30,7 @@
                     <form method="post" style="display:inline"><?= csrf_field() ?><input type="hidden" name="_back" value="<?= e(admin_url('products') . page_link($result['page'])) ?>"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>"><input type="hidden" name="action" value="toggle"><button class="link-btn" type="submit"><?= $p['is_active'] ? 'Hide' : 'Show' ?></button></form>
                     &nbsp;<a class="link-btn" href="<?= e(admin_url('products/edit', ['id' => $p['id']])) ?>">Edit</a>
                     &nbsp;<a class="link-btn" href="<?= e(product_url($p)) ?>" target="_blank">View</a>
+                    &nbsp;<form method="post" action="<?= e(admin_url('products/edit', ['id' => $p['id']])) ?>" style="display:inline"><?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $p['id'] ?>"><input type="hidden" name="action" value="duplicate"><button class="link-btn" type="submit">Duplicate</button></form>
                 </td>
             </tr>
         <?php endforeach; ?>

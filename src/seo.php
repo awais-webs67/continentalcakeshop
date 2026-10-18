@@ -89,7 +89,7 @@ function product_schema(array $product, array $sizes): array
         '@context'    => 'https://schema.org',
         '@type'       => 'Product',
         'name'        => $product['name'],
-        'description' => $product['meta_description'] ?: ($product['description'] ?: $product['short_description']),
+        'description' => $product['meta_description'] ?: ($product['description'] ? content_text($product['description']) : $product['short_description']),
         'image'       => [product_image_url($product['image'])],
         'sku'         => 'CCS-' . $product['id'],
         'category'    => $product['category_name'],

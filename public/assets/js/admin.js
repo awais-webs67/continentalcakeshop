@@ -158,4 +158,168 @@
             input.addEventListener('change', update);
         });
     }
+
+    // Rich text editor (Quill) for page text, FAQ answers, product and homepage text.
+    // The original textarea stays in the form and receives clean HTML when the form is sent.
+    var richAreas = $$('textarea[data-rich-editor]');
+    if (richAreas.length && window.CCS_ADMIN) {
+        var css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = window.CCS_ADMIN.quillCss;
+        document.head.appendChild(css);
+        var script = document.createElement('script');
+        script.src = window.CCS_ADMIN.quillJs;
+        script.onload = function () { richAreas.forEach(makeEditor); };
+        document.head.appendChild(script);
+    }
+
+    function makeEditor(area) {
+        var Quill = window.Quill;
+        if (!Quill.__ccsReady) {
+            // Alignment as inline style so it works on the website without extra CSS.
+            Quill.register(Quill.import('attributors/style/align'), true);
+            // Allow site links written as {url:contact} or /contact.
+            var Link = Quill.import('formats/link');
+            var sanitize = Link.sanitize;
+            Link.sanitize = function (url) {
+                return /^\{url:[a-z0-9-]+\}$/.test(url) || /^\//.test(url) ? url : sanitize.call(Link, url);
+            };
+            Quill.__ccsReady = true;
+        }
+
+        var simple = area.getAttribute('data-rich-editor') === 'simple';
+        var wrap = document.createElement('div');
+        wrap.className = 'rich-editor';
+        var holder = document.createElement('div');
+        wrap.appendChild(holder);
+        area.parentNode.insertBefore(wrap, area);
+        area.classList.add('rich-editor__source');
+        area.hidden = true;
+
+        var toolbar = simple
+            ? [['bold', 'italic', 'underline'], [{ align: [] }], [{ list: 'ordered' }, { list: 'bullet' }], ['link'], ['clean']]
+            : [[{ header: [2, 3, 4, false] }], ['bold', 'italic', 'underline', 'strike'], [{ align: [] }],
+               [{ list: 'ordered' }, { list: 'bullet' }, { indent: '-1' }, { indent: '+1' }], ['blockquote', 'link', 'image'], ['clean']];
+
+        var quill = new Quill(holder, {
+            theme: 'snow',
+            placeholder: area.getAttribute('placeholder') || 'Start writing...',
+            modules: {
+                toolbar: { container: toolbar, handlers: { image: function () { pickImage(quill); } } },
+                history: { delay: 800, maxStack: 200 }
+            }
+        });
+
+        var value = area.value.trim();
+        if (value && !/<[a-z][\s\S]*>/i.test(value)) {
+            // Plain text from before the editor: keep the line breaks as paragraphs.
+            value = value.split(/\n{2,}|\n/).map(function (line) {
+                return '<p>' + line.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</p>';
+            }).join('');
+        }
+        quill.clipboard.dangerouslyPasteHTML(value || '');
+        quill.history.clear();
+
+        // HTML view, for pasting or checking the code.
+        var bar = wrap.querySelector('.ql-toolbar');
+        var htmlBtn = document.createElement('button');
+        htmlBtn.type = 'button';
+        htmlBtn.className = 'rich-editor__html';
+        htmlBtn.textContent = 'HTML';
+        htmlBtn.title = 'Show or edit the HTML code';
+        bar.appendChild(htmlBtn);
+        var sourceMode = false;
+        var html = function () {
+            return quill.getSemanticHTML().replace(/&nbsp;/g, ' ').replace(/<p><\/p>/g, '');
+        };
+        htmlBtn.addEventListener('click', function () {
+            sourceMode = !sourceMode;
+            if (sourceMode) {
+                area.value = html();
+                area.hidden = false;
+                holder.hidden = true;
+            } else {
+                quill.clipboard.dangerouslyPasteHTML(area.value);
+                area.hidden = true;
+                holder.hidden = false;
+            }
+            wrap.classList.toggle('is-source', sourceMode);
+            htmlBtn.classList.toggle('is-active', sourceMode);
+        });
+
+        area.form && area.form.addEventListener('submit', function () {
+            if (!sourceMode) area.value = quill.getText().trim() === '' && !holder.querySelector('img') ? '' : html();
+        });
+    }
+
+    function pickImage(quill) {
+        var input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/jpeg,image/png,image/webp';
+        input.addEventListener('change', function () {
+            var file = input.files && input.files[0];
+            if (!file) return;
+            var body = new FormData();
+            body.append('image', file);
+            body.append('_token', window.CCS_ADMIN.csrf);
+            var range = quill.getSelection(true);
+            quill.insertText(range.index, 'Uploading picture...', { italic: true }, 'user');
+            fetch(window.CCS_ADMIN.uploadUrl, { method: 'POST', body: body, credentials: 'same-origin' })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    quill.deleteText(range.index, 'Uploading picture...'.length, 'user');
+                    if (data.url) {
+                        quill.insertEmbed(range.index, 'image', data.url, 'user');
+                        quill.setSelection(range.index + 1, 0);
+                    } else {
+                        window.alert(data.error || 'The picture could not be uploaded.');
+                    }
+                })
+                .catch(function () {
+                    quill.deleteText(range.index, 'Uploading picture...'.length, 'user');
+                    window.alert('The picture could not be uploaded. Please try again.');
+                });
+        });
+        input.click();
+    }
+
+    // Email settings: SMTP fields only when SMTP is chosen
+    var smtpFields = $('[data-smtp-fields]');
+    $$('[data-mail-driver]').forEach(function (radio) {
+        radio.addEventListener('change', function () { if (smtpFields) smtpFields.hidden = radio.value !== 'smtp' || !radio.checked; });
+    });
+    $$('select[name="smtp_encryption"]').forEach(function (sel) {
+        sel.addEventListener('change', function () {
+            var port = $('input[name="smtp_port"]');
+            if (port) port.value = { ssl: 465, tls: 587, none: 25 }[sel.value];
+        });
+    });
+
+    // Homepage sections: move up or down, and switch on or off without opening the panel
+    var sectionList = $('[data-sections]');
+    if (sectionList) {
+        sectionList.addEventListener('click', function (e) {
+            var move = e.target.closest('[data-move]');
+            if (move) {
+                e.preventDefault();
+                var item = move.closest('[data-section]');
+                var dir = parseInt(move.getAttribute('data-move'), 10);
+                var sibling = dir < 0 ? item.previousElementSibling : item.nextElementSibling;
+                if (sibling) sectionList.insertBefore(item, dir < 0 ? sibling : sibling.nextElementSibling);
+                move.focus();
+            }
+            if (e.target.closest('[data-stop]')) e.stopPropagation();
+        });
+        $$('[data-stop]', sectionList).forEach(function (label) {
+            label.addEventListener('click', function (e) { e.stopPropagation(); });
+        });
+        $$('[data-section-toggle]', sectionList).forEach(function (box) {
+            box.addEventListener('change', function () { box.closest('[data-section]').classList.toggle('is-off', !box.checked); });
+        });
+        var openInput = $('[data-open-section]');
+        $$('[data-section]', sectionList).forEach(function (d) {
+            d.addEventListener('toggle', function () { if (d.open && openInput) openInput.value = d.id; });
+        });
+        if (location.hash && $(location.hash)) $(location.hash).open = true;
+    }
 })();

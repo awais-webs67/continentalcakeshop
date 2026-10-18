@@ -12,7 +12,7 @@ if (is_post()) {
     $data = [
         'title'            => str_limit(trim(input('title')), 160),
         'summary'          => str_limit(trim(input('summary')), 255),
-        'body'             => clean_page_html(input('body')),
+        'body'             => clean_html(input('body')),
         'is_active'        => input('is_active') === '1' ? 1 : 0,
         'meta_title'       => str_limit(trim(input('meta_title')), 160),
         'meta_description' => str_limit(trim(input('meta_description')), 255),

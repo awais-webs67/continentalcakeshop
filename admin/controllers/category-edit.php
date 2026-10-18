@@ -26,7 +26,7 @@ if (is_post()) {
     $data = [
         'name'             => str_limit(input('name'), 120),
         'slug'             => slugify(input('slug') ?: input('name')),
-        'description'      => str_limit(input('description'), 2000),
+        'description'      => clean_html(str_limit(input('description'), 10000)),
         'is_active'        => input('is_active') === '1' ? 1 : 0,
         'sort_order'       => (int) input('sort_order', '0'),
         'meta_title'       => str_limit(input('meta_title'), 160),

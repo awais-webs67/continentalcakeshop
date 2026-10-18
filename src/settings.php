@@ -99,3 +99,45 @@ function store_maps_url(): string
 {
     return 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode(setting('store_name') . ', ' . store_address_line());
 }
+
+// ---------------------------------------------------------------------------
+// Secrets stored in the settings table (such as the email password) are encrypted
+// with a key kept in storage/app.key, which is never web accessible or in git.
+// ---------------------------------------------------------------------------
+
+function app_secret_key(): string
+{
+    static $key = null;
+    if ($key === null) {
+        $file = STORAGE_PATH . '/app.key';
+        if (!is_file($file)) {
+            file_put_contents($file, base64_encode(random_bytes(32)), LOCK_EX);
+            @chmod($file, 0600);
+        }
+        $key = base64_decode(trim((string) file_get_contents($file)), true) ?: '';
+        if (strlen($key) !== 32) {
+            throw new RuntimeException('storage/app.key is damaged. Delete it and save the email password again.');
+        }
+    }
+    return $key;
+}
+
+function secret_encrypt(string $value): string
+{
+    if ($value === '') {
+        return '';
+    }
+    $iv = random_bytes(12);
+    $cipher = openssl_encrypt($value, 'aes-256-gcm', app_secret_key(), OPENSSL_RAW_DATA, $iv, $tag);
+    return base64_encode($iv . $tag . $cipher);
+}
+
+function secret_decrypt(string $stored): string
+{
+    $raw = base64_decode($stored, true);
+    if ($stored === '' || $raw === false || strlen($raw) < 29) {
+        return '';
+    }
+    $plain = openssl_decrypt(substr($raw, 28), 'aes-256-gcm', app_secret_key(), OPENSSL_RAW_DATA, substr($raw, 0, 12), substr($raw, 12, 16));
+    return $plain === false ? '' : $plain;
+}

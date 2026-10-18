@@ -8,7 +8,7 @@ if (is_post()) {
         $data = [
             'category'   => str_limit(trim(input('category')), 60) ?: 'General',
             'question'   => str_limit(trim(input('question')), 255),
-            'answer'     => clean_page_html(input('answer')),
+            'answer'     => clean_html(input('answer')),
             'is_active'  => input('is_active') === '1' ? 1 : 0,
             'sort_order' => (int) input('sort_order', '0'),
         ];

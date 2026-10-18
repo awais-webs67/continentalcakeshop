@@ -5,3 +5,4 @@
 .DS_Store
 /storage/logs/*
 !/storage/logs/.gitkeep
+/storage/app.key

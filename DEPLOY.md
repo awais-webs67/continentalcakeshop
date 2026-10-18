@@ -85,6 +85,8 @@ In phpMyAdmin on your computer select the database > **Export** > **Quick** > **
 For email, first create `orders@yourdomain.com.au` in cPanel > **Email Accounts**. Its **Connect Devices** page shows the exact SMTP host and port.
 If SMTP gives trouble, `'driver' => 'mail'` also works on most cPanel hosts.
 
+You can also leave the mail part of `config.php` as it is and set up email later in **Admin > Settings > Emails** (server, port, username and password). Once saved there, those settings are used instead of `config.php`, and the password is stored encrypted with a key in `storage/app.key`.
+
 `config.php` is never stored in GitHub, so pulling updates later will not overwrite it.
 
 ## Step 5. Folder permissions
@@ -147,4 +149,5 @@ With SSH access you can run the same update with `php database/migrate.php`.
 ## Backups
 
 - Database: phpMyAdmin > Export, or cPanel > **Backup**.
-- Files that change on the live site: `public/uploads` (product and gallery photos) and `storage/uploads` (payment screenshots and custom cake photos).
+- Files that change on the live site: `public/uploads` (product, gallery and page photos) and `storage/uploads` (payment screenshots and custom cake photos).
+- `storage/app.key`: keep it with the database backup. Without it the saved email password has to be typed in again.

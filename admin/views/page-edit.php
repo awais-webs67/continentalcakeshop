@@ -16,18 +16,7 @@
                     <label class="field"><span>Intro line <small>shown under the title</small></span><input class="input" name="summary" maxlength="255" value="<?= e((string) $page['summary']) ?>"></label>
                     <div class="field">
                         <span>Page text</span>
-                        <div class="editor" data-editor>
-                            <div class="editor__bar" role="toolbar" aria-label="Formatting">
-                                <button type="button" data-wrap="h2" title="Heading">H2</button>
-                                <button type="button" data-wrap="h3" title="Small heading">H3</button>
-                                <button type="button" data-wrap="p" title="Paragraph">P</button>
-                                <button type="button" data-wrap="strong" title="Bold"><strong>B</strong></button>
-                                <button type="button" data-wrap="em" title="Italic"><em>I</em></button>
-                                <button type="button" data-list="ul" title="Bullet list">&bull; List</button>
-                                <button type="button" data-link title="Link">Link</button>
-                            </div>
-                            <textarea class="input editor__text" name="body" rows="22" spellcheck="true"><?= e($page['body']) ?></textarea>
-                        </div>
+                        <textarea class="input" name="body" rows="22" data-rich-editor><?= e($page['body']) ?></textarea>
                         <?= field_error($errors, 'body') ?>
                     </div>
                 </div>

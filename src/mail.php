@@ -1,13 +1,38 @@
 <?php
 declare(strict_types=1);
 
-// Branded HTML emails (with a plain-text part) sent through one of three drivers, set in config:
+// Branded HTML emails (with a plain-text part) sent through one of three drivers:
 //   'mail' - PHP mail(), works on most cPanel hosts out of the box
 //   'smtp' - any SMTP server (cPanel email account, Gmail, Microsoft 365...)
 //   'log'  - writes each email to storage/logs/mail so you can read it during local testing
+// The settings come from Admin > Settings > Emails once they are saved there,
+// otherwise from the 'mail' section of config/config.php.
+
+const MAIL_SETTING_KEYS = [
+    'driver'          => 'mail_driver',
+    'from_address'    => 'mail_from_address',
+    'from_name'       => 'mail_from_name',
+    'smtp.host'       => 'smtp_host',
+    'smtp.port'       => 'smtp_port',
+    'smtp.encryption' => 'smtp_encryption',
+    'smtp.username'   => 'smtp_username',
+];
+
+/** True when the admin panel holds the email settings (they then replace config.php). */
+function mail_settings_in_admin(): bool
+{
+    return setting('mail_driver') !== '';
+}
 
 function mail_config(string $key, mixed $default = null): mixed
 {
+    if (mail_settings_in_admin()) {
+        if ($key === 'smtp.password') {
+            return secret_decrypt(setting('smtp_password_encrypted'));
+        }
+        $value = setting(MAIL_SETTING_KEYS[$key] ?? '');
+        return $value !== '' ? $value : $default;
+    }
     return config('mail.' . $key, $default);
 }
 
@@ -53,6 +78,7 @@ function send_mail(string $to, string $subject, string $html, ?string $text = nu
             default => mail($to, $encodedSubject, $body, implode("\r\n", $headers), '-f' . $fromAddress),
         };
     } catch (Throwable $e) {
+        $GLOBALS['mail_last_error'] = $e->getMessage();
         error_log('Email to ' . $to . ' failed: ' . $e->getMessage());
         return false;
     }

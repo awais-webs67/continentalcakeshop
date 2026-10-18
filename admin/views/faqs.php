@@ -37,7 +37,7 @@ $form = $editing ?? ['id' => 0, 'category' => $categories[0] ?? 'Ordering', 'que
             <label class="field"><span>Group</span><input class="input" name="category" value="<?= e($form['category']) ?>" list="faq-groups" required></label>
             <datalist id="faq-groups"><?php foreach ($categories as $c): ?><option value="<?= e($c) ?>"><?php endforeach; ?></datalist>
             <label class="field"><span>Question</span><input class="input" name="question" maxlength="255" value="<?= e($form['question']) ?>" required></label>
-            <label class="field"><span>Answer <small>simple HTML like &lt;p&gt; and &lt;a&gt; is allowed</small></span><textarea class="input" name="answer" rows="6" required><?= e($form['answer']) ?></textarea></label>
+            <div class="field"><span class="label">Answer</span><textarea class="input" name="answer" rows="6" data-rich-editor="simple"><?= e($form['answer']) ?></textarea></div>
             <label class="field"><span>Sort order</span><input class="input" type="number" name="sort_order" value="<?= (int) $form['sort_order'] ?>"></label>
             <label class="switch"><input type="checkbox" name="is_active" value="1" <?= checked((bool) $form['is_active']) ?>><span class="switch__track"></span><span>Show on the website</span></label>
             <button class="btn btn--primary" type="submit"><?= icon('check', '', 18) ?> <?= $editing ? 'Save question' : 'Add question' ?></button>

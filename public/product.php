@@ -123,7 +123,7 @@ render('header', compact('page'));
                     <?php if ($product['description']): ?>
                         <details open>
                             <summary>About this cake <?= icon('plus', 'faq-item__icon', 18) ?></summary>
-                            <div class="prose"><?= nl2br(e($product['description'])) ?></div>
+                            <div class="prose"><?= rich_text($product['description']) ?></div>
                         </details>
                     <?php endif; ?>
                     <details>

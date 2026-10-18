@@ -171,14 +171,49 @@ $mask = static function (string $key): string {
         <label class="switch"><input type="checkbox" name="send_customer_emails" value="1" <?= $on('send_customer_emails') ?>><span class="switch__track"></span><span>Email customers their order confirmation and updates</span></label>
         <label class="field"><span>Thank-you line <small>shown at the bottom of customer emails</small></span><input class="input" name="email_accent_note" value="<?= $v('email_accent_note') ?>"></label>
     </div>
-    <div class="card__body" style="border-top:1px solid var(--line)">
-        <h3 class="label" style="margin-bottom:8px">Sending method</h3>
-        <dl class="dl">
-            <dt>Method</dt><dd><strong><?= e(strtoupper((string) mail_config('driver', 'mail'))) ?></strong><?= mail_config('driver') === 'log' ? ' ' . status_badge('pending', 'Emails are saved to a file, not sent') : '' ?></dd>
-            <dt>Sent from</dt><dd><?= e(mail_from()[1]) ?> &lt;<?= e(mail_from()[0]) ?>&gt;</dd>
-            <?php if (mail_config('driver') === 'smtp'): ?><dt>Server</dt><dd><?= e((string) mail_config('smtp.host')) ?>:<?= (int) mail_config('smtp.port') ?></dd><?php endif; ?>
-        </dl>
-        <p class="hint" style="margin-top:10px">The sending method and email password are set in <code>config/config.php</code> on the server, so they stay private.</p>
+    <?php
+    // Show what is in use now: the admin settings once saved, otherwise config.php.
+    $mv = static fn (string $key, string $configKey): string => e((string) ($s[$key] ?? '') !== '' ? (string) $s[$key] : (string) config('mail.' . $configKey, ''));
+    $driver = (string) mail_config('driver', 'mail');
+    $hasPassword = mail_config('smtp.password', '') !== '';
+    ?>
+    <div class="card__body form-stack" style="border-top:1px solid var(--line)" data-mail-settings>
+        <h3 class="label">Sending method</h3>
+        <?php if (!mail_settings_in_admin()): ?><p class="hint" style="margin-top:-6px">These values come from <code>config/config.php</code>. Once you save here, the settings on this page are used instead.</p><?php endif; ?>
+        <div class="choice-cards">
+            <?php foreach (['smtp' => ['SMTP email account', 'Recommended. Sends through your own email account, e.g. orders@yourdomain.com.au'], 'mail' => ['Hosting mail (PHP mail)', 'Works on most cPanel hosting with no set up, but may land in spam'], 'log' => ['Save to a file', 'For testing only. Emails are not sent, they are saved in storage/logs/mail']] as $key => [$name, $note]): ?>
+                <label class="choice-card"><input type="radio" name="mail_driver" value="<?= $key ?>" <?= checked($driver === $key) ?> data-mail-driver><span><strong><?= e($name) ?></strong><small><?= e($note) ?></small></span></label>
+            <?php endforeach; ?>
+        </div>
+        <div class="form-grid">
+            <label class="field"><span>Send emails from <small>address</small></span><input class="input" type="email" name="mail_from_address" value="<?= $mv('mail_from_address', 'from_address') ?>" placeholder="orders@yourdomain.com.au"></label>
+            <label class="field"><span>Sender name</span><input class="input" name="mail_from_name" value="<?= $mv('mail_from_name', 'from_name') ?>" placeholder="<?= e(setting('store_short_name')) ?>"></label>
+            <?= field_error($errors, 'mail_from_address') ?>
+        </div>
+        <div class="form-stack" data-smtp-fields <?= $driver === 'smtp' ? '' : 'hidden' ?>>
+            <div class="form-grid">
+                <label class="field"><span>SMTP server <small>host</small></span><input class="input" name="smtp_host" value="<?= $mv('smtp_host', 'smtp.host') ?>" placeholder="mail.yourdomain.com.au"></label>
+                <div class="form-grid" style="gap:12px">
+                    <label class="field"><span>Port</span><input class="input" type="number" name="smtp_port" value="<?= $mv('smtp_port', 'smtp.port') ?: '465' ?>"></label>
+                    <label class="field"><span>Security</span>
+                        <select class="input" name="smtp_encryption">
+                            <?php $enc = (string) mail_config('smtp.encryption', 'ssl'); ?>
+                            <option value="ssl" <?= selected($enc === 'ssl') ?>>SSL (port 465)</option>
+                            <option value="tls" <?= selected($enc === 'tls') ?>>TLS (port 587)</option>
+                            <option value="none" <?= selected($enc === 'none') ?>>None (port 25)</option>
+                        </select></label>
+                </div>
+                <?= field_error($errors, 'smtp_host') ?>
+                <label class="field"><span>Username <small>usually the full email address</small></span><input class="input" name="smtp_username" value="<?= $mv('smtp_username', 'smtp.username') ?>" autocomplete="off"></label>
+                <label class="field"><span>Password</span><input class="input" type="password" name="smtp_password" autocomplete="new-password" placeholder="<?= $hasPassword ? 'Saved. Type a new password to change it' : 'Email account password' ?>"></label>
+                <?= field_error($errors, 'smtp_password') ?>
+            </div>
+            <?php if ($hasPassword): ?><label class="inline-check"><input type="checkbox" name="clear_smtp_password" value="1"> Remove the saved password</label><?php endif; ?>
+            <p class="hint">On cPanel: Email Accounts &gt; Connect Devices shows the server, port and username. The password is stored encrypted and is never shown again.</p>
+        </div>
+        <div class="input-action" style="max-width:520px">
+            <input class="input" type="email" name="test_to" placeholder="Send a test to (default: <?= e($admin['email']) ?>)">
+        </div>
     </div>
 
 <?php elseif ($tab === 'homepage'): ?>
@@ -231,7 +266,7 @@ $mask = static function (string $key): string {
             <button class="btn btn--secondary" type="submit" name="action" value="test_stripe" formnovalidate>Test Stripe connection</button>
         <?php endif; ?>
         <?php if ($tab === 'emails'): ?>
-            <button class="btn btn--secondary" type="submit" name="action" value="test_email" formnovalidate><?= icon('mail', '', 18) ?> Send me a test email</button>
+            <button class="btn btn--secondary" type="submit" name="action" value="test_email" formnovalidate><?= icon('mail', '', 18) ?> Send a test email</button>
         <?php endif; ?>
     </div>
 </form>

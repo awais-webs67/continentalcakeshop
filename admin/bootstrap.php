@@ -245,6 +245,45 @@ function save_public_image(string $field, string $folder, int $width, int $heigh
     return [$folder . '/' . $filename, null];
 }
 
+/**
+ * Saves an uploaded photo for page content without cropping, scaled down to $maxWidth.
+ * Returns [path relative to public/uploads, null] or [null, error].
+ */
+function save_content_image(string $field, int $maxWidth = 1600): array
+{
+    $file = $_FILES[$field] ?? null;
+    if (!$file || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name'])) {
+        return [null, 'The picture did not upload. Please try a smaller file (under 10 MB).'];
+    }
+    $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']) ?: '';
+    $source = match ($mime) {
+        'image/jpeg' => @imagecreatefromjpeg($file['tmp_name']),
+        'image/png'  => @imagecreatefrompng($file['tmp_name']),
+        'image/webp' => @imagecreatefromwebp($file['tmp_name']),
+        default      => false,
+    };
+    if (!$source) {
+        return [null, 'Please upload a JPG, PNG or WebP picture.'];
+    }
+    $w = imagesx($source);
+    $h = imagesy($source);
+    $tw = min($w, $maxWidth);
+    $th = (int) round($h * $tw / $w);
+    $canvas = imagecreatetruecolor($tw, $th);
+    imagealphablending($canvas, false);
+    imagesavealpha($canvas, true);
+    imagecopyresampled($canvas, $source, 0, 0, 0, 0, $tw, $th, $w, $h);
+    $dir = BASE_PATH . '/public/uploads/content';
+    if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
+        return [null, 'The uploads folder is not writable.'];
+    }
+    $name = slugify(pathinfo((string) $file['name'], PATHINFO_FILENAME)) . '-' . bin2hex(random_bytes(3)) . '.webp';
+    if (!imagewebp($canvas, $dir . '/' . $name, 82)) {
+        return [null, 'The picture could not be saved.'];
+    }
+    return ['content/' . $name, null];
+}
+
 /** Deletes a file in public/uploads that the panel created. */
 function delete_public_image(?string $path): void
 {
@@ -270,19 +309,4 @@ function admin_badges(): array
         'custom'   => (int) db_value("SELECT COUNT(*) FROM custom_requests WHERE status = 'new'"),
         'messages' => (int) db_value('SELECT COUNT(*) FROM contact_messages WHERE is_read = 0'),
     ];
-}
-
-// ---------------------------------------------------------------------------
-// Content
-// ---------------------------------------------------------------------------
-
-/** Keeps simple formatting tags in page content and removes scripts, styles and event attributes. */
-function clean_page_html(string $html): string
-{
-    $html = (string) preg_replace('#<(script|style|iframe|object|embed)\b[^>]*>.*?</\1>#is', '', $html);
-    $html = strip_tags($html, '<h2><h3><h4><p><br><strong><b><em><i><u><ul><ol><li><a><blockquote><hr><table><thead><tbody><tr><th><td>');
-    $html = (string) preg_replace('/\s+on[a-z]+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $html);
-    $html = (string) preg_replace('/\s+(href)\s*=\s*(["\']?)\s*(javascript|data|vbscript):[^"\'>\s]*\2/i', ' $1="#"', $html);
-    $html = (string) preg_replace('/\s+style\s*=\s*("[^"]*"|\'[^\']*\')/i', '', $html);
-    return trim($html);
 }

@@ -20,6 +20,7 @@ $nav = [
         ['reviews', 'Reviews', 'star', null],
     ],
     'Website' => [
+        ['homepage', 'Homepage', 'store', null],
         ['popup', 'Promo popup', 'megaphone', null],
         ['pages', 'Policy pages', 'info', null],
         ['faqs', 'FAQs', 'search', null],
@@ -95,6 +96,12 @@ if ($admin['role'] === 'owner') {
         <?= $content ?>
     </main>
 </div>
+<script>window.CCS_ADMIN = <?= json_encode([
+    'quillJs'   => asset('vendor/quill/quill.js'),
+    'quillCss'  => asset('vendor/quill/quill.snow.css'),
+    'uploadUrl' => admin_url('upload-image'),
+    'csrf'      => csrf_token(),
+], JSON_UNESCAPED_SLASHES) ?>;</script>
 <script src="<?= e(asset('js/admin.js')) ?>" defer></script>
 </body>
 </html>
