@@ -15,8 +15,9 @@ const PRODUCT_LIST_SQL = '
            (SELECT s2.id FROM product_sizes s2 WHERE s2.product_id = p.id AND s2.is_active = 1 ORDER BY s2.sort_order, s2.price LIMIT 1) AS default_size_id
     FROM products p
     JOIN categories c ON c.id = p.category_id AND c.is_active = 1
-    JOIN product_sizes s ON s.product_id = p.id AND s.is_active = 1
-    WHERE p.is_active = 1';
+    LEFT JOIN product_sizes s ON s.product_id = p.id AND s.is_active = 1
+    WHERE p.is_active = 1
+      AND (p.is_enquiry = 1 OR EXISTS (SELECT 1 FROM product_sizes s3 WHERE s3.product_id = p.id AND s3.is_active = 1))';
 
 function get_categories(): array
 {
@@ -26,8 +27,8 @@ function get_categories(): array
                  ORDER BY p2.is_featured DESC, p2.sort_order LIMIT 1) AS cover_image
          FROM categories c
          JOIN products p ON p.category_id = c.id AND p.is_active = 1
-         JOIN product_sizes s ON s.product_id = p.id AND s.is_active = 1
-         WHERE c.is_active = 1
+         LEFT JOIN product_sizes s ON s.product_id = p.id AND s.is_active = 1
+         WHERE c.is_active = 1 AND (p.is_enquiry = 1 OR s.id IS NOT NULL)
          GROUP BY c.id
          ORDER BY c.sort_order, c.name'
     );
@@ -52,8 +53,8 @@ function get_products(?int $categoryId = null, string $sort = 'featured', ?strin
         array_push($params, $like, $like);
     }
     $sql .= ' GROUP BY p.id ORDER BY ' . match ($sort) {
-        'price-asc'  => 'price_from ASC, p.name',
-        'price-desc' => 'price_from DESC, p.name',
+        'price-asc'  => 'price_from IS NULL, price_from ASC, p.name',
+        'price-desc' => 'price_from IS NULL, price_from DESC, p.name',
         'name'       => 'p.name ASC',
         default      => 'p.is_featured DESC, p.image IS NULL, c.sort_order, p.sort_order, p.name',
     };
@@ -91,6 +92,12 @@ function get_product_sizes(int $productId): array
     );
 }
 
+/** Custom cake form, pre-filled with the cake a customer is asking about. */
+function enquiry_url(array $product): string
+{
+    return url('custom-cakes') . '?cake=' . rawurlencode($product['slug']) . '#quote';
+}
+
 function product_url(array $product): string
 {
     return url('cakes/' . $product['slug']);
@@ -112,6 +119,9 @@ function product_image_url(?string $image): string
 
 function price_label(array $product): string
 {
+    if (!empty($product['is_enquiry']) || $product['price_from'] === null) {
+        return 'Price on request';
+    }
     if ((int) ($product['size_count'] ?? 1) > 1 && (float) $product['price_from'] !== (float) $product['price_to']) {
         return 'From ' . money($product['price_from']);
     }

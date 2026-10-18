@@ -62,6 +62,8 @@ $mask = static function (string $key): string {
         <label class="field"><span>Pickup time steps <small>minutes</small></span>
             <select class="input" name="slot_interval_minutes"><?php foreach ([15, 30, 45, 60] as $m): ?><option value="<?= $m ?>" <?= selected((int) ($s['slot_interval_minutes'] ?? 30) === $m) ?>><?= $m ?> minutes</option><?php endforeach; ?></select></label>
         <label class="field"><span>Last pickup before closing <small>minutes</small></span><input class="input" type="number" min="0" name="last_slot_buffer_minutes" value="<?= $v('last_slot_buffer_minutes') ?>"></label>
+        <label class="field"><span>Most pickups per time slot <small>0 = no limit</small></span><input class="input" type="number" min="0" name="max_orders_per_slot" value="<?= $v('max_orders_per_slot') ?>"></label>
+        <label class="field"><span>Most deliveries per day <small>0 = no limit</small></span><input class="input" type="number" min="0" name="max_deliveries_per_day" value="<?= $v('max_deliveries_per_day') ?>"></label>
     </div>
     <div class="card__body form-stack" style="border-top:1px solid var(--line)">
         <h3 class="label">How customers get their cake</h3>
@@ -70,8 +72,12 @@ $mask = static function (string $key): string {
         <?= field_error($errors, 'fulfilment') ?>
         <div class="form-grid">
             <label class="field"><span>Delivery fee</span><div class="input-prefix"><span>$</span><input class="input" name="delivery_fee" inputmode="decimal" value="<?= $v('delivery_fee') ?>"></div></label>
-            <label class="field"><span>Delivery note <small>shown at checkout</small></span><input class="input" name="delivery_note" value="<?= $v('delivery_note') ?>"></label>
+            <label class="field"><span>Minimum order for delivery <small>0 = none</small></span><div class="input-prefix"><span>$</span><input class="input" name="delivery_min_order" inputmode="decimal" value="<?= $v('delivery_min_order') ?>"></div></label>
+            <label class="field"><span>Delivery area <small>shown at checkout</small></span><input class="input" name="delivery_note" value="<?= $v('delivery_note') ?>" placeholder="All over Canberra and Queanbeyan"></label>
+            <label class="field"><span>Delivery postcodes <small>empty = anywhere</small></span><input class="input" name="delivery_postcodes" value="<?= $v('delivery_postcodes') ?>" placeholder="2600-2620, 2900-2914"></label>
+            <?= field_error($errors, 'delivery_postcodes') ?>
         </div>
+        <p class="hint">Customers choose a delivery date and a preferred time of day. You set the exact time on the order and the customer is emailed.</p>
     </div>
 
 <?php elseif ($tab === 'payments'): ?>

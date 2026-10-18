@@ -13,7 +13,8 @@ $items = get_order_items((int) $order['id']);
 <div class="print-sheet">
     <p class="no-print"><button class="btn btn--primary" onclick="window.print()">Print</button></p>
     <h1><?= e($order['order_number']) ?></h1>
-    <p><strong><?= $order['fulfilment'] === 'delivery' ? 'Delivery' : 'Pickup' ?>:</strong> <?= e(format_pickup($order['pickup_date'], $order['pickup_time'])) ?><br>
+    <p><strong><?= $order['fulfilment'] === 'delivery' ? 'Delivery' : 'Pickup' ?>:</strong> <?= e(order_when($order)) ?><br>
+    <?php if (is_delivery($order)): ?><strong>Address:</strong> <?= e(order_address($order)) ?><br><?php endif; ?>
     <strong>Customer:</strong> <?= e($order['customer_name']) ?>, <?= e($order['customer_phone']) ?><br>
     <strong>Payment:</strong> <?= e(payment_method_label($order['payment_method'])) ?> (<?= e(PAYMENT_STATUSES[$order['payment_status']]) ?>)</p>
     <table>

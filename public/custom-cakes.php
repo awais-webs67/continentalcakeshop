@@ -3,7 +3,13 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/src/bootstrap.php';
 
-const OCCASIONS = ['Birthday', 'Kids birthday', 'Wedding', 'Engagement', 'Baby shower', 'Gender reveal', 'Anniversary', 'Corporate event', 'Other'];
+const OCCASIONS = ['Birthday', 'Kids birthday', 'Wedding', 'Engagement', 'Baby shower', 'Gender reveal', 'Anniversary', 'Graduation', 'Corporate event', 'Other'];
+
+// Serving sizes the customer can pick. Midi and Large match the sizes in the shop.
+const CUSTOM_SERVINGS = [
+    '8 people (Midi)', '14 people (Large)', '20 people', '30 people', '40 people',
+    '50 people', '60 people', '80 people', '100 or more people', 'Not sure yet',
+];
 
 $leadDays = (int) setting('custom_lead_days', '3');
 $minDate = (new DateTimeImmutable('today'))->modify("+{$leadDays} days")->format('Y-m-d');
@@ -16,7 +22,8 @@ if (is_post()) {
         'phone'      => str_limit(input('phone'), 40),
         'occasion'   => input('occasion'),
         'event_date' => input('event_date'),
-        'servings'   => str_limit(input('servings'), 40),
+        'servings'   => in_array(input('servings'), CUSTOM_SERVINGS, true) ? input('servings') : '',
+        'fulfilment' => input('fulfilment') === 'delivery' && setting_bool('delivery_enabled') ? 'delivery' : 'pickup',
         'flavour'    => str_limit(input('flavour'), 120),
         'budget'     => str_limit(input('budget'), 40),
         'details'    => str_limit(input('details'), 3000),
@@ -39,12 +46,17 @@ if (is_post()) {
     if (!$date || $date->format('Y-m-d') < $minDate) {
         $errors['event_date'] = "Please choose a date at least {$leadDays} days from today.";
     }
+    if ($data['servings'] === '') {
+        $errors['servings'] = 'Please choose how many people the cake should serve.';
+    }
     if (mb_strlen($data['details']) < 10) {
         $errors['details'] = 'Please tell us a little about the cake you would like.';
     }
 
     $image = null;
-    if (!$errors && has_upload('reference_image')) {
+    if (!$errors && ($uploaded = async_upload(input('reference_image_token'), 'custom'))) {
+        $image = $uploaded['path'];
+    } elseif (!$errors && has_upload('reference_image')) {
         [$image, $uploadError] = store_private_upload('reference_image', 'custom', UPLOAD_IMAGE_TYPES);
         if ($uploadError) {
             $errors['reference_image'] = $uploadError;
@@ -52,16 +64,16 @@ if (is_post()) {
     }
 
     if ($errors) {
-        remember_input($data);
+        remember_input($data + ['reference_image_token' => input('reference_image_token')]);
         $_SESSION['form_errors'] = $errors;
         flash('error', 'Please check the highlighted fields.');
         redirect('custom-cakes#quote');
     }
 
     db_run(
-        'INSERT INTO custom_requests (name, email, phone, occasion, event_date, servings, flavour, budget, details, reference_image)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [$data['name'], $data['email'], $data['phone'], $data['occasion'], $data['event_date'],
+        'INSERT INTO custom_requests (name, email, phone, occasion, event_date, fulfilment, servings, flavour, budget, details, reference_image)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [$data['name'], $data['email'], $data['phone'], $data['occasion'], $data['event_date'], $data['fulfilment'],
          $data['servings'] ?: null, $data['flavour'] ?: null, $data['budget'] ?: null, $data['details'], $image]
     );
 
@@ -70,6 +82,7 @@ if (is_post()) {
         send_custom_request_emails($request);
     }
 
+    forget_async_upload(input('reference_image_token'));
     forget_input();
     flash('success', 'Thank you! We have received your request and will contact you soon with a quote.');
     redirect('custom-cakes#quote');
@@ -80,6 +93,9 @@ unset($_SESSION['form_errors']);
 $fieldError = static fn (string $f): string => isset($errors[$f]) ? '<p class="field-error" id="' . e($f) . '-error">' . e($errors[$f]) . '</p>' : '';
 $invalid = static fn (string $f): string => isset($errors[$f]) ? 'aria-invalid="true" aria-describedby="' . e($f) . '-error"' : '';
 $preset = old('occasion', input('occasion'));
+// Coming from an enquiry button on a product page: start the description with that cake.
+$askedCake = input('cake') !== '' ? get_product_by_slug(input('cake')) : null;
+$detailsPreset = old('details', $askedCake ? 'I would like to enquire about the ' . $askedCake['name'] . '. ' : '');
 const GALLERY_PER_PAGE = 12;
 $galleryTotal = count_gallery();
 $galleryPages = max(1, (int) ceil($galleryTotal / GALLERY_PER_PAGE));
@@ -145,10 +161,25 @@ render('header', compact('page'));
                     <?= $fieldError('event_date') ?>
                 </div>
             </div>
+            <?php if (setting_bool('delivery_enabled')): ?>
+            <fieldset class="field">
+                <legend class="field-label">Pickup or delivery</legend>
+                <div class="choice-row">
+                    <label class="choice"><input type="radio" name="fulfilment" value="pickup" <?= old('fulfilment', 'pickup') === 'pickup' ? 'checked' : '' ?>> <span><?= icon('store', '', 18) ?> Pickup from Greenway</span></label>
+                    <label class="choice"><input type="radio" name="fulfilment" value="delivery" <?= old('fulfilment') === 'delivery' ? 'checked' : '' ?>> <span><?= icon('truck', '', 18) ?> Delivery in Canberra</span></label>
+                </div>
+            </fieldset>
+            <?php endif; ?>
             <div class="field-row field-row--3">
                 <div class="field">
-                    <label class="field-label" for="servings">Number of guests</label>
-                    <input class="input" id="servings" name="servings" type="text" inputmode="numeric" placeholder="e.g. 30" value="<?= e(old('servings')) ?>">
+                    <label class="field-label" for="servings">Serving size</label>
+                    <select class="input" id="servings" name="servings" required <?= $invalid('servings') ?>>
+                        <option value="">How many people?</option>
+                        <?php foreach (CUSTOM_SERVINGS as $option): ?>
+                            <option <?= old('servings') === $option ? 'selected' : '' ?>><?= e($option) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?= $fieldError('servings') ?>
                 </div>
                 <div class="field">
                     <label class="field-label" for="flavour">Flavour</label>
@@ -161,16 +192,12 @@ render('header', compact('page'));
             </div>
             <div class="field">
                 <label class="field-label" for="details">Describe your cake</label>
-                <textarea class="input" id="details" name="details" rows="5" placeholder="Theme, colours, number of tiers, writing on the cake, dietary needs (gluten-free, eggless, vegan)..." required <?= $invalid('details') ?>><?= e(old('details')) ?></textarea>
+                <textarea class="input" id="details" name="details" rows="5" placeholder="Theme, colours, number of tiers, writing on the cake, dietary needs (gluten-free, eggless, vegan)..." required <?= $invalid('details') ?>><?= e($detailsPreset) ?></textarea>
                 <?= $fieldError('details') ?>
             </div>
             <div class="field">
                 <label class="field-label" for="reference_image">Reference photo <span class="field-hint">Optional</span></label>
-                <label class="file-drop" data-file-drop>
-                    <input id="reference_image" name="reference_image" type="file" accept="image/jpeg,image/png,image/webp,image/heic" <?= $invalid('reference_image') ?>>
-                    <?= icon('upload', '', 24) ?>
-                    <span data-file-name>Tap to upload a photo of a cake you like (max 5 MB)</span>
-                </label>
+                <?php render('partials/upload-field', ['field' => 'reference_image', 'purpose' => 'custom', 'accept' => 'image/jpeg,image/png,image/webp,image/heic', 'hint' => 'Tap to upload a photo of a cake you like (max 10 MB)', 'invalid' => $invalid('reference_image')]); ?>
                 <?= $fieldError('reference_image') ?>
             </div>
             <button class="btn btn--primary btn--lg" type="submit">Send Request <?= icon('arrow', '', 18) ?></button>
@@ -182,7 +209,7 @@ render('header', compact('page'));
                 <ol class="steps steps--compact">
                     <li><span class="steps__num">1</span><div><strong>Send your idea</strong><span>Use the form, call us or visit the shop.</span></div></li>
                     <li><span class="steps__num">2</span><div><strong>We send a quote</strong><span>We reply with a price and options.</span></div></li>
-                    <li><span class="steps__num">3</span><div><strong>Collect your cake</strong><span>From our Greenway shop on your chosen day.</span></div></li>
+                    <li><span class="steps__num">3</span><div><strong>Enjoy your cake</strong><span>Pick it up from Greenway<?= setting_bool('delivery_enabled') ? ' or we deliver it' : '' ?> on your chosen day.</span></div></li>
                 </ol>
             </div>
             <div class="info-card">

@@ -3,7 +3,7 @@
 <div class="page-head">
     <div>
         <h1><?= e($order['order_number']) ?></h1>
-        <p>Placed <?= e(date('l j F Y, g:ia', strtotime($order['created_at']))) ?> &middot; <?= status_badge($order['order_status'], ORDER_STATUSES[$order['order_status']]) ?> <?= status_badge($order['payment_status'], PAYMENT_STATUSES[$order['payment_status']]) ?></p>
+        <p>Placed <?= e(date('l j F Y, g:ia', strtotime($order['created_at']))) ?> &middot; <?= status_badge($order['order_status'], order_status_label($order)) ?> <?= status_badge($order['payment_status'], PAYMENT_STATUSES[$order['payment_status']]) ?></p>
     </div>
     <div class="page-head__actions">
         <a class="btn btn--secondary" href="<?= e(admin_url('orders/print', ['id' => $order['id']])) ?>" target="_blank"><?= icon('pen', '', 16) ?> Print ticket</a>
@@ -98,7 +98,7 @@
             <form class="card__body form-stack" method="post">
                 <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $order['id'] ?>"><input type="hidden" name="action" value="status">
                 <select class="input" name="order_status">
-                    <?php foreach (ORDER_STATUSES as $key => $label): ?><option value="<?= e($key) ?>" <?= selected($order['order_status'] === $key) ?>><?= e($label) ?></option><?php endforeach; ?>
+                    <?php foreach (ORDER_STATUSES as $key => $label): ?><option value="<?= e($key) ?>" <?= selected($order['order_status'] === $key) ?>><?= e(order_status_label($order, $key)) ?></option><?php endforeach; ?>
                 </select>
                 <label class="switch"><input type="checkbox" name="notify" value="1" checked><span class="switch__track"></span><span>Email the customer</span></label>
                 <textarea class="input" name="message" rows="2" placeholder="Optional message (a friendly default is used if empty)"></textarea>
@@ -113,22 +113,25 @@
                     <dt>Name</dt><dd><?= e($order['customer_name']) ?></dd>
                     <dt>Phone</dt><dd><a href="tel:<?= e($order['customer_phone']) ?>"><?= e($order['customer_phone']) ?></a></dd>
                     <dt>Email</dt><dd><a href="mailto:<?= e($order['customer_email']) ?>"><?= e($order['customer_email']) ?></a></dd>
-                    <?php if ($order['fulfilment'] === 'delivery'): ?><dt>Deliver to</dt><dd><?= e($order['delivery_address']) ?></dd><?php endif; ?>
+                    <?php if (is_delivery($order)): ?><dt>Deliver to</dt><dd><?= e(order_address($order)) ?><br><a href="https://www.google.com/maps/search/?api=1&amp;query=<?= e(rawurlencode(order_address($order))) ?>" target="_blank" rel="noopener">Open in Maps</a></dd><?php endif; ?>
                 </dl>
             </div>
         </section>
 
-        <section class="card">
-            <div class="card__head"><h2><?= $order['fulfilment'] === 'delivery' ? 'Delivery' : 'Pickup' ?></h2></div>
+        <section class="card<?= is_delivery($order) && !$order['pickup_time'] && $order['order_status'] !== 'cancelled' ? ' card--attention' : '' ?>" id="when">
+            <div class="card__head"><h2><?= is_delivery($order) ? 'Delivery' : 'Pickup' ?></h2><?= is_delivery($order) && !$order['pickup_time'] ? status_badge('pending', 'Set a time') : '' ?></div>
             <form class="card__body form-stack" method="post">
                 <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $order['id'] ?>"><input type="hidden" name="action" value="pickup">
-                <p><strong><?= e(format_pickup($order['pickup_date'], $order['pickup_time'])) ?></strong></p>
+                <p style="margin:0"><strong><?= e(order_when($order)) ?></strong></p>
+                <?php if (is_delivery($order)): ?>
+                    <p class="hint" style="margin:0">Customer prefers: <strong><?= e(DELIVERY_WINDOWS[$order['delivery_window'] ?? 'any'] ?? 'Any time') ?></strong></p>
+                <?php endif; ?>
                 <div class="form-grid">
-                    <input class="input" type="date" name="pickup_date" value="<?= e($order['pickup_date']) ?>">
-                    <input class="input" type="time" name="pickup_time" value="<?= e(substr($order['pickup_time'], 0, 5)) ?>" step="300">
+                    <label class="field"><span>Date</span><input class="input" type="date" name="pickup_date" value="<?= e($order['pickup_date']) ?>" required></label>
+                    <label class="field"><span>Time</span><input class="input" type="time" name="pickup_time" value="<?= e(substr((string) $order['pickup_time'], 0, 5)) ?>" step="300" required></label>
                 </div>
-                <label class="switch"><input type="checkbox" name="notify" value="1" checked><span class="switch__track"></span><span>Email the new time</span></label>
-                <button class="btn btn--secondary" type="submit">Change pickup time</button>
+                <label class="switch"><input type="checkbox" name="notify" value="1" checked><span class="switch__track"></span><span>Email the time to the customer</span></label>
+                <button class="btn <?= is_delivery($order) && !$order['pickup_time'] ? 'btn--primary' : 'btn--secondary' ?>" type="submit"><?= is_delivery($order) ? ($order['pickup_time'] ? 'Change delivery time' : 'Confirm delivery time') : 'Change pickup time' ?></button>
             </form>
         </section>
 

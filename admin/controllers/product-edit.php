@@ -29,6 +29,7 @@ if (is_post()) {
         'is_featured'       => input('is_featured') === '1' ? 1 : 0,
         'is_active'         => input('is_active') === '1' ? 1 : 0,
         'allow_message'     => input('allow_message') === '1' ? 1 : 0,
+        'is_enquiry'        => input('is_enquiry') === '1' ? 1 : 0,
         'lead_time_hours'   => input('lead_time_hours') !== '' ? max(0, (int) input('lead_time_hours')) : null,
         'sort_order'        => (int) input('sort_order', '0'),
         'meta_title'        => str_limit(input('meta_title'), 160),
@@ -53,8 +54,8 @@ if (is_post()) {
     if (!in_array($data['category_id'], array_map('intval', array_column($categories, 'id')), true)) {
         $errors['category_id'] = 'Please choose a category.';
     }
-    if (!$sizes) {
-        $errors['sizes'] = 'Add at least one size with a price.';
+    if (!$sizes && !$data['is_enquiry']) {
+        $errors['sizes'] = 'Add at least one size with a price, or switch on "Price on request".';
     }
     [$image, $imageError] = $errors ? [null, null] : save_public_image('image', 'products', 900, 900, $data['name']);
     if ($imageError) {
@@ -92,7 +93,7 @@ if (is_post()) {
                 $keep[] = (int) $pdo->lastInsertId();
             }
         }
-        $in = implode(',', array_map('intval', $keep));
+        $in = implode(',', array_map('intval', $keep ?: [0]));
         db_run("DELETE FROM product_sizes WHERE product_id = ? AND id NOT IN ({$in})", [$productId]);
         $pdo->commit();
 
@@ -105,8 +106,8 @@ if (is_post()) {
     $product = array_merge($product ?? [], $data, ['image' => $product['image'] ?? null]);
     $sizeRows = $sizes;
 } else {
-    $sizeRows = $product ? db_all('SELECT * FROM product_sizes WHERE product_id = ? ORDER BY sort_order, price', [$product['id']]) : [['id' => 0, 'label' => 'Full', 'servings' => '', 'price' => '']];
+    $sizeRows = $product ? db_all('SELECT * FROM product_sizes WHERE product_id = ? ORDER BY sort_order, price', [$product['id']]) : [['id' => 0, 'label' => 'Midi', 'servings' => 'Serves 8', 'price' => ''], ['id' => 0, 'label' => 'Large', 'servings' => 'Serves 14', 'price' => '']];
 }
 
-$product ??= ['name' => '', 'slug' => '', 'category_id' => 0, 'short_description' => '', 'description' => '', 'badge' => '', 'is_featured' => 0, 'is_active' => 1, 'allow_message' => 1, 'lead_time_hours' => null, 'sort_order' => 0, 'meta_title' => '', 'meta_description' => '', 'image' => null];
+$product ??= ['name' => '', 'slug' => '', 'category_id' => 0, 'short_description' => '', 'description' => '', 'badge' => '', 'is_featured' => 0, 'is_active' => 1, 'allow_message' => 1, 'is_enquiry' => 0, 'lead_time_hours' => null, 'sort_order' => 0, 'meta_title' => '', 'meta_description' => '', 'image' => null];
 admin_view('product-edit', compact('product', 'categories', 'sizeRows', 'errors', 'id') + ['title' => $id ? 'Edit ' . $product['name'] : 'Add product']);

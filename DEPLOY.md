@@ -120,7 +120,7 @@ In the admin panel, **Settings**:
 
 - **Payments**: add the PayID and/or bank details, then switch each method on. For cards, see Step 9.
 - **Emails**: set where new order alerts go, then click **Send me a test email**.
-- **Opening hours** and **Ordering & pickup**: check the hours, notice time and closed dates.
+- **Opening hours** and **Ordering & pickup**: check the hours, notice time and closed dates, and the delivery fee, delivery area text and delivery postcodes.
 - **Homepage**, **Social & SEO**: check the text and links.
 
 Then place a small test order on the website to see the full flow and the emails.

@@ -12,7 +12,7 @@ const STATUS_MESSAGES = [
     'confirmed'   => 'Good news, your order is confirmed. We will have it ready at the time you chose.',
     'in_progress' => 'We have started preparing your order.',
     'ready'       => 'Your order is ready to collect.',
-    'completed'   => 'Thank you for collecting your order. We hope you enjoy it!',
+    'completed'   => 'Thank you for your order. We hope you enjoy it!',
     'cancelled'   => 'Your order has been cancelled. If you have any questions, please give us a call.',
 ];
 
@@ -23,10 +23,11 @@ if (is_post()) {
         $new = input('order_status');
         if (isset(ORDER_STATUSES[$new]) && $new !== $order['order_status']) {
             db_run('UPDATE orders SET order_status = ? WHERE id = ?', [$new, $id]);
-            log_order_event($id, 'status', 'Status changed to ' . ORDER_STATUSES[$new] . '.', $adminId);
+            log_order_event($id, 'status', 'Status changed to ' . order_status_label($order, $new) . '.', $adminId);
             if (input('notify') === '1') {
-                $message = trim(input('message')) ?: (STATUS_MESSAGES[$new] ?? 'There is an update on your order.');
-                send_order_update_email(get_order($id), ORDER_STATUSES[$new], $message);
+                $default = $new === 'ready' && is_delivery($order) ? 'Your order is on its way to you.' : (STATUS_MESSAGES[$new] ?? 'There is an update on your order.');
+                $message = trim(input('message')) ?: $default;
+                send_order_update_email(get_order($id), order_status_label($order, $new), $message);
                 log_order_event($id, 'email', 'Customer emailed about the status change.', $adminId);
             }
             flash('success', 'Order status updated.');
@@ -64,16 +65,23 @@ if (is_post()) {
         }
     }
 
+    // Pickup: move the date or time. Delivery: set (or change) the delivery time the shop has planned.
     if ($action === 'pickup') {
         $date = input('pickup_date');
         $time = input('pickup_time');
+        $kind = is_delivery($order) ? 'Delivery' : 'Pickup';
         if (DateTime::createFromFormat('Y-m-d H:i', $date . ' ' . $time)) {
+            $first = is_delivery($order) && !$order['pickup_time'];
             db_run('UPDATE orders SET pickup_date = ?, pickup_time = ? WHERE id = ?', [$date, $time . ':00', $id]);
-            log_order_event($id, 'pickup', 'Pickup moved to ' . format_pickup($date, $time) . '.', $adminId);
+            log_order_event($id, 'pickup', $kind . ($first ? ' time set to ' : ' moved to ') . format_pickup($date, $time) . '.', $adminId);
             if (input('notify') === '1') {
-                send_order_update_email(get_order($id), 'Pickup time changed', 'Your pickup time is now ' . format_pickup($date, $time) . '.');
+                $message = $first
+                    ? 'Your delivery is booked for ' . format_pickup($date, $time) . '. Please make sure someone is home to receive the cake.'
+                    : 'Your ' . strtolower($kind) . ' time is now ' . format_pickup($date, $time) . '.';
+                send_order_update_email(get_order($id), $first ? 'Delivery time confirmed' : $kind . ' time changed', $message);
+                log_order_event($id, 'email', 'Customer emailed the ' . strtolower($kind) . ' time.', $adminId);
             }
-            flash('success', 'Pickup time updated.');
+            flash('success', $kind . ' time saved.');
         } else {
             flash('error', 'Please enter a valid date and time.');
         }

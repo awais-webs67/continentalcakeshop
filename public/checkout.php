@@ -16,6 +16,7 @@ $deliveryEnabled = setting_bool('delivery_enabled');
 $fulfilmentOptions = array_keys(array_filter(['pickup' => $pickupEnabled, 'delivery' => $deliveryEnabled]));
 $subtotal = cart_subtotal($items);
 $deliveryFee = (float) setting('delivery_fee', '0');
+$deliveryMin = (float) setting('delivery_min_order', '0');
 $user = current_user();
 
 if (is_post()) {
@@ -27,7 +28,10 @@ if (is_post()) {
         'phone'             => str_limit(input('phone'), 40),
         'fulfilment'        => input('fulfilment', $fulfilmentOptions[0] ?? 'pickup'),
         'delivery_address'  => str_limit(input('delivery_address'), 255),
-        'pickup_date'       => input('pickup_date'),
+        'delivery_suburb'   => str_limit(input('delivery_suburb'), 80),
+        'delivery_postcode' => preg_replace('/\D/', '', input('delivery_postcode')),
+        'delivery_window'   => isset(DELIVERY_WINDOWS[input('delivery_window')]) ? input('delivery_window') : 'any',
+        'pickup_date'       => input('fulfilment') === 'delivery' ? input('delivery_date') : input('pickup_date'),
         'pickup_time'       => input('pickup_time'),
         'payment_method'    => input('payment_method'),
         'payment_reference' => str_limit(input('payment_reference'), 190),
@@ -51,16 +55,32 @@ if (is_post()) {
     if (!in_array($data['fulfilment'], $fulfilmentOptions, true)) {
         $errors['fulfilment'] = 'Please choose pickup or delivery.';
     }
-    if ($data['fulfilment'] === 'delivery' && $data['delivery_address'] === '') {
-        $errors['delivery_address'] = 'Please enter the delivery address.';
-    }
-    if (!in_array($data['pickup_time'], pickup_slots($data['pickup_date'], $leadHours), true)) {
+    if ($data['fulfilment'] === 'delivery') {
+        if ($data['delivery_address'] === '') {
+            $errors['delivery_address'] = 'Please enter the street address.';
+        }
+        if ($data['delivery_suburb'] === '') {
+            $errors['delivery_suburb'] = 'Please enter the suburb.';
+        }
+        if (!preg_match('/^\d{4}$/', $data['delivery_postcode'])) {
+            $errors['delivery_postcode'] = 'Please enter the 4 digit postcode.';
+        } elseif (!delivery_postcode_allowed($data['delivery_postcode'])) {
+            $errors['delivery_postcode'] = 'Sorry, we do not deliver to this postcode yet. Please choose pickup or call us.';
+        }
+        if ($dateError = delivery_date_error($data['pickup_date'], $leadHours)) {
+            $errors['delivery_date'] = $dateError;
+        }
+        if ($deliveryMin > 0 && $subtotal < $deliveryMin) {
+            $errors['fulfilment'] = 'Delivery is available for orders of ' . money($deliveryMin) . ' or more.';
+        }
+        $data['pickup_time'] = '';
+    } elseif (!in_array($data['pickup_time'], pickup_slots($data['pickup_date'], $leadHours), true)) {
         $errors['pickup_time'] = 'Please choose an available date and time.';
     }
     $method = $methods[$data['payment_method']] ?? null;
     if (!$method) {
         $errors['payment_method'] = 'Please choose how you would like to pay.';
-    } elseif ($method['needs_proof'] && !has_upload('payment_proof')) {
+    } elseif ($method['needs_proof'] && !has_upload('payment_proof') && !async_upload(input('payment_proof_token'), 'payment')) {
         $errors['payment_proof'] = 'Please upload a screenshot of your payment.';
     }
     if ($createAccount) {
@@ -75,15 +95,19 @@ if (is_post()) {
     }
 
     if (!$errors && $method['needs_proof']) {
-        [$path, $uploadError] = store_private_upload('payment_proof', 'payments', UPLOAD_RECEIPT_TYPES);
-        if ($uploadError) {
-            $errors['payment_proof'] = $uploadError;
+        if ($uploaded = async_upload(input('payment_proof_token'), 'payment')) {
+            $data['payment_proof'] = $uploaded['path'];
+        } else {
+            [$path, $uploadError] = store_private_upload('payment_proof', 'payments', UPLOAD_RECEIPT_TYPES);
+            if ($uploadError) {
+                $errors['payment_proof'] = $uploadError;
+            }
+            $data['payment_proof'] = $path;
         }
-        $data['payment_proof'] = $path;
     }
 
     if ($errors) {
-        remember_input(array_diff_key($data, ['payment_proof' => true, 'user_id' => true]) + ['create_account' => $createAccount ? '1' : '', 'agree' => input('agree')]);
+        remember_input(array_diff_key($data, ['payment_proof' => true, 'user_id' => true]) + ['create_account' => $createAccount ? '1' : '', 'agree' => input('agree'), 'delivery_date' => input('delivery_date'), 'pickup_date' => input('pickup_date'), 'payment_proof_token' => input('payment_proof_token')]);
         $_SESSION['form_errors'] = $errors;
         flash('error', 'Please check the highlighted fields.');
         redirect('checkout');
@@ -98,6 +122,7 @@ if (is_post()) {
     }
 
     $order = create_order($data, $items);
+    forget_async_upload(input('payment_proof_token'));
     cart_clear();
     forget_input();
 
@@ -119,6 +144,8 @@ $errors = $_SESSION['form_errors'] ?? [];
 unset($_SESSION['form_errors']);
 
 $selectedDate = old('pickup_date', first_available_date($leadHours) ?? '');
+$firstDelivery = $deliveryEnabled ? first_delivery_date($leadHours) : null;
+$selectedDeliveryDate = old('delivery_date', $firstDelivery ?? '');
 $slots = $selectedDate !== '' ? pickup_slots($selectedDate, $leadHours) : [];
 $selectedFulfilment = old('fulfilment', $fulfilmentOptions[0] ?? 'pickup');
 $selectedMethod = old('payment_method', (string) array_key_first($methods));
@@ -192,50 +219,91 @@ render('header', compact('page'));
                 </fieldset>
 
                 <fieldset class="checkout-step">
-                    <legend class="checkout-step__title"><span>2</span> <?= count($fulfilmentOptions) > 1 ? 'Pickup or delivery' : 'Pickup date and time' ?></legend>
+                    <legend class="checkout-step__title"><span>2</span> <?= count($fulfilmentOptions) > 1 ? 'Pickup or delivery' : ($fulfilmentOptions === ['delivery'] ? 'Delivery' : 'Pickup date and time') ?></legend>
+                    <?= $fieldError('fulfilment') ?>
 
                     <?php if (count($fulfilmentOptions) > 1): ?>
                         <div class="option-cards option-cards--2">
                             <label class="option-card">
                                 <input type="radio" name="fulfilment" value="pickup" <?= $selectedFulfilment === 'pickup' ? 'checked' : '' ?> data-fulfilment>
-                                <span class="option-card__box"><?= icon('store', '', 22) ?><span><strong>Pickup in store</strong><span>Free, from Greenway</span></span></span>
+                                <span class="option-card__box"><?= icon('store', '', 22) ?><span><strong>Pickup from the shop</strong><span>Free. You choose the time</span></span></span>
                             </label>
                             <label class="option-card">
                                 <input type="radio" name="fulfilment" value="delivery" <?= $selectedFulfilment === 'delivery' ? 'checked' : '' ?> data-fulfilment>
-                                <span class="option-card__box"><?= icon('pin', '', 22) ?><span><strong>Delivery</strong><span><?= e(money($deliveryFee)) ?> &middot; <?= e(setting('delivery_note')) ?></span></span></span>
+                                <span class="option-card__box"><?= icon('truck', '', 22) ?><span><strong>Delivery</strong><span><?= $deliveryFee > 0 ? e(money($deliveryFee)) . ' &middot; ' : 'Free &middot; ' ?><?= e(setting('delivery_note', 'All over Canberra')) ?></span></span></span>
                             </label>
-                        </div>
-                        <div class="field" data-delivery-only <?= $selectedFulfilment === 'delivery' ? '' : 'hidden' ?>>
-                            <label class="field-label" for="delivery_address">Delivery address</label>
-                            <input class="input" id="delivery_address" name="delivery_address" type="text" autocomplete="street-address" value="<?= e(old('delivery_address')) ?>" <?= $invalid('delivery_address') ?>>
-                            <?= $fieldError('delivery_address') ?>
                         </div>
                     <?php else: ?>
                         <input type="hidden" name="fulfilment" value="<?= e($fulfilmentOptions[0] ?? 'pickup') ?>">
-                        <p class="pickup-address"><?= icon('store', '', 20) ?> <span>Pick up from <strong><?= e(store_address_line()) ?></strong></span></p>
                     <?php endif; ?>
 
-                    <div class="field-row">
-                        <div class="field">
-                            <label class="field-label" for="pickup_date">Date</label>
-                            <input class="input" id="pickup_date" name="pickup_date" type="date" value="<?= e($selectedDate) ?>"
-                                   min="<?= e(earliest_pickup($leadHours)->format('Y-m-d')) ?>" max="<?= e(latest_pickup_date()->format('Y-m-d')) ?>"
-                                   required data-slot-date data-slots-url="<?= e(url('api/slots')) ?>">
+                    <?php if ($pickupEnabled): ?>
+                    <div class="fulfilment-panel" data-pickup-only <?= $selectedFulfilment === 'pickup' ? '' : 'hidden' ?>>
+                        <p class="pickup-address"><?= icon('store', '', 20) ?> <span>Pick up from <strong><?= e(store_address_line()) ?></strong></span></p>
+                        <div class="field-row">
+                            <div class="field">
+                                <label class="field-label" for="pickup_date">Pickup date</label>
+                                <input class="input" id="pickup_date" name="pickup_date" type="date" value="<?= e($selectedDate) ?>"
+                                       min="<?= e(earliest_pickup($leadHours)->format('Y-m-d')) ?>" max="<?= e(latest_pickup_date()->format('Y-m-d')) ?>"
+                                       data-slot-date data-slots-url="<?= e(url('api/slots')) ?>">
+                            </div>
+                            <div class="field">
+                                <label class="field-label" for="pickup_time">Pickup time</label>
+                                <select class="input" id="pickup_time" name="pickup_time" data-slot-time <?= $invalid('pickup_time') ?>>
+                                    <?php if (!$slots): ?>
+                                        <option value="">No times available on this day</option>
+                                    <?php endif; ?>
+                                    <?php foreach ($slots as $slot): ?>
+                                        <option value="<?= e($slot) ?>" <?= old('pickup_time') === $slot ? 'selected' : '' ?>><?= e(format_time($slot)) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
                         </div>
-                        <div class="field">
-                            <label class="field-label" for="pickup_time">Time</label>
-                            <select class="input" id="pickup_time" name="pickup_time" required data-slot-time <?= $invalid('pickup_time') ?>>
-                                <?php if (!$slots): ?>
-                                    <option value="">No times available on this day</option>
-                                <?php endif; ?>
-                                <?php foreach ($slots as $slot): ?>
-                                    <option value="<?= e($slot) ?>" <?= old('pickup_time') === $slot ? 'selected' : '' ?>><?= e(format_time($slot)) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
+                        <?= $fieldError('pickup_time') ?>
                     </div>
-                    <?= $fieldError('pickup_time') ?>
-                    <p class="field-help"><?= icon('info', '', 16) ?> Please order at least <?= $leadHours >= 24 ? (int) ceil($leadHours / 24) . ' day' . ($leadHours >= 48 ? 's' : '') : $leadHours . ' hours' ?> ahead. You can book up to <?= (int) setting('max_advance_days', '60') ?> days in advance.<?= $closedDays ? ' We are closed on ' . e(implode(', ', $closedDays)) . '.' : '' ?></p>
+                    <?php endif; ?>
+
+                    <?php if ($deliveryEnabled): ?>
+                    <div class="fulfilment-panel" data-delivery-only <?= $selectedFulfilment === 'delivery' ? '' : 'hidden' ?>>
+                        <div class="field-row">
+                            <div class="field">
+                                <label class="field-label" for="delivery_date">Delivery date</label>
+                                <input class="input" id="delivery_date" name="delivery_date" type="date" value="<?= e($selectedDeliveryDate) ?>"
+                                       min="<?= e($firstDelivery ?? earliest_pickup($leadHours)->format('Y-m-d')) ?>" max="<?= e(latest_pickup_date()->format('Y-m-d')) ?>"
+                                       data-delivery-date data-check-url="<?= e(url('api/slots')) ?>" <?= $invalid('delivery_date') ?>>
+                                <?= $fieldError('delivery_date') ?: '<p class="field-error" data-delivery-date-error hidden></p>' ?>
+                            </div>
+                            <div class="field">
+                                <label class="field-label" for="delivery_window">Preferred time</label>
+                                <select class="input" id="delivery_window" name="delivery_window">
+                                    <?php foreach (DELIVERY_WINDOWS as $key => $label): ?>
+                                        <option value="<?= e($key) ?>" <?= old('delivery_window', 'any') === $key ? 'selected' : '' ?>><?= e($label) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="field-label" for="delivery_address">Street address</label>
+                            <input class="input" id="delivery_address" name="delivery_address" type="text" autocomplete="address-line1" placeholder="e.g. 12 Smith Street, Unit 4" value="<?= e(old('delivery_address')) ?>" <?= $invalid('delivery_address') ?>>
+                            <?= $fieldError('delivery_address') ?>
+                        </div>
+                        <div class="field-row field-row--suburb">
+                            <div class="field">
+                                <label class="field-label" for="delivery_suburb">Suburb</label>
+                                <input class="input" id="delivery_suburb" name="delivery_suburb" type="text" autocomplete="address-level2" placeholder="e.g. Tuggeranong" value="<?= e(old('delivery_suburb')) ?>" <?= $invalid('delivery_suburb') ?>>
+                                <?= $fieldError('delivery_suburb') ?>
+                            </div>
+                            <div class="field">
+                                <label class="field-label" for="delivery_postcode">Postcode</label>
+                                <input class="input" id="delivery_postcode" name="delivery_postcode" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="4" placeholder="2900" value="<?= e(old('delivery_postcode')) ?>" <?= $invalid('delivery_postcode') ?>>
+                                <?= $fieldError('delivery_postcode') ?>
+                            </div>
+                        </div>
+                        <p class="delivery-note"><?= icon('clock', '', 18) ?> <span>We plan our delivery runs each day and <strong>email you the delivery time</strong> before the day. Please add gate codes or other instructions in the order notes.</span></p>
+                    </div>
+                    <?php endif; ?>
+
+                    <p class="field-help"><?= icon('info', '', 16) ?> Please order at least <?= e(notice_label($leadHours)) ?> ahead. You can book up to <?= (int) setting('max_advance_days', '60') ?> days in advance.<?= $closedDays ? ' We are closed on ' . e(implode(', ', $closedDays)) . '.' : '' ?></p>
                 </fieldset>
 
                 <fieldset class="checkout-step">
@@ -272,11 +340,7 @@ render('header', compact('page'));
                     <div class="proof-fields" data-proof-fields <?= ($methods[$selectedMethod]['needs_proof'] ?? false) ? '' : 'hidden' ?>>
                         <div class="field">
                             <label class="field-label" for="payment_proof">Payment screenshot</label>
-                            <label class="file-drop" data-file-drop>
-                                <input id="payment_proof" name="payment_proof" type="file" accept="image/jpeg,image/png,image/webp,image/heic,application/pdf" <?= $invalid('payment_proof') ?>>
-                                <?= icon('upload', '', 24) ?>
-                                <span data-file-name>Tap to upload a screenshot or PDF (max 5 MB)</span>
-                            </label>
+                            <?php render('partials/upload-field', ['field' => 'payment_proof', 'purpose' => 'payment', 'accept' => 'image/jpeg,image/png,image/webp,image/heic,application/pdf', 'hint' => 'Tap to upload a screenshot or PDF (max 10 MB)', 'invalid' => $invalid('payment_proof')]); ?>
                             <?= $fieldError('payment_proof') ?>
                         </div>
                         <div class="field">
@@ -290,11 +354,11 @@ render('header', compact('page'));
                     <legend class="checkout-step__title"><span>4</span> Anything else?</legend>
                     <div class="field">
                         <label class="field-label" for="notes">Order notes <span class="field-hint">Optional</span></label>
-                        <textarea class="input" id="notes" name="notes" rows="3" maxlength="1000" placeholder="Allergies, candles, or anything we should know"><?= e(old('notes')) ?></textarea>
+                        <textarea class="input" id="notes" name="notes" rows="3" maxlength="1000" placeholder="Allergies, candles, delivery instructions or anything we should know"><?= e(old('notes')) ?></textarea>
                     </div>
                     <label class="check">
                         <input type="checkbox" name="agree" value="1" <?= old('agree') === '1' ? 'checked' : '' ?> required <?= $invalid('agree') ?>>
-                        <span>I have checked my order and the pickup date and time are correct.</span>
+                        <span>I have checked my order, the date and my details are correct.</span>
                     </label>
                     <?= $fieldError('agree') ?>
                 </fieldset>
@@ -332,7 +396,7 @@ render('header', compact('page'));
                 <ul class="summary-trust">
                     <li><?= icon('check', '', 16) ?> Secure checkout</li>
                     <li><?= icon('halal', '', 16) ?> 100% Halal</li>
-                    <li><?= icon('store', '', 16) ?> Pickup in Greenway</li>
+                    <li><?= icon('truck', '', 16) ?> <?= $deliveryEnabled ? 'Pickup or delivery' : 'Pickup in Greenway' ?></li>
                 </ul>
                 <a class="link-arrow summary-card__back" href="<?= e(url('cart')) ?>">Edit cart</a>
             </aside>

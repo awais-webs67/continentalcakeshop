@@ -6,7 +6,8 @@ Email: <a href="mailto:<?= e($request['email']) ?>" style="color:#1A8670"><?= e(
     <tr><td style="padding:16px 18px;font-size:14px;line-height:1.7">
         <strong>Occasion:</strong> <?= e($request['occasion']) ?><br>
         <strong>Date needed:</strong> <?= e(date('l j F Y', strtotime($request['event_date']))) ?><br>
-        <strong>Guests:</strong> <?= e($request['servings'] ?: 'Not given') ?><br>
+        <strong>Serves:</strong> <?= e($request['servings'] ?: 'Not given') ?><br>
+        <strong>Pickup or delivery:</strong> <?= ($request['fulfilment'] ?? '') === 'delivery' ? 'Delivery' : 'Pickup' ?><br>
         <strong>Flavour:</strong> <?= e($request['flavour'] ?: 'Not given') ?><br>
         <strong>Budget:</strong> <?= e($request['budget'] ?: 'Not given') ?><br>
         <strong>Details:</strong> <?= nl2br(e($request['details'])) ?>

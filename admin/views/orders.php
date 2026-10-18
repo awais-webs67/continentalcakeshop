@@ -1,7 +1,7 @@
 <?php /** @var array $result @var array $counts */ ?>
 <div class="page-head">
     <div><h1>Orders</h1><p>Every order placed on the website.</p></div>
-    <div class="page-head__actions"><a class="btn btn--secondary" href="<?= e(admin_url('pickups')) ?>"><?= icon('calendar', '', 18) ?> Pickup schedule</a></div>
+    <div class="page-head__actions"><a class="btn btn--secondary" href="<?= e(admin_url('pickups')) ?>"><?= icon('calendar', '', 18) ?> Pickups & deliveries</a></div>
 </div>
 <section class="card">
     <nav class="tabs">
@@ -26,15 +26,15 @@
         <div class="empty"><?= icon('bag', '', 32) ?><p>No orders match these filters.</p></div>
     <?php else: ?>
         <div class="table-wrap"><table class="table">
-            <thead><tr><th>Order</th><th>Customer</th><th>Pickup</th><th>Payment</th><th>Status</th><th class="num">Total</th></tr></thead>
+            <thead><tr><th>Order</th><th>Customer</th><th>Pickup / delivery</th><th>Payment</th><th>Status</th><th class="num">Total</th></tr></thead>
             <tbody>
             <?php foreach ($result['rows'] as $o): ?>
                 <tr>
                     <td><a class="row-link" href="<?= e(admin_url('orders/view', ['id' => $o['id']])) ?>"><?= e($o['order_number']) ?></a><div class="muted"><?= e(date('j M Y, g:ia', strtotime($o['created_at']))) ?></div></td>
                     <td><?= e($o['customer_name']) ?><div class="muted"><?= e($o['customer_phone']) ?></div></td>
-                    <td><?= e(date('D j M', strtotime($o['pickup_date']))) ?><div class="muted"><?= e(format_time($o['pickup_time'])) ?> &middot; <?= (int) $o['item_count'] ?> item<?= (int) $o['item_count'] === 1 ? '' : 's' ?></div></td>
+                    <td><?= e(date('D j M', strtotime($o['pickup_date']))) ?><div class="muted"><?= is_delivery($o) ? 'Delivery, ' : '' ?><?= e(order_time_label($o)) ?> &middot; <?= (int) $o['item_count'] ?> item<?= (int) $o['item_count'] === 1 ? '' : 's' ?></div></td>
                     <td><?= status_badge($o['payment_status'], PAYMENT_STATUSES[$o['payment_status']]) ?><div class="muted"><?= e(payment_method_label($o['payment_method'])) ?></div></td>
-                    <td><?= status_badge($o['order_status'], ORDER_STATUSES[$o['order_status']]) ?></td>
+                    <td><?= status_badge($o['order_status'], order_status_label($o)) ?></td>
                     <td class="num"><strong><?= e(money($o['total'])) ?></strong></td>
                 </tr>
             <?php endforeach; ?>

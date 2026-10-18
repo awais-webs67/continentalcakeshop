@@ -180,7 +180,7 @@ function send_order_emails(array $order): void
         send_mail(
             $order['customer_email'],
             "Order {$order['order_number']} received - {$shop}",
-            render_email('order-confirmation', ['order' => $order, 'items' => $items, 'title' => 'Thank you for your order', 'preheader' => 'Order ' . $order['order_number'] . ' for ' . format_pickup($order['pickup_date'], $order['pickup_time'])])
+            render_email('order-confirmation', ['order' => $order, 'items' => $items, 'title' => 'Thank you for your order', 'preheader' => 'Order ' . $order['order_number'] . ' for ' . order_when($order)])
         );
     }
     $notify = setting('order_notification_email');
@@ -188,7 +188,7 @@ function send_order_emails(array $order): void
         send_mail(
             $notify,
             "New order {$order['order_number']} - " . money($order['total']),
-            render_email('order-new-admin', ['order' => $order, 'items' => $items, 'title' => 'New online order', 'preheader' => $order['customer_name'] . ', ' . format_pickup($order['pickup_date'], $order['pickup_time'])]),
+            render_email('order-new-admin', ['order' => $order, 'items' => $items, 'title' => 'New online order', 'preheader' => $order['customer_name'] . ', ' . order_when($order)]),
             null,
             $order['customer_email']
         );

@@ -5,9 +5,17 @@ const ORDER_STATUSES = [
     'new'         => 'Received',
     'confirmed'   => 'Confirmed',
     'in_progress' => 'Being prepared',
-    'ready'       => 'Ready for pickup',
+    'ready'       => 'Ready',
     'completed'   => 'Completed',
     'cancelled'   => 'Cancelled',
+];
+
+// The customer's preferred delivery window. The shop then sets the exact time.
+const DELIVERY_WINDOWS = [
+    'any'       => 'Any time',
+    'morning'   => 'Morning (9am to 12pm)',
+    'afternoon' => 'Afternoon (12pm to 4pm)',
+    'evening'   => 'Evening (4pm to 7pm)',
 ];
 
 const PAYMENT_STATUSES = [
@@ -43,12 +51,14 @@ function create_order(array $data, array $items): array
         $token = bin2hex(random_bytes(16));
         db_run(
             'INSERT INTO orders (order_number, user_id, access_token, customer_name, customer_email, customer_phone, fulfilment,
-                                 delivery_address, pickup_date, pickup_time, subtotal, delivery_fee, total, payment_method,
-                                 payment_status, payment_reference, payment_proof, notes)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                                 delivery_address, delivery_suburb, delivery_postcode, delivery_window, pickup_date, pickup_time,
+                                 subtotal, delivery_fee, total, payment_method, payment_status, payment_reference, payment_proof, notes)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 $number, $data['user_id'] ?? null, $token, $data['name'], $data['email'], $data['phone'], $data['fulfilment'],
-                $data['delivery_address'] ?: null, $data['pickup_date'], $data['pickup_time'] . ':00',
+                $data['delivery_address'] ?: null, $data['delivery_suburb'] ?: null, $data['delivery_postcode'] ?: null,
+                $data['fulfilment'] === 'delivery' ? $data['delivery_window'] : null,
+                $data['pickup_date'], $data['fulfilment'] === 'pickup' ? $data['pickup_time'] . ':00' : null,
                 $subtotal, $deliveryFee, $total, $data['payment_method'],
                 $data['payment_proof'] ? 'awaiting_verification' : 'pending',
                 $data['payment_reference'] ?: null, $data['payment_proof'], $data['notes'] ?: null,
@@ -73,6 +83,51 @@ function create_order(array $data, array $items): array
         throw $e;
     }
     return get_order($orderId);
+}
+
+// ---------------------------------------------------------------------------
+// Display helpers shared by the order page, emails, account and admin
+// ---------------------------------------------------------------------------
+
+function is_delivery(array $order): bool
+{
+    return ($order['fulfilment'] ?? 'pickup') === 'delivery';
+}
+
+/** "Ready for pickup" reads "Out for delivery" on delivery orders. */
+function order_status_label(array $order, ?string $status = null): string
+{
+    $status ??= $order['order_status'];
+    if ($status === 'ready') {
+        return is_delivery($order) ? 'Out for delivery' : 'Ready for pickup';
+    }
+    return ORDER_STATUSES[$status] ?? ucfirst($status);
+}
+
+/** Full date and time, e.g. "Saturday 2 November 2026, 3:00pm", or the date plus "time to be confirmed". */
+function order_when(array $order): string
+{
+    $when = format_pickup($order['pickup_date'], $order['pickup_time'] ?: null);
+    return $order['pickup_time'] ? $when : $when . ', time to be confirmed';
+}
+
+/** Short time for lists: "3pm", or the delivery window while the time is not set. */
+function order_time_label(array $order): string
+{
+    if ($order['pickup_time']) {
+        return format_time($order['pickup_time']);
+    }
+    $window = DELIVERY_WINDOWS[$order['delivery_window'] ?? ''] ?? null;
+    return 'Time to confirm' . ($window && $order['delivery_window'] !== 'any' ? ' (' . strtolower(strtok($window, ' ')) . ')' : '');
+}
+
+function order_address(array $order): string
+{
+    if (!is_delivery($order)) {
+        return store_address_line();
+    }
+    $place = trim(($order['delivery_suburb'] ?? '') . ' ' . ($order['delivery_postcode'] ?? ''));
+    return trim((string) $order['delivery_address'] . ($place !== '' ? ', ' . $place : ''));
 }
 
 function log_order_event(int $orderId, string $event, string $message, ?int $adminId = null): void

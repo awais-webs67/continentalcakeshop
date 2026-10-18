@@ -150,14 +150,109 @@
     }
 
     /* ---------- File inputs ---------- */
+    // Fields marked data-async-upload send the file as soon as it is chosen and show the
+    // progress, so a slow phone upload is never lost when the customer presses submit.
     $$('[data-file-drop]').forEach(function (drop) {
         var input = $('input[type="file"]', drop);
         var label = $('[data-file-name]', drop);
-        var original = label.textContent;
+        var hint = label.getAttribute('data-hint') || label.textContent;
+        var purpose = drop.getAttribute('data-async-upload');
+        var form = drop.closest('form');
+
+        if (!purpose || !window.FormData || !window.XMLHttpRequest) {
+            input.addEventListener('change', function () {
+                var file = input.files && input.files[0];
+                label.textContent = file ? file.name : hint;
+                drop.classList.toggle('has-file', !!file);
+            });
+            return;
+        }
+
+        var tokenInput = drop.parentNode.querySelector('[data-upload-token]');
+        var errorEl = drop.parentNode.querySelector('[data-upload-error]');
+        var progress = $('[data-upload-progress]', drop);
+        var bar = $('[data-upload-bar]', drop);
+        var percent = $('[data-upload-percent]', drop);
+        var maxBytes = parseInt(drop.getAttribute('data-max-bytes'), 10) || 0;
+
+        var showError = function (message) {
+            errorEl.textContent = message;
+            errorEl.hidden = !message;
+        };
+        var setProgress = function (value) {
+            bar.style.width = value + '%';
+            percent.textContent = value + '%';
+        };
+        var finish = function () {
+            drop.classList.remove('is-uploading');
+            form.uploading = Math.max(0, (form.uploading || 1) - 1);
+        };
+
         input.addEventListener('change', function () {
             var file = input.files && input.files[0];
-            label.textContent = file ? file.name : original;
-            drop.classList.toggle('has-file', !!file);
+            if (!file) return;
+            showError('');
+            if (maxBytes && file.size > maxBytes) {
+                showError('This file is ' + (file.size / 1048576).toFixed(1) + ' MB. Please choose one under ' + Math.round(maxBytes / 1048576) + ' MB.');
+                input.value = '';
+                return;
+            }
+
+            var data = new FormData();
+            data.append('file', file);
+            data.append('purpose', purpose);
+            data.append('_token', $('input[name="_token"]', form).value);
+
+            tokenInput.value = '';
+            drop.classList.remove('is-uploaded');
+            drop.classList.add('has-file', 'is-uploading');
+            label.textContent = 'Uploading ' + file.name;
+            progress.hidden = false;
+            setProgress(0);
+            form.uploading = (form.uploading || 0) + 1;
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', drop.getAttribute('data-upload-url'));
+            xhr.upload.addEventListener('progress', function (e) {
+                if (e.lengthComputable) setProgress(Math.min(99, Math.round(e.loaded / e.total * 100)));
+            });
+            xhr.addEventListener('load', function () {
+                finish();
+                var reply = {};
+                try { reply = JSON.parse(xhr.responseText); } catch (err) {}
+                if (xhr.status === 200 && reply.token) {
+                    showError('');
+                    setProgress(100);
+                    tokenInput.value = reply.token;
+                    input.value = '';
+                    drop.classList.add('is-uploaded');
+                    label.textContent = file.name + ' uploaded';
+                    setTimeout(function () { progress.hidden = true; }, 600);
+                } else {
+                    progress.hidden = true;
+                    drop.classList.remove('has-file');
+                    label.textContent = hint;
+                    input.value = '';
+                    showError(reply.error || 'The upload did not finish. Please try again.');
+                }
+            });
+            xhr.addEventListener('error', function () {
+                finish();
+                progress.hidden = true;
+                drop.classList.remove('has-file');
+                label.textContent = hint;
+                input.value = '';
+                showError('The upload did not finish. Please check your connection and try again.');
+            });
+            xhr.send(data);
+        });
+
+        form.addEventListener('submit', function (e) {
+            if (form.uploading > 0) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                showError('Please wait until the upload reaches 100%.');
+            }
         });
     });
 
@@ -203,6 +298,7 @@
         var totalEl = $('[data-order-total]', checkout);
         var feeRow = $('[data-delivery-fee-row]', checkout);
         var deliveryFields = $$('[data-delivery-only]', checkout);
+        var pickupFields = $$('[data-pickup-only]', checkout);
         var payAmounts = $$('[data-pay-amount]', checkout);
         var formatMoney = function (n) { return '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); };
 
@@ -210,6 +306,7 @@
             var checked = $('[data-fulfilment]:checked', checkout);
             var delivery = checked && checked.value === 'delivery';
             deliveryFields.forEach(function (el) { el.hidden = !delivery; });
+            pickupFields.forEach(function (el) { el.hidden = delivery; });
             if (feeRow) feeRow.hidden = !delivery;
             if (totalEl) {
                 var total = parseFloat(totalEl.getAttribute('data-subtotal')) + (delivery ? parseFloat(totalEl.getAttribute('data-delivery-fee')) : 0);
@@ -218,6 +315,24 @@
             }
         };
         $$('[data-fulfilment]', checkout).forEach(function (r) { r.addEventListener('change', updateFulfilment); });
+
+        // Tell the customer straight away if a delivery date cannot be booked.
+        var deliveryDate = $('[data-delivery-date]', checkout);
+        if (deliveryDate) {
+            var dateError = deliveryDate.parentNode.querySelector('.field-error');
+            deliveryDate.addEventListener('change', function () {
+                if (!deliveryDate.value) return;
+                fetch(deliveryDate.getAttribute('data-check-url') + '?type=delivery&date=' + encodeURIComponent(deliveryDate.value), { credentials: 'same-origin' })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (!dateError) return;
+                        dateError.textContent = data.message || '';
+                        dateError.hidden = !!data.available;
+                        deliveryDate.setAttribute('aria-invalid', data.available ? 'false' : 'true');
+                    })
+                    .catch(function () {});
+            });
+        }
 
         // Payment method
         var proofFields = $('[data-proof-fields]', checkout);

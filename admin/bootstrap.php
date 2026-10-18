@@ -265,7 +265,7 @@ function admin_badges(): array
 {
     static $badges = null;
     return $badges ??= [
-        'orders'   => (int) db_value("SELECT COUNT(*) FROM orders WHERE order_status = 'new'"),
+        'orders'   => (int) db_value("SELECT COUNT(*) FROM orders WHERE order_status = 'new' OR (fulfilment = 'delivery' AND pickup_time IS NULL AND order_status NOT IN ('cancelled', 'completed'))"),
         'payments' => (int) db_value("SELECT COUNT(*) FROM orders WHERE payment_status = 'awaiting_verification'"),
         'custom'   => (int) db_value("SELECT COUNT(*) FROM custom_requests WHERE status = 'new'"),
         'messages' => (int) db_value('SELECT COUNT(*) FROM contact_messages WHERE is_read = 0'),

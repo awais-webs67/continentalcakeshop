@@ -14,6 +14,9 @@ $link = product_url($product);
         <h3 class="product-card__title"><a href="<?= e($link) ?>"><?= e($product['name']) ?></a></h3>
         <div class="product-card__foot">
             <p class="product-card__price"><?= e(price_label($product)) ?></p>
+            <?php if (!empty($product['is_enquiry'])): ?>
+                <a class="product-card__btn product-card__btn--enquire" href="<?= e(enquiry_url($product)) ?>" aria-label="Enquire about <?= e($product['name']) ?>"><?= icon('mail', '', 17) ?> Enquire</a>
+            <?php else: ?>
             <form class="product-card__action" method="post" action="<?= e(url('cart')) ?>">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="add">
@@ -21,6 +24,7 @@ $link = product_url($product);
                 <input type="hidden" name="qty" value="1">
                 <button class="product-card__btn" type="submit" aria-label="Add <?= e($product['name']) ?> to cart"><?= icon('bag', '', 17) ?> Add to Cart</button>
             </form>
+            <?php endif; ?>
         </div>
     </div>
 </article>

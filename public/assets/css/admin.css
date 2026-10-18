@@ -141,6 +141,7 @@ body.sidebar-open .sidebar-overlay { opacity: 1; visibility: visible; }
 .card__body { padding: 20px; }
 .card__body--flush { padding: 0; }
 .card + .card { margin-top: 16px; }
+.card--attention { border-color: #F3D9A4; box-shadow: 0 0 0 3px var(--amber-bg); }
 
 .grid-2 { display: grid; gap: 16px; }
 .grid-main { display: grid; gap: 16px; align-items: start; }

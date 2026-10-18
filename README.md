@@ -7,7 +7,10 @@ Plain PHP 8.1+ and MySQL/MariaDB, with no framework and no Composer packages, so
 
 - Home, Shop (category filters, search, sort), product pages, Custom Cakes quote form, About, Contact
 - Cart with free cake message, quantity and size per line
-- Checkout with **pickup date and time booking** (respects opening hours, minimum notice, blocked dates and how far ahead people can book)
+- Checkout with **pickup or delivery**. Pickup: the customer books a date and time slot. Delivery: the customer chooses a date, a preferred time of day and their address (checked against the delivery postcodes); the shop then sets the exact delivery time in the admin panel and the customer is emailed. Both respect opening hours, minimum notice, closed dates, how far ahead people can book and optional daily limits
+- Standard cakes in two sizes: **Midi (serves 8)** and **Large (serves 14)**. Specials can be set to "Price on request" so they show an Enquire button instead of Add to Cart
+- Custom cake requests with occasion, date, serving size, pickup or delivery, description and a reference photo
+- Payment screenshots and custom cake photos upload as soon as they are chosen, with a progress bar in percent, and the form cannot be sent until the upload is complete
 - Payment options: **Stripe card payment**, **PayID** and **bank transfer** (both with a payment screenshot upload)
 - Private order page for the customer, order emails to the customer and the shop
 - FAQ page and editable Privacy Policy, Terms, Refund Policy and Allergen pages (stored in the `pages` and `faqs` tables; review the wording with the shop before launch)
@@ -63,10 +66,21 @@ Local development, either way works:
 - **XAMPP (Apache):** put the project in `htdocs/continentalcakeshop`, set `'app_url' => 'http://localhost/continentalcakeshop'` in `config/config.php`, and open that address. The root `.htaccess` passes every request to `public/`.
 - **PHP built-in server:** set `'app_url' => 'http://localhost:8000'` and run
   ```
-  php -S localhost:8000 -t public public/router.php
+  php -d upload_max_filesize=12M -d post_max_size=16M -S localhost:8000 -t public public/router.php
   ```
 
 Always open the site at exactly the address in `app_url`, otherwise the session (cart and forms) will not work.
+
+## Where uploaded files are stored
+
+Everything is stored on your own hosting, inside the website folder. Nothing goes to an outside service.
+
+| What | Folder | Who can open it |
+|---|---|---|
+| Product, category, gallery and homepage photos | `public/uploads/` | Everyone (they are shown on the website) |
+| Payment screenshots and custom cake reference photos | `storage/uploads/payments/` and `storage/uploads/custom/` | Only logged-in admin staff, through the admin panel |
+
+Include both folders in your backups.
 
 ## Before going live
 

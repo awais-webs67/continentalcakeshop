@@ -68,9 +68,12 @@ render('header', compact('page'));
         <div class="order-grid">
             <div class="order-box">
                 <h2><?= $order['fulfilment'] === 'delivery' ? 'Delivery' : 'Pickup' ?></h2>
-                <p class="order-box__big"><?= icon('calendar', '', 20) ?> <?= e(format_pickup($order['pickup_date'], $order['pickup_time'])) ?></p>
-                <?php if ($order['fulfilment'] === 'delivery'): ?>
-                    <p><?= icon('pin', '', 18) ?> <?= e($order['delivery_address']) ?></p>
+                <p class="order-box__big"><?= icon('calendar', '', 20) ?> <?= e(order_when($order)) ?></p>
+                <?php if (is_delivery($order)): ?>
+                    <p><?= icon('pin', '', 18) ?> <?= e(order_address($order)) ?></p>
+                    <?php if (!$order['pickup_time']): ?>
+                        <p class="order-box__note"><?= icon('clock', '', 18) ?> We will email you the delivery time before the day<?= ($order['delivery_window'] ?? 'any') !== 'any' ? ', keeping to your ' . e(strtolower(DELIVERY_WINDOWS[$order['delivery_window']] ?? '')) . ' preference where we can' : '' ?>.</p>
+                    <?php endif; ?>
                 <?php else: ?>
                     <p><?= icon('store', '', 18) ?> <?= e(store_address_line()) ?></p>
                     <a class="link-arrow" href="<?= e(store_maps_url()) ?>" target="_blank" rel="noopener">Get directions <?= icon('arrow', '', 16) ?></a>
@@ -79,7 +82,7 @@ render('header', compact('page'));
             <div class="order-box">
                 <h2>Status</h2>
                 <dl class="order-status">
-                    <div><dt>Order</dt><dd><span class="status status--<?= e($order['order_status']) ?>"><?= e(ORDER_STATUSES[$order['order_status']]) ?></span></dd></div>
+                    <div><dt>Order</dt><dd><span class="status status--<?= e($order['order_status']) ?>"><?= e(order_status_label($order)) ?></span></dd></div>
                     <div><dt>Payment</dt><dd><span class="status status--<?= e($order['payment_status']) ?>"><?= e(PAYMENT_STATUSES[$order['payment_status']]) ?></span></dd></div>
                     <div><dt>Method</dt><dd><?= e(payment_method_label($order['payment_method'])) ?></dd></div>
                 </dl>

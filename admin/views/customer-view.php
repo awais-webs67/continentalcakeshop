@@ -24,7 +24,7 @@
                     <td><a class="row-link" href="<?= e(admin_url('orders/view', ['id' => $o['id']])) ?>"><?= e($o['order_number']) ?></a><div class="muted"><?= e(date('j M Y', strtotime($o['created_at']))) ?><?= $o['user_id'] ? '' : ' &middot; guest' ?></div></td>
                     <td><?= e(date('D j M Y', strtotime($o['pickup_date']))) ?></td>
                     <td><?= status_badge($o['payment_status'], PAYMENT_STATUSES[$o['payment_status']]) ?></td>
-                    <td><?= status_badge($o['order_status'], ORDER_STATUSES[$o['order_status']]) ?></td>
+                    <td><?= status_badge($o['order_status'], order_status_label($o)) ?></td>
                     <td class="num"><strong><?= e(money($o['total'])) ?></strong></td>
                 </tr>
             <?php endforeach; ?>

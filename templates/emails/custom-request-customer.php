@@ -5,7 +5,8 @@
     <tr><td style="padding:16px 18px;font-size:14px;line-height:1.7">
         <strong>Occasion:</strong> <?= e($request['occasion']) ?><br>
         <strong>Date needed:</strong> <?= e(date('l j F Y', strtotime($request['event_date']))) ?><br>
-        <?php if ($request['servings']): ?><strong>Guests:</strong> <?= e($request['servings']) ?><br><?php endif; ?>
+        <?php if ($request['servings']): ?><strong>Serves:</strong> <?= e($request['servings']) ?><br><?php endif; ?>
+        <strong>Pickup or delivery:</strong> <?= ($request['fulfilment'] ?? '') === 'delivery' ? 'Delivery' : 'Pickup' ?><br>
         <?php if ($request['flavour']): ?><strong>Flavour:</strong> <?= e($request['flavour']) ?><br><?php endif; ?>
         <strong>Your idea:</strong> <?= nl2br(e($request['details'])) ?>
     </td></tr>

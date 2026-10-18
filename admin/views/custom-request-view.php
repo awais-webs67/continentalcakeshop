@@ -15,7 +15,8 @@
                 <dl class="dl">
                     <dt>Needed by</dt><dd><strong><?= e(date('l j F Y', strtotime($request['event_date']))) ?></strong></dd>
                     <dt>Occasion</dt><dd><?= e($request['occasion']) ?></dd>
-                    <dt>Servings</dt><dd><?= e($request['servings'] ?: 'Not given') ?></dd>
+                    <dt>Serves</dt><dd><?= e($request['servings'] ?: 'Not given') ?></dd>
+                    <dt>Pickup or delivery</dt><dd><?= ($request['fulfilment'] ?? '') === 'delivery' ? 'Delivery' : 'Pickup' ?></dd>
                     <dt>Flavour</dt><dd><?= e($request['flavour'] ?: 'Not given') ?></dd>
                     <dt>Budget</dt><dd><?= e($request['budget'] ?: 'Not given') ?></dd>
                 </dl>

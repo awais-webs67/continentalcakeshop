@@ -21,7 +21,7 @@ function cart_add(int $sizeId, int $qty, string $message = ''): bool
 {
     $size = db_one(
         'SELECT s.id, p.allow_message FROM product_sizes s
-         JOIN products p ON p.id = s.product_id AND p.is_active = 1
+         JOIN products p ON p.id = s.product_id AND p.is_active = 1 AND p.is_enquiry = 0
          WHERE s.id = ? AND s.is_active = 1',
         [$sizeId]
     );

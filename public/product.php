@@ -5,14 +5,17 @@ require dirname(__DIR__) . '/src/bootstrap.php';
 
 $product = get_product_by_slug(input('slug'));
 $sizes = $product ? get_product_sizes((int) $product['id']) : [];
-if (!$product || !$sizes) {
+$enquiry = $product && (int) $product['is_enquiry'] === 1;
+if (!$product || (!$sizes && !$enquiry)) {
     not_found();
 }
 
 $related = get_related_products($product);
 $leadHours = $product['lead_time_hours'] !== null ? (int) $product['lead_time_hours'] : (int) setting('min_lead_hours', '24');
 $prices = array_column($sizes, 'price');
-$selected = $sizes[0];
+$selected = $sizes[0] ?? null;
+$deliveryOn = setting_bool('delivery_enabled');
+$sizeText = implode(', ', array_map(static fn ($s) => $s['label'] . ($s['servings'] ? ' (' . strtolower($s['servings']) . ')' : ''), $sizes));
 
 $crumbs = [
     ['Home', url()],
@@ -23,10 +26,12 @@ $crumbs = [
 
 $page = [
     'title'       => $product['meta_title'] ?: $product['name'] . ' | Order Online in Canberra | ' . setting('store_short_name'),
-    'description' => $product['meta_description'] ?: sprintf(
-        '%s %s from %s. 100%% Halal. Order online and pick up from Greenway, Canberra.',
-        $product['name'], '(' . implode(', ', array_column($sizes, 'label')) . ')', money(min($prices))
-    ),
+    'description' => $product['meta_description'] ?: ($enquiry
+        ? sprintf('%s made to order in Greenway, Canberra. 100%% Halal. Send us your details for a quote.', $product['name'])
+        : sprintf(
+            '%s in %s from %s. 100%% Halal. Order online for pickup in Greenway%s.',
+            $product['name'], $sizeText, money(min($prices)), $deliveryOn ? ' or delivery across Canberra' : ''
+        )),
     'canonical'   => product_url($product),
     'image'       => product_image_url($product['image']),
     'type'        => 'product',
@@ -50,11 +55,20 @@ render('header', compact('page'));
             <div class="product-info">
                 <a class="product-info__category" href="<?= e(url('shop/' . $product['category_slug'])) ?>"><?= e($product['category_name']) ?></a>
                 <h1 class="product-info__title"><?= e($product['name']) ?></h1>
-                <p class="product-info__price" data-price><?= e(money($selected['price'])) ?></p>
+                <p class="product-info__price" data-price><?= $enquiry ? 'Price on request' : e(money($selected['price'])) ?></p>
                 <?php if ($product['short_description']): ?>
                     <p class="product-info__lead"><?= e($product['short_description']) ?></p>
                 <?php endif; ?>
 
+                <?php if ($enquiry): ?>
+                <div class="enquiry-box">
+                    <p>This cake is made to order. Tell us the date, size and any changes you would like and we will send you a quote.</p>
+                    <div class="enquiry-box__actions">
+                        <a class="btn btn--primary btn--lg" href="<?= e(enquiry_url($product)) ?>"><?= icon('mail', '', 20) ?> Enquire about this cake</a>
+                        <a class="btn btn--outline btn--lg" href="tel:<?= e(setting('store_phone_e164')) ?>"><?= icon('phone', '', 20) ?> <?= e(setting('store_phone')) ?></a>
+                    </div>
+                </div>
+                <?php else: ?>
                 <form class="product-form" method="post" action="<?= e(url('cart')) ?>" data-product-form>
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="add">
@@ -94,11 +108,15 @@ render('header', compact('page'));
                         <button class="btn btn--primary btn--lg product-form__submit" type="submit"><?= icon('bag', '', 20) ?> Add to Cart</button>
                     </div>
                 </form>
+                <?php endif; ?>
 
                 <ul class="product-facts">
-                    <li><?= icon('calendar', '', 20) ?><span><strong>Order <?= $leadHours >= 24 ? (int) ceil($leadHours / 24) . ' day' . ($leadHours >= 48 ? 's' : '') : $leadHours . ' hours' ?> ahead.</strong> Pick your pickup date and time at checkout.</span></li>
-                    <li><?= icon('store', '', 20) ?><span><strong>Pickup</strong> from <?= e(store_address_line()) ?>.</span></li>
-                    <li><?= icon('halal', '', 20) ?><span><strong>100% Halal</strong> ingredients.</span></li>
+                    <li><?= icon('calendar', '', 20) ?><span><strong>Order <?= e(notice_label($leadHours)) ?> ahead.</strong> Choose your date at checkout, up to <?= (int) setting('max_advance_days', '60') ?> days in advance.</span></li>
+                    <li><?= icon('store', '', 20) ?><span><strong>Free pickup</strong> from <?= e(store_address_line()) ?> at a time you choose.</span></li>
+                    <?php if ($deliveryOn): ?>
+                        <li><?= icon('truck', '', 20) ?><span><strong>Delivery</strong> <?= e(lcfirst(setting('delivery_note', 'All over Canberra'))) ?><?= (float) setting('delivery_fee') > 0 ? ' for ' . e(money(setting('delivery_fee'))) : '' ?>. We confirm the time with you.</span></li>
+                    <?php endif; ?>
+                    <li><?= icon('halal', '', 20) ?><span><strong>100% Halal</strong> ingredients<?= (int) $product['allow_message'] === 1 ? ', with free writing on the cake' : '' ?>.</span></li>
                 </ul>
 
                 <div class="product-accordion">
@@ -116,10 +134,10 @@ render('header', compact('page'));
                         </div>
                     </details>
                     <details>
-                        <summary>Pickup and storage <?= icon('plus', 'faq-item__icon', 18) ?></summary>
+                        <summary><?= $deliveryOn ? 'Pickup, delivery and storage' : 'Pickup and storage' ?> <?= icon('plus', 'faq-item__icon', 18) ?></summary>
                         <div class="prose">
-                            <p>Collect from <?= e(store_address_line()) ?> at the time you choose at checkout. Carry the box flat and keep the cake in the fridge until you are ready to serve.</p>
-                            <p>Need to change your pickup time? Call us as early as possible.</p>
+                            <p>Collect from <?= e(store_address_line()) ?> at the time you choose at checkout.<?= $deliveryOn ? ' For delivery, choose a date and a preferred time of day and we will email you the delivery time.' : '' ?></p>
+                            <p>Carry the box flat and keep the cake in the fridge until you are ready to serve. Need to change the date? Call us as early as possible.</p>
                         </div>
                     </details>
                 </div>

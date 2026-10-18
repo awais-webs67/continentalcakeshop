@@ -13,4 +13,4 @@ $byDay = [];
 foreach ($orders as $o) {
     $byDay[$o['pickup_date']][] = $o;
 }
-admin_view('pickups', compact('start', 'end', 'days', 'byDay') + ['title' => 'Pickup schedule']);
+admin_view('pickups', compact('start', 'end', 'days', 'byDay') + ['title' => 'Pickups & deliveries']);

@@ -7,7 +7,7 @@ $nav = [
     'Shop' => [
         ['', 'Dashboard', 'store', null],
         ['orders', 'Orders', 'bag', $badges['orders'] + $badges['payments']],
-        ['pickups', 'Pickup schedule', 'calendar', null],
+        ['pickups', 'Pickups & deliveries', 'calendar', null],
         ['custom-requests', 'Custom requests', 'gift', $badges['custom']],
         ['messages', 'Messages', 'mail', $badges['messages']],
         ['customers', 'Customers', 'user', null],

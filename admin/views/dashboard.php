@@ -1,20 +1,20 @@
-<?php /** @var array $stats @var array $todayPickups @var array $toVerify @var array $recent @var array $requests @var int $unread @var array $admin */ ?>
+<?php /** @var array $stats @var array $todayPickups @var array $toSchedule @var array $toVerify @var array $recent @var array $requests @var int $unread @var array $admin */ ?>
 <div class="page-head">
     <div>
         <h1>Good <?= (int) date('G') < 12 ? 'morning' : ((int) date('G') < 17 ? 'afternoon' : 'evening') ?>, <?= e(strtok($admin['name'], ' ')) ?></h1>
         <p><?= e(date('l j F Y')) ?> &middot; <?= e(today_hours_label()) ?></p>
     </div>
     <div class="page-head__actions">
-        <a class="btn btn--secondary" href="<?= e(admin_url('pickups')) ?>"><?= icon('calendar', '', 18) ?> Pickup schedule</a>
+        <a class="btn btn--secondary" href="<?= e(admin_url('pickups')) ?>"><?= icon('calendar', '', 18) ?> Pickups & deliveries</a>
         <a class="btn btn--primary" href="<?= e(admin_url('products/edit')) ?>"><?= icon('plus', '', 18) ?> Add product</a>
     </div>
 </div>
 
 <div class="stats">
     <a class="stat" href="<?= e(admin_url('pickups')) ?>">
-        <span class="stat__label"><?= icon('calendar', '', 18) ?> Pickups today</span>
+        <span class="stat__label"><?= icon('calendar', '', 18) ?> Due today</span>
         <span class="stat__value"><?= $stats['pickups_today'] ?></span>
-        <span class="stat__note">Orders to have ready today</span>
+        <span class="stat__note">Pickups and deliveries</span>
     </a>
     <a class="stat <?= $stats['to_verify'] ? 'stat--alert' : '' ?>" href="<?= e(admin_url('orders', ['payment' => 'awaiting_verification'])) ?>">
         <span class="stat__label"><?= icon('card', '', 18) ?> Payments to check</span>
@@ -38,17 +38,17 @@
         <section class="card">
             <div class="card__head"><h2>Today's pickups</h2><a href="<?= e(admin_url('pickups')) ?>">Full schedule</a></div>
             <?php if (!$todayPickups): ?>
-                <div class="empty"><?= icon('calendar', '', 32) ?><p>No pickups booked for today.</p></div>
+                <div class="empty"><?= icon('calendar', '', 32) ?><p>No pickups or deliveries today.</p></div>
             <?php else: ?>
                 <div class="table-wrap"><table class="table">
                     <thead><tr><th>Time</th><th>Order</th><th>Customer</th><th>Status</th><th>Payment</th></tr></thead>
                     <tbody>
                     <?php foreach ($todayPickups as $o): ?>
                         <tr>
-                            <td><strong><?= e(format_time($o['pickup_time'])) ?></strong></td>
+                            <td><strong><?= e(order_time_label($o)) ?></strong></td>
                             <td><a class="row-link" href="<?= e(admin_url('orders/view', ['id' => $o['id']])) ?>"><?= e($o['order_number']) ?></a><div class="muted"><?= (int) $o['item_count'] ?> item<?= (int) $o['item_count'] === 1 ? '' : 's' ?></div></td>
                             <td><?= e($o['customer_name']) ?><div class="muted"><?= e($o['customer_phone']) ?></div></td>
-                            <td><?= status_badge($o['order_status'], ORDER_STATUSES[$o['order_status']]) ?></td>
+                            <td><?= status_badge($o['order_status'], order_status_label($o)) ?></td>
                             <td><?= status_badge($o['payment_status'], PAYMENT_STATUSES[$o['payment_status']]) ?></td>
                         </tr>
                     <?php endforeach; ?>
@@ -57,20 +57,38 @@
             <?php endif; ?>
         </section>
 
+        <?php if ($toSchedule): ?>
+        <section class="card card--attention">
+            <div class="card__head"><h2>Deliveries to schedule</h2><span class="hint">Set a delivery time and the customer is emailed</span></div>
+            <div class="table-wrap"><table class="table">
+                <tbody>
+                <?php foreach ($toSchedule as $o): ?>
+                    <tr>
+                        <td><a class="row-link" href="<?= e(admin_url('orders/view', ['id' => $o['id']]) . '#when') ?>"><?= e($o['order_number']) ?></a><div class="muted"><?= e($o['customer_name']) ?></div></td>
+                        <td><strong><?= e(date('D j M', strtotime($o['pickup_date']))) ?></strong><div class="muted"><?= e(DELIVERY_WINDOWS[$o['delivery_window'] ?? 'any'] ?? 'Any time') ?></div></td>
+                        <td><?= e((string) $o['delivery_suburb']) ?> <?= e((string) $o['delivery_postcode']) ?></td>
+                        <td class="num"><a class="btn btn--primary btn--sm" href="<?= e(admin_url('orders/view', ['id' => $o['id']]) . '#when') ?>">Set time</a></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table></div>
+        </section>
+        <?php endif; ?>
+
         <section class="card">
             <div class="card__head"><h2>Recent orders</h2><a href="<?= e(admin_url('orders')) ?>">All orders</a></div>
             <?php if (!$recent): ?>
                 <div class="empty"><?= icon('bag', '', 32) ?><p>Orders will appear here as soon as customers start ordering.</p></div>
             <?php else: ?>
                 <div class="table-wrap"><table class="table">
-                    <thead><tr><th>Order</th><th>Customer</th><th>Pickup</th><th>Status</th><th class="num">Total</th></tr></thead>
+                    <thead><tr><th>Order</th><th>Customer</th><th>When</th><th>Status</th><th class="num">Total</th></tr></thead>
                     <tbody>
                     <?php foreach ($recent as $o): ?>
                         <tr>
                             <td><a class="row-link" href="<?= e(admin_url('orders/view', ['id' => $o['id']])) ?>"><?= e($o['order_number']) ?></a><div class="muted"><?= e(time_ago($o['created_at'])) ?></div></td>
                             <td><?= e($o['customer_name']) ?></td>
-                            <td><?= e(date('D j M', strtotime($o['pickup_date']))) ?>, <?= e(format_time($o['pickup_time'])) ?></td>
-                            <td><?= status_badge($o['order_status'], ORDER_STATUSES[$o['order_status']]) ?></td>
+                            <td><?= e(date('D j M', strtotime($o['pickup_date']))) ?>, <?= e(order_time_label($o)) ?></td>
+                            <td><?= status_badge($o['order_status'], order_status_label($o)) ?></td>
                             <td class="num"><strong><?= e(money($o['total'])) ?></strong></td>
                         </tr>
                     <?php endforeach; ?>

@@ -88,13 +88,13 @@ render('header', compact('page'));
                         </div>
                         <a class="btn btn--outline btn--sm" href="<?= e(order_url($order)) ?>">View Order</a>
                     </div>
-                    <p class="order-card__pickup"><?= icon('calendar', '', 18) ?> <?= $order['fulfilment'] === 'delivery' ? 'Delivery' : 'Pickup' ?>: <strong><?= e(format_pickup($order['pickup_date'], $order['pickup_time'])) ?></strong></p>
+                    <p class="order-card__pickup"><?= icon('calendar', '', 18) ?> <?= $order['fulfilment'] === 'delivery' ? 'Delivery' : 'Pickup' ?>: <strong><?= e(order_when($order)) ?></strong></p>
                     <?php if ($order['order_status'] === 'cancelled'): ?>
                         <p class="status status--cancelled">Cancelled</p>
                     <?php else: ?>
                         <ol class="order-progress" aria-label="Order progress">
                             <?php foreach ($progress as $i => $status): ?>
-                                <li class="<?= $step !== false && $i <= $step ? 'is-done' : '' ?> <?= $i === $step ? 'is-current' : '' ?>"><?= e(ORDER_STATUSES[$status]) ?></li>
+                                <li class="<?= $step !== false && $i <= $step ? 'is-done' : '' ?> <?= $i === $step ? 'is-current' : '' ?>"><?= e(order_status_label($order, $status)) ?></li>
                             <?php endforeach; ?>
                         </ol>
                     <?php endif; ?>

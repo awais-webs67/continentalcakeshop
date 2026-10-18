@@ -85,16 +85,18 @@ function breadcrumb_schema(array $crumbs): array
 function product_schema(array $product, array $sizes): array
 {
     $prices = array_map(static fn ($s) => (float) $s['price'], $sizes);
-    return [
+    $schema = [
         '@context'    => 'https://schema.org',
         '@type'       => 'Product',
         'name'        => $product['name'],
-        'description' => $product['meta_description'] ?: $product['short_description'],
+        'description' => $product['meta_description'] ?: ($product['description'] ?: $product['short_description']),
         'image'       => [product_image_url($product['image'])],
         'sku'         => 'CCS-' . $product['id'],
         'category'    => $product['category_name'],
         'brand'       => ['@type' => 'Brand', 'name' => setting('store_short_name')],
-        'offers'      => [
+    ];
+    if ($sizes && empty($product['is_enquiry'])) {
+        $schema['offers'] = [
             '@type'         => 'AggregateOffer',
             'priceCurrency' => 'AUD',
             'lowPrice'      => number_format(min($prices), 2, '.', ''),
@@ -103,6 +105,7 @@ function product_schema(array $product, array $sizes): array
             'availability'  => 'https://schema.org/InStock',
             'url'           => product_url($product),
             'seller'        => ['@id' => url('#bakery')],
-        ],
-    ];
+        ];
+    }
+    return $schema;
 }

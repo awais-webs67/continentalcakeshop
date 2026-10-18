@@ -4,7 +4,7 @@ declare(strict_types=1);
 // Customer uploads (payment receipts, custom cake references) are stored outside the
 // public folder in storage/uploads. Only the admin panel will be able to view them.
 
-const UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
+const UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
 
 const UPLOAD_IMAGE_TYPES = [
     'image/jpeg' => 'jpg',
@@ -33,7 +33,7 @@ function store_private_upload(string $field, string $folder, array $allowedTypes
         return [null, 'Please choose a file to upload.'];
     }
     if ($file['error'] === UPLOAD_ERR_INI_SIZE || $file['error'] === UPLOAD_ERR_FORM_SIZE || $file['size'] > UPLOAD_MAX_BYTES) {
-        return [null, 'The file is too large. Please upload a file under 5 MB.'];
+        return [null, 'The file is too large. Please upload a file under 10 MB.'];
     }
     if ($file['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name'])) {
         return [null, 'The upload did not finish. Please try again.'];
@@ -56,4 +56,44 @@ function store_private_upload(string $field, string $folder, array $allowedTypes
         return [null, 'We could not save your file right now. Please try again.'];
     }
     return [$folder . '/' . date('Y/m') . '/' . $name, null];
+}
+
+// ---------------------------------------------------------------------------
+// Uploads sent ahead of the form (with a progress bar). The file is saved straight
+// away and the form only carries a one-time token that points to it.
+// ---------------------------------------------------------------------------
+
+const ASYNC_UPLOADS = [
+    'payment' => ['folder' => 'payments', 'types' => UPLOAD_RECEIPT_TYPES],
+    'custom'  => ['folder' => 'custom', 'types' => UPLOAD_IMAGE_TYPES],
+];
+
+/** Saves the file in $_FILES['file'] for a purpose and returns [token, null] or [null, error]. */
+function store_async_upload(string $purpose): array
+{
+    $config = ASYNC_UPLOADS[$purpose] ?? null;
+    if (!$config) {
+        return [null, 'Unknown upload.'];
+    }
+    [$path, $error] = store_private_upload('file', $config['folder'], $config['types']);
+    if ($error) {
+        return [null, $error];
+    }
+    $token = bin2hex(random_bytes(16));
+    $uploads = $_SESSION['async_uploads'] ?? [];
+    $uploads[$token] = ['path' => $path, 'purpose' => $purpose, 'name' => str_limit(basename((string) $_FILES['file']['name']), 80)];
+    $_SESSION['async_uploads'] = array_slice($uploads, -10, null, true);
+    return [$token, null];
+}
+
+/** The upload a token points to, if it belongs to this visitor and purpose. */
+function async_upload(string $token, string $purpose): ?array
+{
+    $upload = $_SESSION['async_uploads'][$token] ?? null;
+    return $upload && $upload['purpose'] === $purpose && is_file(STORAGE_PATH . '/uploads/' . $upload['path']) ? $upload : null;
+}
+
+function forget_async_upload(string $token): void
+{
+    unset($_SESSION['async_uploads'][$token]);
 }
