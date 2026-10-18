@@ -16,6 +16,7 @@ DROP TABLE IF EXISTS custom_requests;
 DROP TABLE IF EXISTS contact_messages;
 DROP TABLE IF EXISTS reviews;
 DROP TABLE IF EXISTS blocked_dates;
+DROP TABLE IF EXISTS gallery_images;
 DROP TABLE IF EXISTS settings;
 
 SET FOREIGN_KEY_CHECKS = 1;
@@ -165,4 +166,15 @@ CREATE TABLE blocked_dates (
     id           INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     blocked_date DATE NOT NULL UNIQUE,
     reason       VARCHAR(160) NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Photos of past custom cakes, shown on the homepage and the Custom Cakes page.
+CREATE TABLE gallery_images (
+    id         INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    image      VARCHAR(255) NOT NULL COMMENT 'Path inside public/uploads',
+    caption    VARCHAR(160) NOT NULL,
+    is_active  TINYINT(1) NOT NULL DEFAULT 1,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_gallery_active (is_active, sort_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

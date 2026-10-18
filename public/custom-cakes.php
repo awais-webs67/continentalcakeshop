@@ -87,6 +87,7 @@ unset($_SESSION['form_errors']);
 $fieldError = static fn (string $f): string => isset($errors[$f]) ? '<p class="field-error" id="' . e($f) . '-error">' . e($errors[$f]) . '</p>' : '';
 $invalid = static fn (string $f): string => isset($errors[$f]) ? 'aria-invalid="true" aria-describedby="' . e($f) . '-error"' : '';
 $preset = old('occasion', input('occasion'));
+$gallery = get_gallery();
 
 $crumbs = [['Home', url()], ['Custom Cakes', url('custom-cakes')]];
 $page = [
@@ -207,5 +208,26 @@ render('header', compact('page'));
         </aside>
     </div>
 </section>
+
+<?php if ($gallery): ?>
+<section class="section" id="gallery">
+    <div class="container">
+        <div class="section-head">
+            <div>
+                <h2 class="section-title">Cakes we have made</h2>
+                <p class="section-sub">A few of the custom cakes we have baked for Canberra families.</p>
+            </div>
+            <?php if (setting('social_pinterest')): ?>
+                <a class="link-arrow" href="<?= e(setting('social_pinterest')) ?>" target="_blank" rel="noopener">More on Pinterest <?= icon('arrow', '', 18) ?></a>
+            <?php endif; ?>
+        </div>
+        <div class="gallery-grid">
+            <?php foreach ($gallery as $photo): ?>
+                <figure><img src="<?= e(product_image_url($photo['image'])) ?>" alt="<?= e($photo['caption']) ?>" width="720" height="960" loading="lazy" decoding="async"></figure>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
 
 <?php render('footer'); ?>

@@ -192,3 +192,83 @@ INSERT INTO reviews (author, source, body, sort_order) VALUES
 ('Hansi',      'Google', 'The tiramisu and red velvet cake were really amazing and beyond expectations.', 2),
 ('Liam',       'Google', 'The staff are friendly and welcoming.', 3),
 ('Anil',       'Google', 'The best cake shop in the town.', 4);
+
+-- ---------------------------------------------------------------------------
+-- Photos (taken from the shop's own website). Products without a photo show a placeholder.
+-- ---------------------------------------------------------------------------
+UPDATE products SET image = 'products/american-baked-cheesecake.webp' WHERE slug = 'american-baked-cheesecake';
+UPDATE products SET image = 'products/black-forest-torte.webp' WHERE slug = 'black-forest-torte';
+UPDATE products SET image = 'products/blueberry-baked-cheesecake.webp' WHERE slug = 'blueberry-baked-cheesecake';
+UPDATE products SET image = 'products/blueberry-cheesecake.webp' WHERE slug = 'blueberry-cheesecake';
+UPDATE products SET image = 'products/caramel-cheesecake.webp' WHERE slug = 'caramel-cheesecake';
+UPDATE products SET image = 'products/caramel-mud-cake.webp' WHERE slug = 'caramel-mud-cake';
+UPDATE products SET image = 'products/caramel-torte.webp' WHERE slug = 'caramel-torte';
+UPDATE products SET image = 'products/carrot-cake.webp' WHERE slug = 'carrot-cake';
+UPDATE products SET image = 'products/choc-chip-cheesecake.webp' WHERE slug = 'choc-chip-cheesecake';
+UPDATE products SET image = 'products/chocolate-mud-cake.webp' WHERE slug = 'chocolate-mud-cake';
+UPDATE products SET image = 'products/continental-torte.webp' WHERE slug = 'continental-torte';
+UPDATE products SET image = 'products/cookies-n-cream-torte.webp' WHERE slug = 'cookies-n-cream-torte';
+UPDATE products SET image = 'products/double-choc-strawberry-torte.webp' WHERE slug = 'double-choc-strawberry-torte';
+UPDATE products SET image = 'products/hazelnut-baked-cheesecake.webp' WHERE slug = 'hazelnut-baked-cheesecake';
+UPDATE products SET image = 'products/hazelnut-torte.webp' WHERE slug = 'hazelnut-torte';
+UPDATE products SET image = 'products/honey-bee-torte.webp' WHERE slug = 'honey-bee-torte';
+UPDATE products SET image = 'products/marble-baked-cheesecake.webp' WHERE slug = 'marble-baked-cheesecake';
+UPDATE products SET image = 'products/marble-mud-cake.webp' WHERE slug = 'marble-mud-cake';
+UPDATE products SET image = 'products/mousse-torte.webp' WHERE slug = 'mousse-torte';
+UPDATE products SET image = 'products/orange-poppy-seed-cake.webp' WHERE slug = 'orange-poppy-seed-cake';
+UPDATE products SET image = 'products/passionfruit-cheesecake.webp' WHERE slug = 'passionfruit-cheesecake';
+UPDATE products SET image = 'products/pavlova.webp' WHERE slug = 'pavlova';
+UPDATE products SET image = 'products/profiterole-tower.webp' WHERE slug = 'profiterole-tower';
+UPDATE products SET image = 'products/rainbow-torte.webp' WHERE slug = 'rainbow-torte';
+UPDATE products SET image = 'products/red-velvet-cake.webp' WHERE slug = 'red-velvet-cake';
+UPDATE products SET image = 'products/strawberry-cheesecake.webp' WHERE slug = 'strawberry-cheesecake';
+UPDATE products SET image = 'products/strawberry-torte.webp' WHERE slug = 'strawberry-torte';
+UPDATE products SET image = 'products/tangy-lemon-cheesecake.webp' WHERE slug = 'tangy-lemon-cheesecake';
+UPDATE products SET image = 'products/tiramisu-torte.webp' WHERE slug = 'tiramisu-torte';
+UPDATE products SET image = 'products/treasure-cake.webp' WHERE slug = 'treasure-cake';
+UPDATE products SET image = 'products/tropical-baked-cheesecake.webp' WHERE slug = 'tropical-baked-cheesecake';
+UPDATE products SET image = 'products/vanilla-torte.webp' WHERE slug = 'vanilla-torte';
+UPDATE products SET image = 'products/white-gold-mud-cake.webp' WHERE slug = 'white-gold-mud-cake';
+UPDATE categories SET image = 'categories/tortes.webp' WHERE slug = 'tortes';
+UPDATE categories SET image = 'categories/velvet-cakes.webp' WHERE slug = 'velvet-cakes';
+UPDATE categories SET image = 'categories/mud-cakes.webp' WHERE slug = 'mud-cakes';
+UPDATE categories SET image = 'categories/baked-cheesecakes.webp' WHERE slug = 'baked-cheesecakes';
+UPDATE categories SET image = 'categories/continental-cheesecakes.webp' WHERE slug = 'continental-cheesecakes';
+UPDATE categories SET image = 'categories/tea-cakes-desserts.webp' WHERE slug = 'tea-cakes-desserts';
+
+-- Homepage favourites: cakes customers mention in reviews, plus popular cakes with photos.
+UPDATE products SET is_featured = 0, badge = NULL;
+UPDATE products SET is_featured = 1 WHERE slug IN ('tiramisu-torte','red-velvet-cake','black-forest-torte','double-choc-strawberry-torte','strawberry-cheesecake','chocolate-mud-cake','hazelnut-torte','profiterole-tower');
+UPDATE products SET badge = 'Customer favourite' WHERE slug IN ('tiramisu-torte','red-velvet-cake');
+
+-- Custom cake gallery (photos from the shop's website)
+INSERT INTO gallery_images (image, caption, sort_order) VALUES
+('gallery/custom-01.webp', 'Pink and cream drip birthday cake with macarons', 1),
+('gallery/custom-02.webp', 'Black Happy Birthday cake with fresh fruit and macarons', 2),
+('gallery/custom-03.webp', 'Two-tier Spider-Man birthday cake', 3),
+('gallery/custom-04.webp', 'Three-tier wedding cake with fresh roses', 4),
+('gallery/custom-05.webp', 'Blippi themed birthday cake', 5),
+('gallery/custom-06.webp', 'Blue starry birthday cake with name topper', 6),
+('gallery/custom-07.webp', 'Three-tier ivory wedding cake with piped detail', 7),
+('gallery/custom-08.webp', 'Two-tier white cake with cream roses', 8),
+('gallery/custom-09.webp', 'Pink vintage heart cake', 9),
+('gallery/custom-10.webp', 'Chocolate drip cake with flowers and macarons', 10),
+('gallery/custom-11.webp', 'Soccer field cake', 11),
+('gallery/custom-12.webp', 'Blue vintage heart cake', 12),
+('gallery/custom-13.webp', 'Teal drip cake with pink rosettes', 13),
+('gallery/custom-14.webp', 'Cream drip birthday cake with yellow flowers', 14),
+('gallery/custom-15.webp', 'Bluey edible image cake', 15),
+('gallery/custom-16.webp', 'Soccer themed 11th birthday cake', 16),
+('gallery/custom-17.webp', 'White drip cake with red roses', 17),
+('gallery/custom-18.webp', 'Two-tier Super Mario cake', 18),
+('gallery/custom-19.webp', 'Unicorn cake with rainbow mane', 19),
+('gallery/custom-20.webp', 'Textured white cake with gold heart topper', 20),
+('gallery/custom-21.webp', 'Spider-Man web cake', 21),
+('gallery/custom-22.webp', 'Two-tier green rosette cake', 22),
+('gallery/custom-23.webp', 'Coral rosette cake', 23),
+('gallery/custom-24.webp', 'Two-tier first birthday cake', 24),
+('gallery/custom-25.webp', 'Minnie Mouse edible image cake', 25),
+('gallery/custom-26.webp', 'Graduation cake', 26),
+('gallery/custom-27.webp', 'Three-tier white cake with fresh flowers', 27),
+('gallery/custom-28.webp', 'Spider-Man edible image cake', 28),
+('gallery/custom-29.webp', 'Two-tier pink rosette cake', 29);

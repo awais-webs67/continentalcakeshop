@@ -2,7 +2,4 @@
 /storage/uploads/**
 !/storage/uploads/**/
 !/storage/uploads/**/.gitkeep
-/public/uploads/**
-!/public/uploads/**/
-!/public/uploads/**/.gitkeep
 .DS_Store

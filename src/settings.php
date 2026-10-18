@@ -60,7 +60,7 @@ function day_key(DateTimeInterface $date): string
 
 function format_time(string $time): string
 {
-    return strtolower((new DateTime($time))->format('g:ia'));
+    return str_replace(':00', '', strtolower((new DateTime($time))->format('g:ia')));
 }
 
 /** Rows like "Monday to Friday" => "8:00am to 7:00pm", grouping days with the same hours. */

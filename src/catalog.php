@@ -54,7 +54,7 @@ function get_products(?int $categoryId = null, string $sort = 'featured', ?strin
         'price-asc'  => 'price_from ASC, p.name',
         'price-desc' => 'price_from DESC, p.name',
         'name'       => 'p.name ASC',
-        default      => 'p.is_featured DESC, c.sort_order, p.sort_order, p.name',
+        default      => 'p.is_featured DESC, p.image IS NULL, c.sort_order, p.sort_order, p.name',
     };
     return db_all($sql, $params);
 }
@@ -67,7 +67,7 @@ function get_featured_products(int $limit = 8): array
 function get_related_products(array $product, int $limit = 4): array
 {
     return db_all(
-        PRODUCT_LIST_SQL . ' AND p.category_id = ? AND p.id <> ? GROUP BY p.id ORDER BY p.is_featured DESC, p.sort_order LIMIT ' . max(1, $limit),
+        PRODUCT_LIST_SQL . ' AND p.category_id = ? AND p.id <> ? GROUP BY p.id ORDER BY p.image IS NULL, p.is_featured DESC, p.sort_order LIMIT ' . max(1, $limit),
         [$product['category_id'], $product['id']]
     );
 }
@@ -115,4 +115,9 @@ function price_label(array $product): string
         return 'From ' . money($product['price_from']);
     }
     return money($product['price_from']);
+}
+
+function get_gallery(?int $limit = null): array
+{
+    return db_all('SELECT * FROM gallery_images WHERE is_active = 1 ORDER BY sort_order, id' . ($limit ? ' LIMIT ' . max(1, $limit) : ''));
 }

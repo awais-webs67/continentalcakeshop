@@ -14,7 +14,7 @@ $link = product_url($product);
         <h3 class="product-card__title"><a href="<?= e($link) ?>"><?= e($product['name']) ?></a></h3>
         <div class="product-card__foot">
             <p class="product-card__price"><?= e(price_label($product)) ?></p>
-            <span class="product-card__cta"><?= (int) $product['size_count'] > 1 ? 'Choose size' : 'Order' ?> <?= icon('arrow', '', 16) ?></span>
+            <span class="product-card__cta" aria-hidden="true"><?= icon('arrow', '', 18) ?></span>
         </div>
     </div>
 </article>
