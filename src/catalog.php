@@ -11,7 +11,8 @@ const PRODUCT_SORTS = [
 // Every listing query selects the same columns plus the price range of active sizes.
 const PRODUCT_LIST_SQL = '
     SELECT p.*, c.name AS category_name, c.slug AS category_slug,
-           MIN(s.price) AS price_from, MAX(s.price) AS price_to, COUNT(s.id) AS size_count, MIN(s.id) AS first_size_id
+           MIN(s.price) AS price_from, MAX(s.price) AS price_to, COUNT(s.id) AS size_count,
+           (SELECT s2.id FROM product_sizes s2 WHERE s2.product_id = p.id AND s2.is_active = 1 ORDER BY s2.sort_order, s2.price LIMIT 1) AS default_size_id
     FROM products p
     JOIN categories c ON c.id = p.category_id AND c.is_active = 1
     JOIN product_sizes s ON s.product_id = p.id AND s.is_active = 1

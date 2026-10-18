@@ -51,6 +51,27 @@ function cart_update(string $key, int $qty): void
     $_SESSION['cart'][$key]['qty'] = min(CART_MAX_QTY, $qty);
 }
 
+/** Swaps a cart line to another size of the same product, merging with an identical line if one exists. */
+function cart_change_size(string $key, int $sizeId): void
+{
+    $line = $_SESSION['cart'][$key] ?? null;
+    if (!$line || (int) $line['size_id'] === $sizeId) {
+        return;
+    }
+    $sameProduct = db_value(
+        'SELECT 1 FROM product_sizes a JOIN product_sizes b ON b.product_id = a.product_id
+         WHERE a.id = ? AND b.id = ? AND b.is_active = 1',
+        [$line['size_id'], $sizeId]
+    );
+    if (!$sameProduct) {
+        return;
+    }
+    unset($_SESSION['cart'][$key]);
+    $newKey = cart_line_key($sizeId, $line['message']);
+    $qty = ($_SESSION['cart'][$newKey]['qty'] ?? 0) + $line['qty'];
+    $_SESSION['cart'][$newKey] = ['size_id' => $sizeId, 'qty' => min(CART_MAX_QTY, $qty), 'message' => $line['message']];
+}
+
 function cart_remove(string $key): void
 {
     unset($_SESSION['cart'][$key]);
@@ -86,6 +107,15 @@ function cart_items(): array
     );
     $bySize = array_column($rows, null, 'size_id');
 
+    $sizesByProduct = [];
+    $productIds = array_values(array_unique(array_column($rows, 'product_id')));
+    if ($productIds) {
+        $in = implode(',', array_fill(0, count($productIds), '?'));
+        foreach (db_all("SELECT id, product_id, label, price FROM product_sizes WHERE is_active = 1 AND product_id IN ($in) ORDER BY sort_order, price", $productIds) as $size) {
+            $sizesByProduct[$size['product_id']][] = $size;
+        }
+    }
+
     $items = [];
     foreach ($raw as $key => $line) {
         $row = $bySize[$line['size_id']] ?? null;
@@ -98,6 +128,7 @@ function cart_items(): array
             'qty'        => (int) $line['qty'],
             'message'    => (string) $line['message'],
             'line_total' => round((float) $row['price'] * (int) $line['qty'], 2),
+            'sizes'      => $sizesByProduct[$row['product_id']] ?? [],
         ];
     }
     return $items;

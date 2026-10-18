@@ -16,6 +16,9 @@ if (is_post()) {
         foreach ((array) ($_POST['qty'] ?? []) as $key => $qty) {
             cart_update((string) $key, (int) $qty);
         }
+        foreach ((array) ($_POST['size'] ?? []) as $key => $sizeId) {
+            cart_change_size((string) $key, (int) $sizeId);
+        }
         flash('success', 'Your cart has been updated.');
     }
     if ($action === 'remove') {
@@ -62,7 +65,18 @@ render('header', compact('page'));
                             </a>
                             <div class="cart-item__info">
                                 <h2 class="cart-item__title"><a href="<?= e(url('cakes/' . $item['slug'])) ?>"><?= e($item['name']) ?></a></h2>
-                                <p class="cart-item__meta"><?= e($item['size_label']) ?><?= $item['servings'] ? ' &middot; ' . e($item['servings']) : '' ?> &middot; <?= e(money($item['price'])) ?> each</p>
+                                <?php if (count($item['sizes']) > 1): ?>
+                                    <label class="cart-item__size">
+                                        <span>Size</span>
+                                        <select name="size[<?= e($item['key']) ?>]" data-auto-submit>
+                                            <?php foreach ($item['sizes'] as $size): ?>
+                                                <option value="<?= (int) $size['id'] ?>" <?= (int) $size['id'] === (int) $item['size_id'] ? 'selected' : '' ?>><?= e($size['label']) ?> (<?= e(money($size['price'])) ?>)</option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </label>
+                                <?php else: ?>
+                                    <p class="cart-item__meta"><?= e($item['size_label']) ?> &middot; <?= e(money($item['price'])) ?></p>
+                                <?php endif; ?>
                                 <?php if ($item['message'] !== ''): ?>
                                     <p class="cart-item__message"><?= icon('pen', '', 14) ?> &ldquo;<?= e($item['message']) ?>&rdquo;</p>
                                 <?php endif; ?>
