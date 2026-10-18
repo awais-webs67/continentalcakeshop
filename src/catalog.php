@@ -118,7 +118,16 @@ function price_label(array $product): string
     return money($product['price_from']);
 }
 
-function get_gallery(?int $limit = null): array
+function get_gallery(?int $limit = null, int $offset = 0): array
 {
-    return db_all('SELECT * FROM gallery_images WHERE is_active = 1 ORDER BY sort_order, id' . ($limit ? ' LIMIT ' . max(1, $limit) : ''));
+    $sql = 'SELECT * FROM gallery_images WHERE is_active = 1 ORDER BY sort_order, id';
+    if ($limit) {
+        $sql .= ' LIMIT ' . max(1, $limit) . ' OFFSET ' . max(0, $offset);
+    }
+    return db_all($sql);
+}
+
+function count_gallery(): int
+{
+    return (int) db_value('SELECT COUNT(*) FROM gallery_images WHERE is_active = 1');
 }

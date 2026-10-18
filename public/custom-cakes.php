@@ -87,7 +87,11 @@ unset($_SESSION['form_errors']);
 $fieldError = static fn (string $f): string => isset($errors[$f]) ? '<p class="field-error" id="' . e($f) . '-error">' . e($errors[$f]) . '</p>' : '';
 $invalid = static fn (string $f): string => isset($errors[$f]) ? 'aria-invalid="true" aria-describedby="' . e($f) . '-error"' : '';
 $preset = old('occasion', input('occasion'));
-$gallery = get_gallery();
+const GALLERY_PER_PAGE = 12;
+$galleryTotal = count_gallery();
+$galleryPages = max(1, (int) ceil($galleryTotal / GALLERY_PER_PAGE));
+$galleryPage = min($galleryPages, max(1, (int) input('page', '1')));
+$gallery = get_gallery(GALLERY_PER_PAGE, ($galleryPage - 1) * GALLERY_PER_PAGE);
 
 $crumbs = [['Home', url()], ['Custom Cakes', url('custom-cakes')]];
 $page = [
@@ -226,6 +230,19 @@ render('header', compact('page'));
                 <figure><img src="<?= e(product_image_url($photo['image'])) ?>" alt="<?= e($photo['caption']) ?>" width="720" height="960" loading="lazy" decoding="async"></figure>
             <?php endforeach; ?>
         </div>
+        <?php if ($galleryPages > 1): ?>
+            <nav class="pagination" aria-label="Gallery pages">
+                <?php if ($galleryPage > 1): ?>
+                    <a class="pagination__step" href="<?= e(url('custom-cakes') . '?page=' . ($galleryPage - 1) . '#gallery') ?>" rel="prev">Previous</a>
+                <?php endif; ?>
+                <?php for ($i = 1; $i <= $galleryPages; $i++): ?>
+                    <a class="pagination__page <?= $i === $galleryPage ? 'is-current' : '' ?>" href="<?= e(url('custom-cakes') . ($i > 1 ? '?page=' . $i : '') . '#gallery') ?>" <?= $i === $galleryPage ? 'aria-current="page"' : '' ?>><?= $i ?></a>
+                <?php endfor; ?>
+                <?php if ($galleryPage < $galleryPages): ?>
+                    <a class="pagination__step" href="<?= e(url('custom-cakes') . '?page=' . ($galleryPage + 1) . '#gallery') ?>" rel="next">Next</a>
+                <?php endif; ?>
+            </nav>
+        <?php endif; ?>
     </div>
 </section>
 <?php endif; ?>
