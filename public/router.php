@@ -42,6 +42,7 @@ $routes = [
     '#^/stripe-webhook$#'           => ['stripe-webhook.php', []],
     '#^/sitemap\.xml$#'             => ['sitemap.php', []],
     '#^/robots\.txt$#'              => ['robots.php', []],
+    '#^/([a-z0-9-]+)/?$#'           => ['page.php', ['slug']],
 ];
 
 foreach ($routes as $pattern => [$file, $params]) {

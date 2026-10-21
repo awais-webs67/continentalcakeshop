@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/src/bootstrap.php';
 
-const OCCASIONS = ['Birthday', 'Kids birthday', 'Wedding', 'Engagement', 'Baby shower', 'Gender reveal', 'Anniversary', 'Graduation', 'Corporate event', 'Other'];
+const OCCASIONS = CAKE_OCCASIONS;
 
 // Quick picks for the number of people. Midi and Large match the standard cake sizes.
 const SERVING_SUGGESTIONS = [8 => 'Midi', 14 => 'Large', 20 => '', 30 => '', 50 => '', 100 => ''];
@@ -105,7 +105,7 @@ $gallery = get_gallery(GALLERY_PER_PAGE, ($galleryPage - 1) * GALLERY_PER_PAGE);
 
 $crumbs = [['Home', url()], ['Custom Cakes', url('custom-cakes')]];
 $page = [
-    'title'       => 'Custom Cakes Canberra | Birthday, Wedding & Baby Shower Cakes',
+    'title'       => 'Custom Cakes Canberra | Birthday & Wedding Cakes',
     'description' => 'Custom birthday, wedding, engagement and baby shower cakes made in Greenway, Canberra. Send us your idea or a photo and get a quote. 100% Halal.',
     'canonical'   => url('custom-cakes'),
     'schema'      => [breadcrumb_schema($crumbs)],

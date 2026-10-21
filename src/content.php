@@ -6,6 +6,13 @@ declare(strict_types=1);
 
 const POLICY_PAGES = ['privacy-policy', 'terms', 'refund-policy', 'allergens'];
 
+// Occasions on the custom cake form (also used to prefill it from landing pages).
+const CAKE_OCCASIONS = ['Birthday', 'Kids birthday', 'Wedding', 'Engagement', 'Baby shower', 'Gender reveal', 'Anniversary', 'Graduation', 'Corporate event', 'Other'];
+
+// Addresses the website already uses, so a page can never take one of them.
+const RESERVED_SLUGS = ['shop', 'cakes', 'order', 'messages', 'quote', 'cart', 'checkout', 'custom-cakes', 'about', 'contact', 'login', 'register',
+    'logout', 'account', 'forgot-password', 'reset-password', 'faq', 'api', 'admin', 'stripe-webhook', 'sitemap', 'robots', 'uploads', 'assets', '404', 'index', 'page'];
+
 function get_page(string $slug): ?array
 {
     try {
@@ -23,6 +30,16 @@ function get_faqs(): array
         return db_all('SELECT * FROM faqs WHERE is_active = 1 ORDER BY sort_order, id');
     } catch (PDOException $e) {
         error_log('FAQs unavailable: ' . $e->getMessage());
+        return [];
+    }
+}
+
+/** Landing pages (Birthday cakes Canberra...), for the footer links and the sitemap. */
+function get_landing_pages(): array
+{
+    try {
+        return db_all("SELECT slug, title FROM pages WHERE type = 'landing' AND is_active = 1 ORDER BY sort_order, title");
+    } catch (PDOException) {
         return [];
     }
 }

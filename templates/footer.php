@@ -30,6 +30,9 @@ $socials = array_filter([
                     <li><a href="<?= e(category_url($cat)) ?>"><?= e($cat['name']) ?></a></li>
                 <?php endforeach; ?>
                 <li><a href="<?= e(url('custom-cakes')) ?>">Custom Cakes</a></li>
+                <?php foreach (get_landing_pages() as $landing): ?>
+                    <li><a href="<?= e(url($landing['slug'])) ?>"><?= e(preg_replace('/ in Canberra$/', '', $landing['title'])) ?></a></li>
+                <?php endforeach; ?>
             </ul>
         </nav>
 

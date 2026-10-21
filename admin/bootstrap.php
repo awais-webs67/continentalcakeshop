@@ -15,7 +15,7 @@ const ADMIN_SECTIONS = [
     'coupons'   => ['Coupons', ['coupons']],
     'products'  => ['Products, categories and extras', ['products', 'products/edit', 'products/import', 'categories', 'categories/edit', 'addons']],
     'gallery'   => ['Gallery and reviews', ['gallery', 'reviews']],
-    'content'   => ['Homepage, popup, pages and FAQs', ['homepage', 'popup', 'pages', 'pages/edit', 'faqs', 'upload-image']],
+    'content'   => ['Homepage, popup, pages, FAQs and SEO', ['homepage', 'popup', 'pages', 'pages/edit', 'faqs', 'upload-image', 'seo']],
     'settings'  => ['Settings', ['settings']],
 ];
 const OWNER_ONLY_ROUTES = ['admins', 'system'];

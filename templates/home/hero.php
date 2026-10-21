@@ -7,8 +7,11 @@ $heroCake = db_one('SELECT * FROM gallery_images WHERE image = ?', [$heroImage])
 <section class="hero">
     <div class="container hero__inner">
         <div class="hero__copy">
-            <?php if (setting('hero_eyebrow') !== ''): ?><p class="kicker"><?= e(setting('hero_eyebrow')) ?></p><?php endif; ?>
-            <h1 class="hero__title"><?= e(setting('hero_title')) ?></h1>
+            <?php // The small line above the title is part of the main heading, so Google reads "cake shop ... Canberra" in it. ?>
+            <h1 class="hero__heading">
+                <?php if (setting('hero_eyebrow') !== ''): ?><span class="kicker"><?= e(setting('hero_eyebrow')) ?></span><?php endif; ?>
+                <span class="hero__title"><?= e(setting('hero_title')) ?></span>
+            </h1>
             <?php if (setting('hero_subtitle') !== ''): ?><p class="hero__text"><?= e(setting('hero_subtitle')) ?></p><?php endif; ?>
             <div class="hero__actions">
                 <?php if (setting('hero_btn1_text') !== ''): ?><a class="btn btn--primary btn--lg" href="<?= e(popup_link(setting('hero_btn1_url', 'shop'))) ?>"><?= e(setting('hero_btn1_text')) ?> <?= icon('arrow', '', 18) ?></a><?php endif; ?>

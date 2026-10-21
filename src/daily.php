@@ -61,7 +61,7 @@ function run_scheduled_tasks(?DateTimeImmutable $now = null): string
     $now ??= new DateTimeImmutable();
     setting_save('cron_last_run', $now->format('Y-m-d H:i:s'));
     $report = [];
-    foreach (['morning_email_task', 'reminder_email_task', 'review_request_task', 'backup_task'] as $job) {
+    foreach (['morning_email_task', 'reminder_email_task', 'review_request_task', 'backup_task', 'cleanup_task'] as $job) {
         if (!function_exists($job)) {
             continue;
         }
@@ -200,4 +200,17 @@ function review_request_task(DateTimeImmutable $now): string
         }
     }
     return $sent ? "Sent {$sent} review request" . ($sent === 1 ? '' : 's') . '.' : 'No review requests to send.';
+}
+
+/** Small tidy-ups: old "not found" entries and expired password links. */
+function cleanup_task(DateTimeImmutable $now): string
+{
+    if (setting('cleanup_last_run') === $now->format('Y-m-d')) {
+        return '';
+    }
+    setting_save('cleanup_last_run', $now->format('Y-m-d'));
+    $removed = db_run('DELETE FROM not_found_log WHERE last_seen < ?', [$now->modify('-90 days')->format('Y-m-d H:i:s')])->rowCount();
+    db_run('DELETE FROM password_resets WHERE expires_at < ?', [$now->modify('-7 days')->format('Y-m-d H:i:s')]);
+    db_run('DELETE FROM admin_password_resets WHERE expires_at < ?', [$now->modify('-7 days')->format('Y-m-d H:i:s')]);
+    return 'Tidied up' . ($removed ? ", {$removed} old missing page entries" : '') . '.';
 }

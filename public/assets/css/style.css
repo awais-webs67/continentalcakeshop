@@ -1396,3 +1396,19 @@ body.promo-open { overflow: hidden; }
 .product-gallery__thumb img { width: 100%; height: 100%; object-fit: cover; }
 .product-gallery__thumb.is-active { border-color: var(--brand); }
 .product-gallery__thumb:focus-visible { outline: 3px solid rgba(30, 155, 130, .45); outline-offset: 2px; }
+
+/* Hero heading: the kicker line and the big title are one h1 for search engines, styled as before. */
+.hero__heading { margin: 0; }
+.hero__heading .kicker, .hero__heading .hero__title { display: block; }
+.hero__heading .kicker { font-family: var(--font-body); line-height: 1.65; }
+
+/* Landing pages (Birthday cakes Canberra...) */
+.landing-hero { padding-bottom: 32px; }
+.landing-hero__actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+.landing-gallery__grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 16px; }
+.landing-gallery__grid img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: var(--radius); }
+@media (min-width: 700px) { .landing-gallery__grid { grid-template-columns: repeat(4, 1fr); } }
+.landing-gallery__more { margin: 16px 0 0; text-align: center; }
+.landing-cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 24px; border-radius: var(--radius-lg); background: var(--brand-softer); border: 1px solid var(--brand-line); }
+.landing-cta h2 { margin: 0 0 6px; font-size: 22px; }
+.landing-cta p { margin: 0; color: var(--muted); }

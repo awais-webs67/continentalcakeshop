@@ -47,6 +47,7 @@ const ADMIN_ROUTES = [
     'pages/edit'           => 'page-edit',
     'faqs'                 => 'faqs',
     'settings'             => 'settings',
+    'seo'                  => 'seo',
     'admins'               => 'admins',
     'account'              => 'account',
     'file'                 => 'file',

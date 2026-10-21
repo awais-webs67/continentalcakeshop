@@ -472,7 +472,12 @@ document.addEventListener('input', function (e) {
         div.innerHTML = html;
         return (div.textContent || '').replace(/\s+/g, ' ').trim();
     };
-    var titleValue = function () { return titleInput.value.trim() || titleInput.getAttribute('data-default').replace('__NAME__', name()); };
+    var titleValue = function () {
+        if (titleInput.value.trim()) return titleInput.value.trim();
+        var patterns = JSON.parse(titleInput.getAttribute('data-patterns') || '["%s"]');
+        var fits = patterns.map(function (p) { return p.replace('%s', name()); }).filter(function (t) { return t.length <= 60; });
+        return fits[0] || name();
+    };
     var descDefault = function () { return metaInput.getAttribute('data-default').replace('__NAME__', name()); };
     var hasMainPhoto = function () {
         return (mainFile && mainFile.files && mainFile.files.length > 0) || (preview && !/placeholder-cake/.test(preview.getAttribute('src') || ''));
@@ -483,7 +488,7 @@ document.addEventListener('input', function (e) {
 
     var checks = function () {
         var kw = keywordInput.value.trim().toLowerCase();
-        var title = titleValue(), desc = metaInput.value.trim();
+        var title = titleValue(), desc = metaInput.value.trim() || descDefault();
         var has = function (t) { return kw !== '' && t.toLowerCase().indexOf(kw) !== -1; };
         var slugWords = slug().replace(/-/g, ' ');
         var missing = kw.split(/\s+/).filter(function (w) { return w.length > 2 && slugWords.indexOf(w) === -1; }).length;
@@ -493,7 +498,7 @@ document.addEventListener('input', function (e) {
             kw !== '', has(title), has(desc), kw !== '' && missing <= 1, has(body),
             title.length >= 30 && title.length <= 60, desc.length >= 120 && desc.length <= 160,
             /canberra|greenway|tuggeranong|act\b/i.test(title + ' ' + desc), words >= 60,
-            hasMainPhoto() && altInput && altInput.value.trim() !== '', hasMainPhoto() && extraCount() >= 1
+            hasMainPhoto(), hasMainPhoto() && extraCount() >= 1
         ];
     };
 

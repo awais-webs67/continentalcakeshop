@@ -1,5 +1,6 @@
 <?php /** @var array $page @var array $errors */ ?>
-<a class="crumb" href="<?= e(admin_url('pages')) ?>"><?= icon('arrow', '', 14) ?> Policy pages</a>
+<?php $landing = ($page['type'] ?? 'policy') === 'landing'; ?>
+<a class="crumb" href="<?= e(admin_url('pages')) ?>"><?= icon('arrow', '', 14) ?> Pages</a>
 <div class="page-head">
     <div><h1><?= e($page['title']) ?></h1><p><a href="<?= e(url($page['slug'])) ?>" target="_blank">View on website</a> &middot; last updated <?= e(date('j M Y', strtotime($page['updated_at']))) ?></p></div>
 </div>
@@ -27,6 +28,14 @@
                 <div class="card__head"><h2>Publish</h2></div>
                 <div class="card__body form-stack">
                     <label class="switch"><input type="checkbox" name="is_active" value="1" <?= checked((bool) $page['is_active']) ?>><span class="switch__track"></span><span>Show on the website</span></label>
+                    <?php if ($landing): ?>
+                        <label class="field"><span>Web address</span><input class="input" name="slug" maxlength="80" value="<?= e($page['slug']) ?>"></label>
+                        <?= field_error($errors, 'slug') ?>
+                        <label class="field"><span>"Get a quote" fills in</span>
+                            <select class="input" name="occasion"><option value="">No occasion</option><?php foreach (CAKE_OCCASIONS as $o): ?><option value="<?= e($o) ?>" <?= selected(($page['occasion'] ?? '') === $o) ?>><?= e($o) ?></option><?php endforeach; ?></select></label>
+                        <label class="switch"><input type="checkbox" name="show_gallery" value="1" <?= checked((bool) ($page['show_gallery'] ?? 1)) ?>><span class="switch__track"></span><span>Show cake photos from the gallery</span></label>
+                        <label class="field"><span>Order in the footer</span><input class="input" type="number" name="sort_order" value="<?= (int) ($page['sort_order'] ?? 0) ?>"></label>
+                    <?php endif; ?>
                     <button class="btn btn--primary" type="submit"><?= icon('check', '', 18) ?> Save page</button>
                 </div>
             </section>
@@ -44,10 +53,21 @@
             <section class="card">
                 <div class="card__head"><h2>Search engines</h2></div>
                 <div class="card__body form-stack">
-                    <label class="field"><span>Page title</span><input class="input" name="meta_title" maxlength="160" value="<?= e((string) $page['meta_title']) ?>"></label>
-                    <label class="field"><span>Description</span><textarea class="input" name="meta_description" rows="3" maxlength="255"><?= e((string) $page['meta_description']) ?></textarea></label>
+                    <div class="serp">
+                        <span class="serp__url"><?= e(url($page['slug'])) ?></span>
+                        <span class="serp__title"><?= e((string) ($page['meta_title'] ?: $page['title'] . ' | ' . setting('store_short_name'))) ?></span>
+                        <span class="serp__desc"><?= e((string) ($page['meta_description'] ?: $page['summary'])) ?></span>
+                    </div>
+                    <label class="field"><span>Page title <small>30 to 60 characters, start with the search words</small></span><input class="input" name="meta_title" maxlength="160" value="<?= e((string) $page['meta_title']) ?>" data-count></label>
+                    <label class="field"><span>Description <small>120 to 160 characters</small></span><textarea class="input" name="meta_description" rows="3" maxlength="255" data-count><?= e((string) $page['meta_description']) ?></textarea></label>
                 </div>
             </section>
         </div>
     </div>
 </form>
+<?php if ($landing): ?>
+    <form method="post" style="margin-top:16px" data-confirm="Delete this page? Its address will show the not found page.">
+        <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $page['id'] ?>"><input type="hidden" name="action" value="delete">
+        <button class="btn btn--danger btn--sm" type="submit"><?= icon('trash', '', 16) ?> Delete page</button>
+    </form>
+<?php endif; ?>

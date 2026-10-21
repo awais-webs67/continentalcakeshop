@@ -1,5 +1,5 @@
 <?php /** @var array $product @var array $categories @var array $sizeRows @var array $optionRows @var array $extraPhotos @var array $errors @var int $id */
-$seoChecks = product_seo_checks($product + ['slug' => $product['slug'] ?? ''], count($extraPhotos));
+$seoChecks = product_seo_checks($product + ['slug' => $product['slug'] ?? ''], count($extraPhotos), array_map(static fn ($r) => ['label' => $r['label'] ?? '', 'servings' => $r['servings'] ?? '', 'price' => (float) ($r['price'] ?? 0)], array_values(array_filter($sizeRows, static fn ($r) => ($r['label'] ?? '') !== '' && (float) ($r['price'] ?? 0) > 0))));
 [$seoPassed, $seoTotal, $seoLevel] = seo_score($seoChecks);
 $sizesForSeo = array_values(array_filter($sizeRows, static fn ($r) => ($r['label'] ?? '') !== '' && (float) ($r['price'] ?? 0) > 0));
 ?>
@@ -109,8 +109,8 @@ $sizesForSeo = array_values(array_filter($sizeRows, static fn ($r) => ($r['label
                         <span class="serp__title" data-seo-title-preview></span>
                         <span class="serp__desc" data-seo-desc-preview></span>
                     </div>
-                    <label class="field"><span>Page title <small>empty = "<?= e(product_default_title(['name' => $product['name'] ?: 'Cake name'])) ?>"</small></span>
-                        <input class="input" name="meta_title" maxlength="160" value="<?= e((string) $product['meta_title']) ?>" data-count data-seo-title data-default="<?= e(product_default_title(['name' => '__NAME__'])) ?>"></label>
+                    <label class="field"><span>Page title <small>leave empty for an automatic title</small></span>
+                        <input class="input" name="meta_title" maxlength="160" value="<?= e((string) $product['meta_title']) ?>" data-count data-seo-title data-patterns="<?= e(json_encode(product_title_patterns())) ?>"></label>
                     <label class="field"><span>Search description <small>120 to 160 characters</small></span>
                         <textarea class="input" name="meta_description" rows="3" maxlength="255" data-count data-seo-desc data-default="<?= e(product_default_description(['name' => '__NAME__', 'is_enquiry' => $product['is_enquiry']], $sizesForSeo)) ?>"><?= e((string) $product['meta_description']) ?></textarea></label>
                     <p style="margin:-4px 0 0"><button type="button" class="btn btn--secondary btn--sm" data-seo-fill><?= icon('pen', '', 16) ?> Fill in for me</button> <span class="hint">Writes a title and description from the name, keyword and prices. Edit them as you like.</span></p>

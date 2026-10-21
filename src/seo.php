@@ -65,10 +65,10 @@ function local_business_schema(): array
             'postalCode'      => setting('store_postcode'),
             'addressCountry'  => setting('store_country', 'AU'),
         ],
-        'areaServed' => [
-            ['@type' => 'City', 'name' => 'Canberra'],
-            ['@type' => 'City', 'name' => 'Queanbeyan'],
-        ],
+        'areaServed' => array_merge(
+            [['@type' => 'City', 'name' => 'Canberra'], ['@type' => 'City', 'name' => 'Queanbeyan']],
+            array_map(static fn ($n) => ['@type' => 'Place', 'name' => $n . ', ACT'], ['Tuggeranong', 'Greenway', 'Woden', 'Weston Creek', 'Belconnen', 'Gungahlin', 'Molonglo Valley', 'Inner North', 'Inner South'])
+        ),
         'openingHoursSpecification' => $hours,
         'hasMap'     => store_maps_url(),
     ];
@@ -151,9 +151,10 @@ const LEGACY_REDIRECTS = [
     'continental-cheesecakes'            => 'shop/continental-cheesecakes',
     'tea-cakes-desserts'                 => 'shop/tea-cakes-desserts',
     'celebration-cakes'                  => 'custom-cakes',
-    'copy-of-birthday-gallery'           => 'custom-cakes',
-    'copy-of-wedding-baby-gallery'       => 'custom-cakes',
-    'gallery-06'                         => 'custom-cakes',
+    // The old gallery pages go to the matching landing page (or Custom Cakes if it is switched off).
+    'copy-of-birthday-gallery'           => 'baby-shower-cakes-canberra',
+    'copy-of-wedding-baby-gallery'       => 'wedding-cakes-canberra',
+    'gallery-06'                         => 'birthday-cakes-canberra',
     'gallery'                            => 'custom-cakes',
     'about-us'                           => 'about',
     'contact-us'                         => 'contact',
@@ -182,7 +183,33 @@ function legacy_redirect_target(string $path): ?string
         return null;
     }
     $target = $map[$key];
-    return preg_match('#^https?://#i', $target) ? $target : url($target);
+    if (preg_match('#^https?://#i', $target)) {
+        return $target;
+    }
+    // A landing page the shop has switched off or deleted: send people to Custom Cakes instead.
+    if (preg_match('/^[a-z0-9-]+-canberra$/', $target) && !get_page($target)) {
+        $target = 'custom-cakes';
+    }
+    return url($target);
+}
+
+/** Remembers an address that was not found, for Admin > SEO (skips files like .png and .js). */
+function log_not_found(string $path): void
+{
+    $path = str_limit('/' . ltrim($path, '/'), 255);
+    if (preg_match('/\.(png|jpe?g|gif|webp|svg|ico|css|js|map|txt|xml|woff2?|php)$/i', $path) || str_starts_with($path, '/admin')) {
+        return;
+    }
+    $referrer = str_limit((string) ($_SERVER['HTTP_REFERER'] ?? ''), 255);
+    try {
+        db_run(
+            'INSERT INTO not_found_log (path, hits, referrer, first_seen, last_seen) VALUES (?, 1, ?, NOW(), NOW())
+             ON DUPLICATE KEY UPDATE hits = hits + 1, last_seen = NOW(), referrer = COALESCE(NULLIF(VALUES(referrer), \'\'), referrer)',
+            [$path, $referrer !== '' ? $referrer : null]
+        );
+    } catch (Throwable) {
+        // The log is a convenience; a missing table must never break the 404 page.
+    }
 }
 
 /** Tags for Google Analytics and site verification, from Admin > Settings > Social & SEO. */
@@ -208,10 +235,22 @@ function analytics_tags(): string
 // and the checklist shown in the product editor and the product list.
 // ---------------------------------------------------------------------------
 
-/** Search title used when the product has none: "Red Velvet Cake | Order Online in Canberra | Shop". */
+/** Title patterns for a cake page, best first; the first one that fits in 60 characters is used. */
+function product_title_patterns(): array
+{
+    return ['%s Canberra | ' . setting('store_short_name'), '%s | Order Online in Canberra', '%s Canberra', '%s'];
+}
+
+/** Search title used when the product has none, e.g. "Red Velvet Cake Canberra | The Continental Cake Shop". */
 function product_default_title(array $product): string
 {
-    return $product['name'] . ' | Order Online in Canberra | ' . setting('store_short_name');
+    foreach (product_title_patterns() as $pattern) {
+        $title = sprintf($pattern, $product['name']);
+        if (mb_strlen($title) <= 60) {
+            return $title;
+        }
+    }
+    return (string) $product['name'];
 }
 
 /** Search description used when the product has none. */
@@ -249,10 +288,12 @@ function get_product_images(int $productId): array
  * The SEO checklist for a product. Each row: [label, passed, tip].
  * The same rules run live in the editor (admin.js) while staff type.
  */
-function product_seo_checks(array $p, int $extraPhotos = 0): array
+function product_seo_checks(array $p, int $extraPhotos = 0, ?array $sizes = null): array
 {
+    // What Google is shown: the typed title and description, or the automatic ones.
+    $sizes ??= !empty($p['id']) ? get_product_sizes((int) $p['id']) : [];
     $title = trim((string) ($p['meta_title'] ?? '')) ?: product_default_title($p);
-    $desc = trim((string) ($p['meta_description'] ?? ''));
+    $desc = trim((string) ($p['meta_description'] ?? '')) ?: product_default_description($p, $sizes);
     $keyword = mb_strtolower(trim((string) ($p['focus_keyword'] ?? '')));
     $body = mb_strtolower(content_text((string) ($p['description'] ?? '')) . ' ' . ($p['short_description'] ?? ''));
     $has = static fn (string $text): bool => $keyword !== '' && str_contains(mb_strtolower($text), $keyword);
@@ -268,7 +309,7 @@ function product_seo_checks(array $p, int $extraPhotos = 0): array
         ['Search description 120 to 160 characters', mb_strlen($desc) >= 120 && mb_strlen($desc) <= 160, 'A full description gets more clicks. Google shows about 155 characters.'],
         ['Mentions Canberra or the suburb', (bool) preg_match('/canberra|greenway|tuggeranong|act\b/i', $title . ' ' . $desc), 'Local words help you rank for "cakes Canberra".'],
         ['Description of 60 words or more', $words >= 60, 'Write a few sentences: flavours, layers, sizes, occasions, storage.'],
-        ['Main photo with alt text', !empty($p['image']) && trim((string) ($p['image_alt'] ?? '')) !== '', 'Add a photo and describe it, e.g. "Red velvet cake with cream cheese frosting".'],
+        ['Main photo', !empty($p['image']), 'Add a photo. Describe it in the photo text, e.g. "Red velvet cake with cream cheese frosting".'],
         ['Two or more photos', !empty($p['image']) && $extraPhotos >= 1, 'Extra photos (slice, side view, sizes) help customers and Google Images.'],
     ];
 }

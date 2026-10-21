@@ -21,8 +21,10 @@ $entries = [
     [url('contact'), null, 'monthly', '0.6', []],
     [url('faq'), null, 'monthly', '0.6', []],
 ];
-foreach (db_all('SELECT slug, title, updated_at FROM pages WHERE is_active = 1') as $policy) {
-    $entries[] = [url($policy['slug']), $policy['updated_at'], 'yearly', '0.3', []];
+foreach (db_all('SELECT slug, title, type, updated_at FROM pages WHERE is_active = 1') as $content) {
+    $entries[] = $content['type'] === 'landing'
+        ? [url($content['slug']), $content['updated_at'], 'weekly', '0.8', array_slice($galleryPhotos, 0, 8)]
+        : [url($content['slug']), $content['updated_at'], 'yearly', '0.3', []];
 }
 foreach (get_categories() as $cat) {
     $entries[] = [category_url($cat), $cat['updated_at'], 'weekly', '0.8', array_filter([$photo($cat['image'] ?: $cat['cover_image'], $cat['name'] . ' from ' . setting('store_short_name'))])];

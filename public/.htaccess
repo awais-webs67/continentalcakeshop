@@ -42,6 +42,12 @@ DirectoryIndex index.php
     RewriteRule ^sitemap\.xml$          sitemap.php [L]
     RewriteRule ^robots\.txt$           robots.php [L]
 
+    # Pages written in Admin > Pages (policies and landing pages such as /birthday-cakes-canberra).
+    # page.php shows the 404 page (and old website redirects) when no page has that address.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^([a-z0-9-]+)/?$ page.php?slug=$1 [L,QSA]
+
     # Anything else that is not a real file shows the 404 page.
     # (Relative rules keep this working both at the domain root and inside a sub-folder.)
     RewriteCond %{REQUEST_FILENAME} !-f

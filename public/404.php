@@ -9,6 +9,7 @@ if ($target = legacy_redirect_target(current_path())) {
     redirect($target, 301);
 }
 http_response_code(404);
+log_not_found(current_path());
 
 $page = [
     'title'   => 'Page not found | ' . setting('store_short_name'),
