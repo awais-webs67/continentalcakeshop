@@ -33,6 +33,7 @@
                 <div class="card__body form-stack">
                     <img id="category-preview" src="<?= e(product_image_url($category['image'])) ?>" alt="" style="width:100%;aspect-ratio:5/4;object-fit:cover;border-radius:12px;border:1px solid var(--line)">
                     <input class="input" type="file" name="image" accept="image/jpeg,image/png,image/webp" data-image-input="category-preview">
+                    <label class="field"><span>Describe the photo <small>alt text for Google Images</small></span><input class="input" name="image_alt" maxlength="160" value="<?= e((string) ($category['image_alt'] ?? '')) ?>" placeholder="e.g. Chocolate mud cakes on display"></label>
                     <p class="hint">Used as the background of the category tile. Landscape photos work best.</p>
                     <?= field_error($errors, 'image') ?>
                     <?php if ($category['image']): ?><label class="switch"><input type="checkbox" name="remove_image" value="1"><span class="switch__track"></span><span>Remove photo</span></label><?php endif; ?>

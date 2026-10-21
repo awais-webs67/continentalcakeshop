@@ -27,8 +27,15 @@ foreach (db_all('SELECT slug, title, updated_at FROM pages WHERE is_active = 1')
 foreach (get_categories() as $cat) {
     $entries[] = [category_url($cat), $cat['updated_at'], 'weekly', '0.8', array_filter([$photo($cat['image'] ?: $cat['cover_image'], $cat['name'] . ' from ' . setting('store_short_name'))])];
 }
+$extraPhotos = [];
+foreach (db_all('SELECT product_id, image, alt FROM product_images ORDER BY sort_order, id') as $row) {
+    $extraPhotos[$row['product_id']][] = [product_image_url($row['image']), $row['alt'] ?: ''];
+}
 foreach (get_products() as $product) {
-    $entries[] = [product_url($product), $product['updated_at'], 'weekly', '0.7', array_filter([$photo($product['image'], $product['name'])])];
+    $photos = array_merge(array_filter([$photo($product['image'], product_image_alt($product))]), array_map(
+        static fn ($p) => [$p[0], $p[1] !== '' ? $p[1] : $product['name']], $extraPhotos[$product['id']] ?? []
+    ));
+    $entries[] = [product_url($product), $product['updated_at'], 'weekly', '0.7', $photos];
 }
 
 echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";

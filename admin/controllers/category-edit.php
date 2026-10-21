@@ -31,6 +31,7 @@ if (is_post()) {
         'sort_order'       => (int) input('sort_order', '0'),
         'meta_title'       => str_limit(input('meta_title'), 160),
         'meta_description' => str_limit(input('meta_description'), 255),
+        'image_alt'        => str_limit(trim(input('image_alt')), 160),
     ];
     if ($data['name'] === '') {
         $errors['name'] = 'Please enter the category name.';
@@ -42,7 +43,7 @@ if (is_post()) {
 
     if (!$errors) {
         $data['slug'] = unique_slug('categories', $data['slug'], (int) ($category['id'] ?? 0));
-        foreach (['description', 'meta_title', 'meta_description'] as $optional) {
+        foreach (['description', 'meta_title', 'meta_description', 'image_alt'] as $optional) {
             $data[$optional] = $data[$optional] !== '' ? $data[$optional] : null;
         }
         if ($image) {
@@ -54,6 +55,10 @@ if (is_post()) {
         if ($category) {
             db_run('UPDATE categories SET ' . implode(', ', array_map(static fn ($c) => "{$c} = ?", $columns)) . ' WHERE id = ?', [...array_values($data), $category['id']]);
             $categoryId = (int) $category['id'];
+            if ($category['slug'] !== $data['slug']) {
+                add_seo_redirect('shop/' . $category['slug'], 'shop/' . $data['slug']);
+                flash('info', 'The web address changed. The old address now redirects to the new one.');
+            }
             if (array_key_exists('image', $data) && $category['image'] && str_starts_with($category['image'], 'categories/') && $category['image'] !== $data['image']) {
                 delete_public_image($category['image']);
             }
@@ -67,5 +72,5 @@ if (is_post()) {
     $category = array_merge($category ?? [], $data, ['image' => $category['image'] ?? null]);
 }
 
-$category ??= ['name' => '', 'slug' => '', 'description' => '', 'image' => null, 'is_active' => 1, 'sort_order' => 0, 'meta_title' => '', 'meta_description' => ''];
+$category ??= ['name' => '', 'slug' => '', 'description' => '', 'image' => null, 'is_active' => 1, 'sort_order' => 0, 'meta_title' => '', 'meta_description' => '', 'image_alt' => ''];
 admin_view('category-edit', compact('category', 'errors', 'id', 'productCount') + ['title' => $id ? 'Edit ' . $category['name'] : 'Add category']);

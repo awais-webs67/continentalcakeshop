@@ -441,3 +441,104 @@ document.addEventListener('input', function (e) {
         if (deposit.value === '' && p > 0) deposit.value = (Math.round(p * percent) / 100).toFixed(2);
     });
 })();
+
+// Product editor SEO box: live Google preview, the checklist (same rules as
+// product_seo_checks() in src/seo.php) and "Fill in for me".
+(function () {
+    var box = document.querySelector('[data-seo-box]');
+    if (!box) return;
+    var form = box.closest('form');
+    var q = function (sel) { return form.querySelector(sel); };
+    var nameInput = q('[data-slug-source]');
+    var slugInput = q('[data-slug-target]');
+    var shortInput = q('[name="short_description"]');
+    var descArea = q('textarea[name="description"]');
+    var keywordInput = box.querySelector('[data-seo-keyword]');
+    var titleInput = box.querySelector('[data-seo-title]');
+    var metaInput = box.querySelector('[data-seo-desc]');
+    var altInput = q('[data-seo-alt]');
+    var mainFile = q('input[name="image"]');
+    var preview = document.getElementById('product-preview');
+    var galleryInput = q('[data-seo-gallery]');
+    var store = box.getAttribute('data-store');
+    var name = function () { return (nameInput && nameInput.value.trim()) || 'Cake name'; };
+    var slug = function () {
+        return (slugInput && slugInput.value.trim()) || name().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    };
+    var bodyText = function () {
+        var editor = descArea && descArea.parentNode.querySelector('.ql-editor');
+        var html = editor ? editor.innerHTML : (descArea ? descArea.value : '');
+        var div = document.createElement('div');
+        div.innerHTML = html;
+        return (div.textContent || '').replace(/\s+/g, ' ').trim();
+    };
+    var titleValue = function () { return titleInput.value.trim() || titleInput.getAttribute('data-default').replace('__NAME__', name()); };
+    var descDefault = function () { return metaInput.getAttribute('data-default').replace('__NAME__', name()); };
+    var hasMainPhoto = function () {
+        return (mainFile && mainFile.files && mainFile.files.length > 0) || (preview && !/placeholder-cake/.test(preview.getAttribute('src') || ''));
+    };
+    var extraCount = function () {
+        return form.querySelectorAll('.photo-row').length + (galleryInput && galleryInput.files ? galleryInput.files.length : 0);
+    };
+
+    var checks = function () {
+        var kw = keywordInput.value.trim().toLowerCase();
+        var title = titleValue(), desc = metaInput.value.trim();
+        var has = function (t) { return kw !== '' && t.toLowerCase().indexOf(kw) !== -1; };
+        var slugWords = slug().replace(/-/g, ' ');
+        var missing = kw.split(/\s+/).filter(function (w) { return w.length > 2 && slugWords.indexOf(w) === -1; }).length;
+        var body = (bodyText() + ' ' + (shortInput ? shortInput.value : '')).toLowerCase();
+        var words = bodyText().split(/\s+/).filter(Boolean).length;
+        return [
+            kw !== '', has(title), has(desc), kw !== '' && missing <= 1, has(body),
+            title.length >= 30 && title.length <= 60, desc.length >= 120 && desc.length <= 160,
+            /canberra|greenway|tuggeranong|act\b/i.test(title + ' ' + desc), words >= 60,
+            hasMainPhoto() && altInput && altInput.value.trim() !== '', hasMainPhoto() && extraCount() >= 1
+        ];
+    };
+
+    var refresh = function () {
+        box.querySelector('[data-seo-title-preview]').textContent = titleValue();
+        box.querySelector('[data-seo-desc-preview]').textContent = metaInput.value.trim() || descDefault();
+        box.querySelector('[data-seo-url]').textContent = box.getAttribute('data-base-url') + slug();
+        var results = checks();
+        var items = box.querySelectorAll('[data-seo-checks] li');
+        results.forEach(function (ok, i) {
+            if (!items[i]) return;
+            items[i].classList.toggle('is-ok', ok);
+            items[i].classList.toggle('is-todo', !ok);
+            var tip = items[i].querySelector('small');
+            if (tip) tip.hidden = ok;
+        });
+        var passed = results.filter(Boolean).length;
+        var score = box.querySelector('[data-seo-score]');
+        score.textContent = passed + '/' + results.length;
+        var ratio = passed / results.length;
+        score.className = 'seo-score seo-score--' + (ratio >= 0.8 ? 'good' : ratio >= 0.5 ? 'ok' : 'poor');
+    };
+
+    var titleCase = function (s) { return s.replace(/\b[a-z]/g, function (c) { return c.toUpperCase(); }).replace(/\bAct\b/g, 'ACT'); };
+    var cut = function (text, max) {
+        if (text.length <= max) return text;
+        var part = text.slice(0, max + 1);
+        var end = Math.max(part.lastIndexOf('. '), part.lastIndexOf(', '));
+        return (end > max * 0.6 ? part.slice(0, end + 1) : part.slice(0, part.lastIndexOf(' '))).replace(/[,\s]+$/, '') ;
+    };
+    box.querySelector('[data-seo-fill]').addEventListener('click', function () {
+        var kw = keywordInput.value.trim();
+        var base = kw ? titleCase(kw) : name() + ' Canberra';
+        var options = [base + ' | Order Online | ' + store, base + ' | ' + store, base + ' | Order Online', base];
+        titleInput.value = options.filter(function (t) { return t.length <= 60; })[0] || cut(base, 60);
+        var desc = descDefault();
+        if (kw && desc.toLowerCase().indexOf(kw.toLowerCase()) === -1) desc = 'Looking for ' + kw.toLowerCase() + '? ' + desc;
+        metaInput.value = cut(desc, 160);
+        [titleInput, metaInput].forEach(function (el) { el.dispatchEvent(new Event('input', { bubbles: true })); });
+        if (altInput && altInput.value.trim() === '' && hasMainPhoto()) altInput.value = name() + (shortInput && shortInput.value.trim() ? ', ' + shortInput.value.trim().replace(/\.$/, '').toLowerCase() : ' from ' + store);
+        refresh();
+    });
+
+    form.addEventListener('input', refresh);
+    form.addEventListener('change', refresh);
+    document.addEventListener('keyup', function (e) { if (e.target.closest && e.target.closest('.ql-editor')) refresh(); });
+    refresh();
+})();

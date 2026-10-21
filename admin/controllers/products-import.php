@@ -7,8 +7,8 @@ require_admin();
 $download = (string) ($_GET['download'] ?? '');
 if ($download === 'template' || $download === 'current') {
     $rows = $download === 'current' ? products_as_import_rows() : [
-        array_combine(array_keys(IMPORT_COLUMNS), ['Chocolate Ganache Torte', '', 'Tortes', 'Chocolate sponge with rich ganache.', 'Layers of chocolate sponge and ganache, finished with chocolate curls.', 'Midi', 'Serves 8', '44.95', 'Large', 'Serves 14', '54.95', '', '', '', 'yes', 'no', 'no', 'yes', '', '', '20', '', '', '']),
-        array_combine(array_keys(IMPORT_COLUMNS), ['Wedding Showpiece Cake', '', 'Tea Cakes & Desserts', 'Made to order for weddings.', '', '', '', '', '', '', '', '', '', '', 'yes', 'no', 'yes', 'no', 'Special', '72', '30', '', '', '']),
+        array_combine(array_keys(IMPORT_COLUMNS), ['Chocolate Ganache Torte', '', 'Tortes', 'Chocolate sponge with rich ganache.', 'Layers of chocolate sponge and ganache, finished with chocolate curls.', 'Midi', 'Serves 8', '44.95', 'Large', 'Serves 14', '54.95', '', '', '', 'yes', 'no', 'no', 'yes', '', '', '20', '', '', '', 'chocolate ganache cake canberra', 'Chocolate ganache torte with chocolate curls']),
+        array_combine(array_keys(IMPORT_COLUMNS), ['Wedding Showpiece Cake', '', 'Tea Cakes & Desserts', 'Made to order for weddings.', '', '', '', '', '', '', '', '', '', '', 'yes', 'no', 'yes', 'no', 'Special', '72', '30', '', '', '', 'wedding cakes canberra', '']),
     ];
     send_csv($download === 'current' ? 'continental-cakes-products-' . date('Y-m-d') . '.csv' : 'product-import-template.csv', array_keys(IMPORT_COLUMNS), array_map('array_values', $rows));
 }

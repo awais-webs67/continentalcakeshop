@@ -29,6 +29,8 @@ const IMPORT_COLUMNS = [
     'image_url'        => 'Optional link to a photo (https://...)',
     'meta_title'       => 'Optional page title for Google',
     'meta_description' => 'Optional description for Google',
+    'focus_keyword'    => 'Optional words people search for, e.g. red velvet cake canberra',
+    'image_alt'        => 'Optional description of the photo',
 ];
 
 /** Rows of the current products in the import format, for the export and the template. */
@@ -53,6 +55,7 @@ function products_as_import_rows(): array
             'badge' => (string) $p['badge'], 'notice_hours' => (string) $p['lead_time_hours'], 'sort_order' => (string) $p['sort_order'],
             'image_url' => $p['image'] ? product_image_url($p['image']) : '',
             'meta_title' => (string) $p['meta_title'], 'meta_description' => (string) $p['meta_description'],
+            'focus_keyword' => (string) ($p['focus_keyword'] ?? ''), 'image_alt' => (string) ($p['image_alt'] ?? ''),
         ];
         $rows[] = $row;
     }
@@ -149,10 +152,14 @@ function plan_import_row(array $row, array $categories, bool $createCategories):
         $errors[] = 'image_url must start with https://';
     }
     $slug = slugify(($row['slug'] ?? '') !== '' ? $row['slug'] : $name);
-    $existing = db_one('SELECT id, image FROM products WHERE slug = ?', [$slug]);
+    $existing = db_one('SELECT id, image, description FROM products WHERE slug = ?', [$slug]);
     $notice = trim($row['notice_hours'] ?? '');
 
-    return [[
+    // The export flattens formatted descriptions to plain text; when that text comes back
+    // unchanged, the formatted version (bold, lists, links) is kept.
+    $keepDescription = $existing && trim((string) ($row['description'] ?? '')) === content_text((string) $existing['description']);
+
+    $plan = [
         'action'       => $existing ? 'update' : 'create',
         'id'           => $existing['id'] ?? null,
         'has_image'    => !empty($existing['image']),
@@ -173,8 +180,13 @@ function plan_import_row(array $row, array $categories, bool $createCategories):
             'sort_order'        => (int) ($row['sort_order'] ?? 0),
             'meta_title'        => str_limit($row['meta_title'] ?? '', 160) ?: null,
             'meta_description'  => str_limit($row['meta_description'] ?? '', 255) ?: null,
-        ],
-    ], $errors];
+        ] + (array_key_exists('focus_keyword', $row) ? ['focus_keyword' => str_limit(mb_strtolower($row['focus_keyword']), 80) ?: null] : [])
+          + (array_key_exists('image_alt', $row) ? ['image_alt' => str_limit($row['image_alt'], 160) ?: null] : []),
+    ];
+    if ($keepDescription) {
+        unset($plan['data']['description']);
+    }
+    return [$plan, $errors];
 }
 
 /** Downloads a photo from a link into a temporary file. Returns the path or null. */

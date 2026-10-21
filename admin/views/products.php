@@ -19,7 +19,7 @@
         <div class="empty"><?= icon('cake', '', 32) ?><p>No products found.</p></div>
     <?php else: ?>
     <div class="table-wrap"><table class="table">
-        <thead><tr><th></th><th>Product</th><th>Category</th><th>Price</th><th>Status</th><th class="num">Actions</th></tr></thead>
+        <thead><tr><th></th><th>Product</th><th>Category</th><th>Price</th><th>SEO</th><th>Status</th><th class="num">Actions</th></tr></thead>
         <tbody>
         <?php foreach ($result['rows'] as $p): ?>
             <tr>
@@ -28,6 +28,7 @@
                     <div class="muted"><?= $p['is_featured'] ? 'Featured on homepage' : '' ?><?= $p['badge'] ? ($p['is_featured'] ? ' &middot; ' : '') . e($p['badge']) : '' ?></div></td>
                 <td><?= e($p['category_name']) ?></td>
                 <td><?= $p['is_enquiry'] ? '<span class="muted">Price on request</span>' : ($p['size_count'] ? e(money($p['price_from'])) . ((int) $p['size_count'] > 1 ? ' <span class="muted">+' . ((int) $p['size_count'] - 1) . ' sizes</span>' : '') : '<span class="badge badge--cancelled">No sizes</span>') ?></td>
+                <td><?php [$sp, $st, $sl] = seo_score(product_seo_checks($p, (int) $p['photo_count'])); ?><a class="seo-score seo-score--<?= e($sl) ?>" href="<?= e(admin_url('products/edit', ['id' => $p['id']])) ?>#seo" title="SEO checklist"><?= $sp ?>/<?= $st ?></a></td>
                 <td><?= $p['is_active'] ? status_badge('active', 'Visible') : status_badge('inactive', 'Hidden') ?><?= product_sold_out($p) ? ' ' . status_badge('pending', 'Sold out') : '' ?></td>
                 <td class="num">
                     <form method="post" style="display:inline"><?= csrf_field() ?><input type="hidden" name="_back" value="<?= e(admin_url('products') . page_link($result['page'])) ?>"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>"><input type="hidden" name="action" value="toggle"><button class="link-btn" type="submit"><?= $p['is_active'] ? 'Hide' : 'Show' ?></button></form>

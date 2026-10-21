@@ -513,3 +513,17 @@
     };
     choices.forEach(function (c) { c.addEventListener('change', update); });
 })();
+
+/* Product photo gallery: thumbnails swap the big photo. */
+(function () {
+    var gallery = document.querySelector('[data-gallery]');
+    if (!gallery) return;
+    var main = gallery.querySelector('[data-gallery-main]');
+    gallery.addEventListener('click', function (e) {
+        var thumb = e.target.closest('[data-gallery-thumb]');
+        if (!thumb || !main) return;
+        main.src = thumb.getAttribute('data-src');
+        main.alt = thumb.getAttribute('data-alt');
+        gallery.querySelectorAll('[data-gallery-thumb]').forEach(function (t) { t.classList.toggle('is-active', t === thumb); });
+    });
+})();

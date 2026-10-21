@@ -346,7 +346,7 @@ function delete_public_image(?string $path): void
     if (!$path || str_contains($path, '..')) {
         return;
     }
-    $inUse = db_value('SELECT 1 FROM products WHERE image = ? UNION SELECT 1 FROM categories WHERE image = ? UNION SELECT 1 FROM gallery_images WHERE image = ?', [$path, $path, $path])
+    $inUse = db_value('SELECT 1 FROM products WHERE image = ? UNION SELECT 1 FROM categories WHERE image = ? UNION SELECT 1 FROM gallery_images WHERE image = ? UNION SELECT 1 FROM product_images WHERE image = ?', [$path, $path, $path, $path])
         || in_array($path, [setting('hero_image'), setting('popup_image')], true);
     if ($inUse) {
         return;
@@ -430,6 +430,60 @@ function admin_order_lines_from_post(mixed $rows): array
         $lines[] = $line;
     }
     return $lines;
+}
+
+/**
+ * Extra photos in the product editor: uploads (several at once), alt text, order,
+ * removing photos and making one the main photo. Returns a note about any failed upload.
+ */
+function save_product_photos(int $productId, string $name): string
+{
+    $notes = [];
+    // Changes to the photos already there.
+    foreach ((array) ($_POST['photos'] ?? []) as $photoId => $row) {
+        $photo = db_one('SELECT * FROM product_images WHERE id = ? AND product_id = ?', [(int) $photoId, $productId]);
+        if (!$photo || !is_array($row)) {
+            continue;
+        }
+        if (!empty($row['remove'])) {
+            db_run('DELETE FROM product_images WHERE id = ?', [$photo['id']]);
+            delete_public_image($photo['image']);
+            continue;
+        }
+        db_run('UPDATE product_images SET alt = ?, sort_order = ? WHERE id = ?', [str_limit(trim((string) ($row['alt'] ?? '')), 160) ?: null, (int) ($row['sort'] ?? 0), $photo['id']]);
+    }
+    // New photos, several at once.
+    $files = $_FILES['gallery'] ?? null;
+    if ($files && is_array($files['name'] ?? null)) {
+        $next = (int) db_value('SELECT COALESCE(MAX(sort_order), 0) + 1 FROM product_images WHERE product_id = ?', [$productId]);
+        foreach ($files['name'] as $i => $original) {
+            if (($files['error'][$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+                continue;
+            }
+            if ($files['error'][$i] !== UPLOAD_ERR_OK || !is_uploaded_file($files['tmp_name'][$i]) || $files['size'][$i] > 10 * 1024 * 1024) {
+                $notes[] = $original . ' did not upload (under 10 MB please)';
+                continue;
+            }
+            [$path, $error] = store_image_file($files['tmp_name'][$i], 'products', 900, 900, $name);
+            if ($error) {
+                $notes[] = $original . ': ' . $error;
+                continue;
+            }
+            db_run('INSERT INTO product_images (product_id, image, alt, sort_order) VALUES (?, ?, ?, ?)', [$productId, $path, null, $next++]);
+        }
+    }
+    // One of the extra photos becomes the main photo; the old main photo moves to the extras.
+    $makeMain = (int) ($_POST['make_main'] ?? 0);
+    if ($makeMain && ($photo = db_one('SELECT * FROM product_images WHERE id = ? AND product_id = ?', [$makeMain, $productId]))) {
+        $product = db_one('SELECT image, image_alt FROM products WHERE id = ?', [$productId]);
+        db_run('UPDATE products SET image = ?, image_alt = ? WHERE id = ?', [$photo['image'], $photo['alt'], $productId]);
+        if ($product['image']) {
+            db_run('UPDATE product_images SET image = ?, alt = ? WHERE id = ?', [$product['image'], $product['image_alt'], $photo['id']]);
+        } else {
+            db_run('DELETE FROM product_images WHERE id = ?', [$photo['id']]);
+        }
+    }
+    return $notes ? 'Some photos were not added: ' . implode('; ', $notes) . '.' : '';
 }
 
 // ---------------------------------------------------------------------------

@@ -4,7 +4,7 @@ $link = product_url($product);
 ?>
 <article class="product-card">
     <a class="product-card__media" href="<?= e($link) ?>" tabindex="-1" aria-hidden="true">
-        <img src="<?= e(product_image_url($product['image'])) ?>" alt="<?= e($product['name']) ?>" width="600" height="600" loading="lazy" decoding="async">
+        <img src="<?= e(product_image_url($product['image'])) ?>" alt="<?= e(product_image_alt($product)) ?>" width="600" height="600" loading="lazy" decoding="async">
         <?php if (product_sold_out($product)): ?>
             <span class="product-card__badge product-card__badge--soldout">Sold out</span>
         <?php elseif (!empty($product['badge'])): ?>

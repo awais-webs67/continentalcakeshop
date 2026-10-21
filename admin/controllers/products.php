@@ -33,7 +33,8 @@ if ($q !== '') {
 }
 $whereSql = implode(' AND ', $where);
 $result = paginate(
-    "SELECT p.*, c.name AS category_name, MIN(s.price) AS price_from, COUNT(s.id) AS size_count
+    "SELECT p.*, c.name AS category_name, MIN(s.price) AS price_from, COUNT(s.id) AS size_count,
+            (SELECT COUNT(*) FROM product_images pi WHERE pi.product_id = p.id) AS photo_count
      FROM products p JOIN categories c ON c.id = p.category_id
      LEFT JOIN product_sizes s ON s.product_id = p.id AND s.is_active = 1
      WHERE {$whereSql} GROUP BY p.id ORDER BY c.sort_order, p.sort_order, p.name",

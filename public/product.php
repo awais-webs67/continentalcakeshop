@@ -15,10 +15,8 @@ $options = $enquiry ? [] : get_product_options((int) $product['id']);
 $soldOut = product_sold_out($product);
 $paused = ordering_paused();
 $leadHours = $product['lead_time_hours'] !== null ? (int) $product['lead_time_hours'] : (int) setting('min_lead_hours', '24');
-$prices = array_column($sizes, 'price');
 $selected = $sizes[0] ?? null;
 $deliveryOn = setting_bool('delivery_enabled');
-$sizeText = implode(', ', array_map(static fn ($s) => $s['label'] . ($s['servings'] ? ' (' . strtolower($s['servings']) . ')' : ''), $sizes));
 
 $crumbs = [
     ['Home', url()],
@@ -27,18 +25,19 @@ $crumbs = [
     [$product['name'], product_url($product)],
 ];
 
+$photos = array_merge(
+    [['image' => $product['image'], 'alt' => product_image_alt($product)]],
+    array_map(static fn ($i) => ['image' => $i['image'], 'alt' => $i['alt'] ?: $product['name'] . ' photo ' . ((int) $i['sort_order'] + 2)], get_product_images((int) $product['id']))
+);
+$photos = array_values(array_filter($photos, static fn ($p) => !empty($p['image']))) ?: [['image' => null, 'alt' => $product['name']]];
+
 $page = [
-    'title'       => $product['meta_title'] ?: $product['name'] . ' | Order Online in Canberra | ' . setting('store_short_name'),
-    'description' => $product['meta_description'] ?: ($enquiry
-        ? sprintf('%s made to order in Greenway, Canberra. 100%% Halal. Send us your details for a quote.', $product['name'])
-        : sprintf(
-            '%s in %s from %s. 100%% Halal. Order online for pickup in Greenway%s.',
-            $product['name'], $sizeText, money(min($prices)), $deliveryOn ? ' or delivery across Canberra' : ''
-        )),
+    'title'       => $product['meta_title'] ?: product_default_title($product),
+    'description' => $product['meta_description'] ?: product_default_description($product, $sizes),
     'canonical'   => product_url($product),
     'image'       => product_image_url($product['image']),
     'type'        => 'product',
-    'schema'      => [product_schema($product, $sizes), breadcrumb_schema($crumbs)],
+    'schema'      => [product_schema($product, $sizes, array_column($photos, 'image')), breadcrumb_schema($crumbs)],
 ];
 render('header', compact('page'));
 ?>
@@ -48,10 +47,23 @@ render('header', compact('page'));
         <?php render('partials/breadcrumbs', compact('crumbs')); ?>
 
         <div class="product-layout">
-            <div class="product-gallery">
-                <img src="<?= e(product_image_url($product['image'])) ?>" alt="<?= e($product['name']) ?>" width="900" height="900" fetchpriority="high">
-                <?php if ($product['badge']): ?>
-                    <span class="product-card__badge"><?= e($product['badge']) ?></span>
+            <div class="product-gallery" data-gallery>
+                <div class="product-gallery__main">
+                    <img src="<?= e(product_image_url($photos[0]['image'])) ?>" alt="<?= e($photos[0]['alt']) ?>" width="900" height="900" fetchpriority="high" data-gallery-main>
+                    <?php if ($soldOut): ?>
+                        <span class="product-card__badge product-card__badge--soldout">Sold out</span>
+                    <?php elseif ($product['badge']): ?>
+                        <span class="product-card__badge"><?= e($product['badge']) ?></span>
+                    <?php endif; ?>
+                </div>
+                <?php if (count($photos) > 1): ?>
+                    <div class="product-gallery__thumbs" role="list">
+                        <?php foreach ($photos as $i => $photo): ?>
+                            <button type="button" class="product-gallery__thumb<?= $i === 0 ? ' is-active' : '' ?>" role="listitem" data-gallery-thumb data-src="<?= e(product_image_url($photo['image'])) ?>" data-alt="<?= e($photo['alt']) ?>" aria-label="Show photo <?= $i + 1 ?> of <?= count($photos) ?>">
+                                <img src="<?= e(product_image_url($photo['image'])) ?>" alt="" width="120" height="120" loading="lazy" decoding="async">
+                            </button>
+                        <?php endforeach; ?>
+                    </div>
                 <?php endif; ?>
             </div>
 

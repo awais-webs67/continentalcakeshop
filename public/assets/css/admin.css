@@ -730,3 +730,29 @@ select.input { appearance: none; padding-right: 36px; background-image: url("dat
 .segmented input:focus-visible + span { outline: 3px solid rgba(30, 155, 130, .35); }
 .new-order-total { margin: 14px 0 0; font-size: 18px; }
 .new-order-total strong { color: var(--brand-deep); }
+
+/* Product editor: SEO score, checklist and photo rows */
+.seo-score { padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; }
+.seo-score--good { background: var(--green-bg); color: var(--green); }
+.seo-score--ok { background: var(--amber-bg); color: var(--amber); }
+.seo-score--poor { background: var(--red-bg); color: var(--red); }
+.serp--live { max-width: none; }
+.serp--live .serp__title, .serp--live .serp__desc { overflow-wrap: anywhere; }
+.seo-checks { display: grid; gap: 6px; margin: 4px 0 0; padding: 0; list-style: none; }
+.seo-checks li { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; }
+.seo-checks li .icon { flex: 0 0 16px; margin-top: 2px; }
+.seo-checks li span { display: flex; flex-direction: column; }
+.seo-checks li strong { font-weight: 600; }
+.seo-checks li small { color: var(--muted); }
+.seo-checks li.is-ok { color: var(--green); }
+.seo-checks li.is-todo { color: var(--text); }
+.seo-checks li.is-todo .icon { color: var(--amber); }
+.photo-list { display: grid; gap: 10px; }
+.photo-row { display: grid; grid-template-columns: 64px 1fr; gap: 10px; align-items: start; padding: 8px; border: 1px solid var(--line); border-radius: 12px; }
+.photo-row img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; }
+.photo-row__fields { display: grid; gap: 6px; min-width: 0; }
+.photo-row__actions { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: 13px; }
+.mini-field { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.mini-field .input { width: 64px; padding: 4px 8px; min-height: 0; }
+.mini-check { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+.mini-check--danger { color: var(--red); }
