@@ -197,20 +197,25 @@ function email_admin_url(string $path = ''): string
 // Emails the site sends
 // ---------------------------------------------------------------------------
 
+/** The "Thank you for your order" email with the items, date and a link to the order. */
+function send_order_confirmation(array $order): bool
+{
+    return send_mail(
+        $order['customer_email'],
+        "Order {$order['order_number']} received - " . setting('store_short_name'),
+        render_email('order-confirmation', ['order' => $order, 'items' => get_order_items((int) $order['id']), 'title' => 'Thank you for your order', 'preheader' => 'Order ' . $order['order_number'] . ' for ' . order_when($order), 'reply_url' => thread_url(order_thread($order))]),
+        null,
+        setting('store_email')
+    );
+}
+
 /** Customer confirmation and shop notification for a new order. */
 function send_order_emails(array $order): void
 {
     $items = get_order_items((int) $order['id']);
-    $shop = setting('store_short_name');
 
     if (setting_bool('send_customer_emails')) {
-        send_mail(
-            $order['customer_email'],
-            "Order {$order['order_number']} received - {$shop}",
-            render_email('order-confirmation', ['order' => $order, 'items' => $items, 'title' => 'Thank you for your order', 'preheader' => 'Order ' . $order['order_number'] . ' for ' . order_when($order), 'reply_url' => thread_url(order_thread($order))]),
-            null,
-            setting('store_email')
-        );
+        send_order_confirmation($order);
     }
     $notify = setting('order_notification_email');
     if ($notify !== '') {

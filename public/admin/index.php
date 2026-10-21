@@ -20,6 +20,7 @@ const ADMIN_ROUTES = [
     'reset-password'       => 'reset-password',
     'orders'               => 'orders',
     'orders/view'          => 'order-view',
+    'orders/new'           => 'order-new',
     'coupons'              => 'coupons',
     'addons'               => 'addons',
     'upload-image'         => 'upload-image',

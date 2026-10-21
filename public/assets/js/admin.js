@@ -395,3 +395,37 @@ document.addEventListener('change', function (e) {
 document.addEventListener('input', function (e) {
     if (e.target.matches && e.target.matches('[data-line-price]')) e.target.removeAttribute('data-auto');
 });
+
+// New order form: delivery fields, live total and "Paid in full".
+(function () {
+    var form = document.querySelector('[data-new-order]');
+    if (!form) return;
+    var money = function (n) { return '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); };
+    var num = function (el) { var v = parseFloat(String(el && el.value || '').replace(/[$,]/g, '')); return isNaN(v) ? 0 : v; };
+    var isDelivery = function () { var r = form.querySelector('[data-fulfilment]:checked'); return r && r.value === 'delivery'; };
+    var total = function () {
+        var sum = 0;
+        form.querySelectorAll('[data-line-row]').forEach(function (row) {
+            var item = row.querySelector('[data-line-item]');
+            if (!item || !item.value) return;
+            sum += num(row.querySelector('[data-line-price]')) * Math.max(0, num(row.querySelector('input[name$="[qty]"]')));
+        });
+        sum -= Math.min(sum, num(form.querySelector('[name="discount"]')));
+        if (isDelivery()) sum += num(form.querySelector('[name="delivery_fee"]'));
+        return Math.round(sum * 100) / 100;
+    };
+    var refresh = function () {
+        form.querySelectorAll('[data-show-delivery]').forEach(function (el) { el.hidden = !isDelivery(); });
+        var label = form.querySelector('[data-time-label]');
+        if (label) label.textContent = isDelivery() ? 'From' : 'Time';
+        var out = form.querySelector('[data-new-order-total]');
+        if (out) out.textContent = money(total());
+    };
+    form.addEventListener('input', refresh);
+    form.addEventListener('change', function () { setTimeout(refresh, 0); });
+    form.addEventListener('click', function (e) {
+        if (e.target.closest('[data-pay-full]')) { form.querySelector('[data-paid-now]').value = total().toFixed(2); }
+        if (e.target.closest('[data-repeater-add], [data-repeater-remove]')) setTimeout(refresh, 0);
+    });
+    refresh();
+})();

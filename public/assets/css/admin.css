@@ -722,3 +722,11 @@ select.input { appearance: none; padding-right: 36px; background-image: url("dat
 .edit-table { width: 100%; border-collapse: collapse; }
 .edit-table td { padding: 6px 4px; vertical-align: middle; }
 .edit-table input.input { min-width: 0; }
+.segmented { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px; border-radius: 12px; background: var(--bg); }
+.segmented label { position: relative; cursor: pointer; }
+.segmented input { position: absolute; opacity: 0; pointer-events: none; }
+.segmented span { display: block; padding: 9px 12px; border-radius: 9px; text-align: center; font-weight: 600; color: var(--muted); }
+.segmented input:checked + span { background: var(--surface); color: var(--brand-deep); box-shadow: var(--shadow); }
+.segmented input:focus-visible + span { outline: 3px solid rgba(30, 155, 130, .35); }
+.new-order-total { margin: 14px 0 0; font-size: 18px; }
+.new-order-total strong { color: var(--brand-deep); }

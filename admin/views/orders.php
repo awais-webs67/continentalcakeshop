@@ -1,7 +1,7 @@
 <?php /** @var array $result @var array $counts */ ?>
 <div class="page-head">
-    <div><h1>Orders</h1><p>Every order placed on the website.</p></div>
-    <div class="page-head__actions"><a class="btn btn--secondary" href="<?= e(admin_url('pickups')) ?>"><?= icon('calendar', '', 18) ?> Pickups & deliveries</a></div>
+    <div><h1>Orders</h1><p>Orders from the website, by phone and in the shop.</p></div>
+    <div class="page-head__actions"><a class="btn btn--primary" href="<?= e(admin_url('orders/new')) ?>"><?= icon('plus', '', 18) ?> New order</a><a class="btn btn--secondary" href="<?= e(admin_url('pickups')) ?>"><?= icon('calendar', '', 18) ?> Pickups & deliveries</a></div>
 </div>
 <section class="card">
     <nav class="tabs">
@@ -30,12 +30,12 @@
             <tbody>
             <?php foreach ($result['rows'] as $o): ?>
                 <tr>
-                    <td><a class="row-link" href="<?= e(admin_url('orders/view', ['id' => $o['id']])) ?>"><?= e($o['order_number']) ?></a><div class="muted"><?= e(date('j M Y, g:ia', strtotime($o['created_at']))) ?></div></td>
+                    <td><a class="row-link" href="<?= e(admin_url('orders/view', ['id' => $o['id']])) ?>"><?= e($o['order_number']) ?></a><div class="muted"><?= e(date('j M Y, g:ia', strtotime($o['created_at']))) ?><?= ($o['channel'] ?? 'online') !== 'online' ? ' &middot; ' . e(ORDER_CHANNELS[$o['channel']] ?? '') : '' ?></div></td>
                     <td><?= e($o['customer_name']) ?><div class="muted"><?= e($o['customer_phone']) ?></div></td>
                     <td><?= e(date('D j M', strtotime($o['pickup_date']))) ?><div class="muted"><?= is_delivery($o) ? 'Delivery, ' : '' ?><?= e(order_time_label($o)) ?> &middot; <?= (int) $o['item_count'] ?> item<?= (int) $o['item_count'] === 1 ? '' : 's' ?></div></td>
                     <td><?= status_badge($o['payment_status'], PAYMENT_STATUSES[$o['payment_status']]) ?><div class="muted"><?= e(payment_method_label($o['payment_method'])) ?></div></td>
                     <td><?= status_badge($o['order_status'], order_status_label($o)) ?></td>
-                    <td class="num"><strong><?= e(money($o['total'])) ?></strong></td>
+                    <td class="num"><strong><?= e(money($o['total'])) ?></strong><?php if ((float) $o['amount_paid'] > 0 && order_balance($o) > 0): ?><div class="muted"><?= e(money(order_balance($o))) ?> owing</div><?php endif; ?></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>

@@ -64,6 +64,7 @@ $alerts = array_values(array_filter([
     admin_can('custom', $admin) && $badges['custom'] ? [admin_url('custom-requests', ['status' => 'new']), 'gift', $badges['custom'] . ' new custom request' . ($badges['custom'] === 1 ? '' : 's')] : null,
 ]));
 $quickAdd = array_values(array_filter([
+    admin_can('orders', $admin) ? [admin_url('orders/new'), 'bag', 'Phone or shop order'] : null,
     admin_can('products', $admin) ? [admin_url('products/edit'), 'cake', 'Product'] : null,
     admin_can('products', $admin) ? [admin_url('products/import'), 'upload', 'Import products'] : null,
     admin_can('coupons', $admin) ? [admin_url('coupons') . '#coupon-form', 'tag', 'Coupon'] : null,

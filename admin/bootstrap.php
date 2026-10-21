@@ -7,7 +7,7 @@ const ADMIN_ROLES = ['owner' => 'Owner', 'staff' => 'Staff'];
 const ADMIN_PER_PAGE = 20;
 // Parts of the admin panel, and the pages in each, so the owner can choose what staff may open.
 const ADMIN_SECTIONS = [
-    'orders'    => ['Orders, pickups and deliveries', ['orders', 'orders/view', 'orders/print', 'pickups']],
+    'orders'    => ['Orders, pickups and deliveries', ['orders', 'orders/view', 'orders/new', 'orders/print', 'pickups']],
     'custom'    => ['Custom cake requests', ['custom-requests', 'custom-requests/view']],
     'messages'  => ['Customer messages', ['messages', 'messages/view']],
     'customers' => ['Customers', ['customers', 'customers/view']],
