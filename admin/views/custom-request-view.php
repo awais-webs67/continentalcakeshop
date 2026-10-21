@@ -33,12 +33,23 @@
             </div>
         </section>
 
+        <?php if ($linkedOrder): ?>
+            <div class="alert alert--success">The customer accepted this quote. <a href="<?= e(admin_url('orders/view', ['id' => $linkedOrder['id']])) ?>">Open order <?= e($linkedOrder['order_number']) ?></a> &middot; <?= e(PAYMENT_STATUSES[$linkedOrder['payment_status']]) ?><?= order_balance($linkedOrder) > 0 && (float) $linkedOrder['amount_paid'] > 0 ? ', ' . e(money(order_balance($linkedOrder))) . ' still owing' : '' ?>.</div>
+        <?php endif; ?>
         <section class="card">
             <div class="card__head"><h2>Send a quote or reply</h2></div>
             <form class="card__body form-stack" method="post">
                 <?= csrf_field() ?><input type="hidden" name="action" value="quote">
-                <label class="field"><span>Price <small>optional, shown as a highlighted quote</small></span>
-                    <div class="input-prefix" style="max-width:220px"><span>$</span><input class="input" name="quoted_price" inputmode="decimal" value="<?= e((string) $request['quoted_price']) ?>" placeholder="0.00"></div></label>
+                <div class="form-grid">
+                    <label class="field"><span>Price <small>optional, shown as a highlighted quote</small></span>
+                        <div class="input-prefix"><span>$</span><input class="input" name="quoted_price" inputmode="decimal" value="<?= e((string) $request['quoted_price']) ?>" placeholder="0.00" data-quote-price></div></label>
+                    <label class="field"><span>Deposit to accept <small>empty = full price</small></span>
+                        <div class="input-prefix"><span>$</span><input class="input" name="deposit_amount" inputmode="decimal" value="<?= e((string) $request['deposit_amount']) ?>" placeholder="e.g. <?= (int) setting('quote_default_deposit_percent', '50') ?>% of the price" data-quote-deposit></div></label>
+                </div>
+                <?php if (!$linkedOrder): ?>
+                    <label class="switch"><input type="checkbox" name="online_pay" value="1" <?= checked(available_payment_methods() !== [] && ($request['quote_token'] !== null || $request['quoted_price'] === null)) ?> <?= available_payment_methods() ? '' : 'disabled' ?>><span class="switch__track"></span><span>Let the customer accept and pay online<small><?= available_payment_methods() ? 'The email gets an "Accept and pay" button. Paying the deposit or the full price turns this request into an order.' : 'Switch on a payment method in Settings first.' ?></small></span></label>
+                <?php endif; ?>
+                <?php if ($request['quote_token'] && !$linkedOrder): ?><p class="hint" style="margin:0">Customer link: <a href="<?= e(quote_url($request)) ?>" target="_blank"><?= e(quote_url($request)) ?></a></p><?php endif; ?>
                 <label class="field"><span>Message</span><textarea class="input" name="message" rows="6" required><?= e($defaultMessage) ?></textarea></label>
                 <p class="hint">The email goes to <?= e($request['email']) ?> with your logo and shop details. Their replies come to <?= e(setting('store_email')) ?>.</p>
                 <div><button class="btn btn--primary" type="submit"><?= icon('mail', '', 18) ?> Send email</button></div>

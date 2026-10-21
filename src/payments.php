@@ -125,7 +125,7 @@ function stripe_create_checkout(array $order, array $items, ?float $amount = nul
         'line_items'           => [],
     ];
     // Part payments (a deposit, or the balance after one) are one line with the amount owed.
-    if (abs($due - (float) $order['total']) > 0.004) {
+    if (!$items || abs($due - (float) $order['total']) > 0.004) {
         $params['line_items'][] = [
             'quantity'   => 1,
             'price_data' => [

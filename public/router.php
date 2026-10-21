@@ -22,6 +22,7 @@ $routes = [
     '#^/cakes/([a-z0-9-]+)$#'       => ['product.php', ['slug']],
     '#^/order/([A-Za-z0-9-]+)$#'    => ['order.php', ['number']],
     '#^/messages/([a-f0-9]{32})$#'  => ['messages.php', ['token']],
+    '#^/quote/([a-f0-9]{32})$#'     => ['quote.php', ['token']],
     '#^/cart$#'                     => ['cart.php', []],
     '#^/checkout$#'                 => ['checkout.php', []],
     '#^/custom-cakes$#'             => ['custom-cakes.php', []],

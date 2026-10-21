@@ -920,8 +920,8 @@ select.input {
 .payment-details dl div { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
 .payment-details dl div:last-child { border-bottom: 0; }
 .payment-details dt { color: var(--muted); }
-.payment-details dd { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--ink); font-weight: 600; text-align: right; word-break: break-all; }
-.copy-btn { padding: 4px 10px; border: 1px solid var(--brand-line); border-radius: 999px; background: var(--brand-softer); color: var(--brand); font-size: 12px; font-weight: 600; cursor: pointer; }
+.payment-details dd { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--ink); font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+.copy-btn { padding: 4px 10px; border: 1px solid var(--brand-line); border-radius: 999px; background: var(--brand-softer); color: var(--brand); font-size: 12px; font-weight: 600; cursor: pointer; flex: 0 0 auto; white-space: nowrap; word-break: normal; }
 .copy-btn:hover { background: var(--brand-soft); }
 
 .file-drop {

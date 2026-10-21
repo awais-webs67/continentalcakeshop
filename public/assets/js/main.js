@@ -501,3 +501,15 @@
         });
     }
 })();
+
+/* Custom cake quote: show the amount for the chosen deposit or full price. */
+(function () {
+    var choices = document.querySelectorAll('[data-quote-amount]');
+    if (!choices.length) return;
+    var update = function () {
+        var picked = document.querySelector('[data-quote-amount]:checked');
+        if (!picked) return;
+        document.querySelectorAll('[data-pay-amount]').forEach(function (el) { el.textContent = picked.getAttribute('data-quote-amount'); });
+    };
+    choices.forEach(function (c) { c.addEventListener('change', update); });
+})();

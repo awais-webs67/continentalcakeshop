@@ -429,3 +429,15 @@ document.addEventListener('input', function (e) {
     });
     refresh();
 })();
+
+// Custom cake quote: suggest the usual deposit when a price is typed.
+(function () {
+    var price = document.querySelector('[data-quote-price]');
+    var deposit = document.querySelector('[data-quote-deposit]');
+    if (!price || !deposit) return;
+    var percent = parseFloat((deposit.getAttribute('placeholder').match(/(\d+)%/) || [0, 50])[1]);
+    price.addEventListener('change', function () {
+        var p = parseFloat(price.value.replace(/[$,]/g, ''));
+        if (deposit.value === '' && p > 0) deposit.value = (Math.round(p * percent) / 100).toFixed(2);
+    });
+})();
