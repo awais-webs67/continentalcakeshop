@@ -190,6 +190,13 @@ $mask = static function (string $key): string {
         </div>
         <?= field_error($errors, 'daily_email_to') ?>
         <?php $cronRun = setting('cron_last_run'); ?>
+        <h3 class="label" style="margin-top:12px">Reminders and reviews</h3>
+        <label class="switch"><input type="checkbox" name="reminder_email_enabled" value="1" <?= $on('reminder_email_enabled') ?>><span class="switch__track"></span><span>Remind customers the day before pickup or delivery<small>With the time, address, anything still to pay and a link to the order</small></span></label>
+        <label class="switch"><input type="checkbox" name="review_email_enabled" value="1" <?= $on('review_email_enabled') ?>><span class="switch__track"></span><span>Ask for a Google review after an order is completed<small><?= filter_var(setting('google_reviews_url'), FILTER_VALIDATE_URL) ? 'Uses your Google reviews link. Each customer is asked at most once every 4 months.' : 'Add your Google reviews link in Homepage &gt; Google reviews first.' ?></small></span></label>
+        <div class="form-grid">
+            <label class="field"><span>Send reminders from <small>hour of the day, 24 hour clock</small></span><input class="input" type="number" min="6" max="21" name="reminder_send_hour" value="<?= $v('reminder_send_hour') ?>"></label>
+            <label class="field"><span>Ask for a review <small>hours after "Completed"</small></span><input class="input" type="number" min="1" max="240" name="review_delay_hours" value="<?= $v('review_delay_hours') ?>"></label>
+        </div>
         <p class="hint">Scheduled job: <?= $cronRun !== '' ? 'last ran ' . e(time_ago($cronRun)) . (strtotime($cronRun) < time() - 3600 ? ' ' . status_badge('pending', 'Not running') : ' ' . status_badge('active', 'Running')) : status_badge('pending', 'Not set up yet') . ' Add the cron job from DEPLOY.md in cPanel &gt; Cron Jobs.' ?><?= setting('daily_email_last_sent') !== '' ? ' &middot; last morning email ' . e(date('j M Y', strtotime(setting('daily_email_last_sent')))) : '' ?></p>
     </div>
     <?php

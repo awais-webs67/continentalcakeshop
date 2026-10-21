@@ -15,7 +15,7 @@ const SETTINGS_FIELDS = [
     'store'    => ['store_name' => 120, 'store_short_name' => 80, 'store_phone' => 40, 'store_email' => 190, 'store_street' => 120, 'store_suburb' => 80, 'store_state' => 10, 'store_postcode' => 10, 'store_founded' => 4, 'store_abn' => 20, 'store_latitude' => 12, 'store_longitude' => 12],
     'ordering' => ['min_lead_hours' => 4, 'custom_lead_days' => 3, 'max_advance_days' => 4, 'slot_interval_minutes' => 3, 'last_slot_buffer_minutes' => 4, 'max_orders_per_slot' => 4, 'max_deliveries_per_day' => 4, 'delivery_fee' => 10, 'delivery_free_over' => 10, 'delivery_min_order' => 10, 'delivery_note' => 255, 'delivery_postcodes' => 255],
     'payments' => ['payment_stripe_label' => 60, 'payment_stripe_note' => 255, 'payment_payid_label' => 60, 'payment_payid_note' => 255, 'payment_bank_label' => 60, 'payment_bank_note' => 255, 'payid_identifier' => 120, 'payid_account_name' => 120, 'bank_account_name' => 120, 'bank_bsb' => 7, 'bank_account_number' => 20, 'stripe_publishable_key' => 255],
-    'emails'   => ['order_notification_email' => 190, 'email_accent_note' => 255, 'daily_email_to' => 190, 'daily_email_minutes_before' => 4, 'mail_from_address' => 190, 'mail_from_name' => 120, 'smtp_host' => 190, 'smtp_port' => 5, 'smtp_username' => 190],
+    'emails'   => ['order_notification_email' => 190, 'email_accent_note' => 255, 'daily_email_to' => 190, 'daily_email_minutes_before' => 4, 'reminder_send_hour' => 2, 'review_delay_hours' => 3, 'mail_from_address' => 190, 'mail_from_name' => 120, 'smtp_host' => 190, 'smtp_port' => 5, 'smtp_username' => 190],
     'homepage' => ['hero_eyebrow' => 120, 'hero_title' => 120, 'hero_subtitle' => 400, 'announcement_text' => 200, 'google_rating' => 3, 'google_review_count' => 10, 'google_reviews_url' => 500],
     'seo'      => ['social_facebook' => 255, 'social_instagram' => 255, 'social_pinterest' => 255, 'seo_home_title' => 160, 'seo_home_description' => 300, 'seo_ga4_id' => 20, 'seo_google_verification' => 120, 'seo_bing_verification' => 120],
 ];
@@ -23,7 +23,7 @@ const SETTINGS_FIELDS = [
 const SETTINGS_SWITCHES = [
     'ordering' => ['pickup_enabled', 'delivery_enabled'],
     'payments' => ['payment_stripe_enabled', 'payment_payid_enabled', 'payment_bank_enabled'],
-    'emails'   => ['send_customer_emails', 'daily_email_enabled'],
+    'emails'   => ['send_customer_emails', 'daily_email_enabled', 'reminder_email_enabled', 'review_email_enabled'],
     'store'    => ['gst_registered'],
 ];
 
@@ -194,6 +194,8 @@ if (is_post()) {
             $errors['daily_email_to'] = 'Please enter a valid email address.';
         }
         $values['daily_email_minutes_before'] = (string) min(600, max(0, (int) $values['daily_email_minutes_before']));
+        $values['reminder_send_hour'] = (string) min(21, max(6, (int) $values['reminder_send_hour']));
+        $values['review_delay_hours'] = (string) min(240, max(1, (int) $values['review_delay_hours']));
         $values['mail_driver'] = in_array(input('mail_driver'), ['mail', 'smtp', 'log'], true) ? input('mail_driver') : 'mail';
         $values['smtp_encryption'] = in_array(input('smtp_encryption'), ['ssl', 'tls', 'none'], true) ? input('smtp_encryption') : 'ssl';
         $values['smtp_port'] = (string) ((int) $values['smtp_port'] ?: ($values['smtp_encryption'] === 'tls' ? 587 : 465));
