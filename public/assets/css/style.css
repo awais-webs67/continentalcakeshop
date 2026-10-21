@@ -673,6 +673,33 @@ a.chip:hover { border-color: var(--brand); color: var(--brand); }
 .visit__map--wide { margin-top: 40px; }
 @media (min-width: 900px) { .visit__map iframe { height: 380px; } }
 
+/* Visit us on phones and tablets: today's status card and a map card. Desktop keeps the week table. */
+.visit-today { display: none; }
+.visit__map-bar { display: none; }
+@media (max-width: 899px) {
+    .visit .visit__grid { gap: 20px; }
+    .visit .visit__address, .visit .hours-table { display: none; }
+    .visit-today { display: block; padding: 18px 18px 16px; border-radius: var(--radius-lg); background: linear-gradient(135deg, var(--brand-softer), var(--brand-soft)); border: 1px solid var(--brand-line); }
+    .visit-today__top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .visit-today__date { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--brand-deep); }
+    .visit-today__badge { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 999px; background: var(--white); font-size: 13px; font-weight: 700; color: var(--brand-deep); box-shadow: var(--shadow-sm); }
+    .visit-today__dot { width: 8px; height: 8px; border-radius: 50%; background: #22B573; box-shadow: 0 0 0 4px rgba(34, 181, 115, .18); }
+    .visit-today.is-closed .visit-today__badge { color: var(--muted); }
+    .visit-today.is-closed .visit-today__dot { background: #C2410C; box-shadow: 0 0 0 4px rgba(194, 65, 12, .14); }
+    .visit-today__hours { margin: 12px 0 0; font-family: var(--font-head); font-size: 21px; font-weight: 700; line-height: 1.25; color: var(--ink); }
+    .visit-today__detail { display: flex; align-items: center; gap: 6px; margin: 6px 0 0; font-size: 14px; color: var(--muted); }
+    .visit .visit__actions { margin-top: 16px; }
+    .visit .visit__actions .btn { flex: 1 1 0; justify-content: center; }
+    .visit__map { border-radius: var(--radius-lg); box-shadow: var(--shadow); background: var(--white); }
+    .visit__map iframe { height: 300px; }
+    .visit__map-bar { display: flex; align-items: center; gap: 12px; padding: 14px 16px; color: var(--ink); text-decoration: none; border-top: 1px solid var(--line); }
+    .visit__map-pin { display: grid; place-items: center; flex: 0 0 40px; height: 40px; border-radius: 12px; background: var(--brand-soft); color: var(--brand-deep); }
+    .visit__map-text { display: flex; flex-direction: column; min-width: 0; font-size: 14px; line-height: 1.35; }
+    .visit__map-text strong { font-size: 15px; }
+    .visit__map-text span { color: var(--muted); }
+    .visit__map-go { display: grid; place-items: center; flex: 0 0 36px; height: 36px; margin-left: auto; border-radius: 50%; background: var(--brand); color: var(--white); }
+}
+
 /* ---------- Shop ---------- */
 
 .shop-toolbar { display: flex; flex-direction: column; gap: 14px; margin-bottom: 18px; }

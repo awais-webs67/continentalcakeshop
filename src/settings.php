@@ -90,6 +90,56 @@ function today_hours_label(): string
     return $slot ? 'Open today ' . format_time($slot[0]) . ' to ' . format_time($slot[1]) : 'Closed today';
 }
 
+/**
+ * Live open or closed status for today, used by the "Visit us" card on phones.
+ * Holiday closures in blocked_dates count as closed days.
+ *
+ * @return array{open:bool,today:?array,headline:string,detail:string}
+ */
+function today_status(?DateTimeImmutable $now = null): array
+{
+    $now ??= new DateTimeImmutable();
+    $hours = opening_hours();
+    $isClosedDay = static function (DateTimeImmutable $day) use ($hours): bool {
+        if (!$hours[day_key($day)]) {
+            return true;
+        }
+        try {
+            return is_blocked_date($day->format('Y-m-d'));
+        } catch (Throwable) {
+            return false;
+        }
+    };
+    $today = $isClosedDay($now) ? null : $hours[day_key($now)];
+    $opensAt = $today ? new DateTimeImmutable($now->format('Y-m-d') . ' ' . $today[0]) : null;
+    $closesAt = $today ? new DateTimeImmutable($now->format('Y-m-d') . ' ' . $today[1]) : null;
+    $open = $today && $now >= $opensAt && $now < $closesAt;
+
+    // Next time the shop opens, for the "Opens tomorrow at 9am" line.
+    $next = null;
+    for ($i = 1; $i <= 14 && !$next; $i++) {
+        $day = $now->modify("+{$i} days");
+        if (!$isClosedDay($day)) {
+            $next = [$day, $hours[day_key($day)][0]];
+        }
+    }
+    $nextLabel = $next ? (($next[0]->format('Y-m-d') === $now->modify('+1 day')->format('Y-m-d') ? 'tomorrow' : $next[0]->format('l')) . ' at ' . format_time($next[1])) : '';
+
+    if ($open) {
+        $detail = 'Closes at ' . format_time($today[1]) . ' today';
+    } elseif ($today && $now < $opensAt) {
+        $detail = 'Opens today at ' . format_time($today[0]);
+    } else {
+        $detail = $nextLabel !== '' ? 'Opens ' . $nextLabel : '';
+    }
+    return [
+        'open'     => (bool) $open,
+        'today'    => $today,
+        'headline' => $today ? 'We are open today from ' . format_time($today[0]) . ' to ' . format_time($today[1]) : 'We are closed today',
+        'detail'   => $detail,
+    ];
+}
+
 function store_address_line(): string
 {
     return sprintf('%s, %s %s %s', setting('store_street'), setting('store_suburb'), setting('store_state'), setting('store_postcode'));
