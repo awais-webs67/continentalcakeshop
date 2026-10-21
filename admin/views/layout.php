@@ -17,6 +17,7 @@ $nav = [
     'Catalogue' => [
         ['products', 'Products', 'cake', null],
         ['categories', 'Categories', 'menu', null],
+        ['addons', 'Extras', 'gift', null],
         ['gallery', 'Gallery', 'upload', null],
         ['reviews', 'Reviews', 'star', null],
     ],

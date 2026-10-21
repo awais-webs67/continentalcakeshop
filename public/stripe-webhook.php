@@ -26,8 +26,8 @@ if (in_array($type, ['checkout.session.completed', 'checkout.session.async_payme
     $order = get_order_by_number((string) ($object['client_reference_id'] ?? ''));
     if ($order && $order['stripe_session_id'] === ($object['id'] ?? null)) {
         if (($object['payment_status'] ?? '') === 'paid') {
-            mark_order_paid($order, (string) ($object['payment_intent'] ?? $object['id']));
-        } elseif ($type === 'checkout.session.async_payment_failed' && $order['payment_status'] !== 'paid') {
+            mark_order_paid($order, (string) ($object['payment_intent'] ?? $object['id']), isset($object['amount_total']) ? $object['amount_total'] / 100 : null);
+        } elseif ($type === 'checkout.session.async_payment_failed' && in_array($order['payment_status'], ['pending', 'awaiting_verification'], true)) {
             db_run("UPDATE orders SET payment_status = 'failed' WHERE id = ?", [$order['id']]);
             log_order_event((int) $order['id'], 'payment_failed', 'Stripe reported that the card payment failed.');
         }
@@ -35,12 +35,21 @@ if (in_array($type, ['checkout.session.completed', 'checkout.session.async_payme
 }
 
 // A refund made in the Stripe dashboard is reflected on the order too.
-if ($type === 'charge.refunded' && !empty($object['refunded'])) {
-    $order = get_order_by_number((string) ($object['metadata']['order_number'] ?? ''))
-        ?? (!empty($object['payment_intent']) ? db_one('SELECT * FROM orders WHERE payment_reference = ?', [(string) $object['payment_intent']]) : null);
-    if ($order && $order['payment_status'] !== 'refunded') {
-        db_run("UPDATE orders SET payment_status = 'refunded' WHERE id = ?", [$order['id']]);
-        log_order_event((int) $order['id'], 'refunded', 'Refunded in the Stripe dashboard.');
+// Full and partial refunds both arrive as charge.refunded.
+if ($type === 'charge.refunded' && !empty($object['id'])) {
+    $intent = (string) ($object['payment_intent'] ?? '');
+    $orderId = $intent !== '' ? db_value("SELECT order_id FROM payments WHERE reference = ? AND kind = 'payment'", [$intent]) : null;
+    $order = $orderId ? get_order((int) $orderId)
+        : (get_order_by_number((string) ($object['metadata']['order_number'] ?? ''))
+            ?? ($intent !== '' ? db_one('SELECT * FROM orders WHERE payment_reference = ?', [$intent]) : null));
+    if ($order) {
+        try {
+            stripe_sync_refunds($order, (string) $object['id']);
+        } catch (Throwable $e) {
+            error_log('Stripe refund sync failed: ' . $e->getMessage());
+            http_response_code(500);
+            exit('retry');
+        }
     }
 }
 

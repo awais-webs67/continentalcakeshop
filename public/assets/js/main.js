@@ -137,10 +137,16 @@
     var productForm = $('[data-product-form]');
     if (productForm) {
         var priceEl = $('[data-price]');
-        $$('input[name="size_id"]', productForm).forEach(function (radio) {
-            radio.addEventListener('change', function () {
-                if (radio.checked && priceEl) priceEl.textContent = radio.getAttribute('data-price');
-            });
+        // Price shown = chosen size + ticked options.
+        var showPrice = function () {
+            var size = $('input[name="size_id"]:checked', productForm);
+            if (!size || !priceEl) return;
+            var total = parseFloat(size.getAttribute('data-amount') || '0');
+            $$('input[name="options[]"]:checked', productForm).forEach(function (o) { total += parseFloat(o.getAttribute('data-extra') || '0'); });
+            priceEl.textContent = '$' + total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        };
+        $$('input[name="size_id"], input[name="options[]"]', productForm).forEach(function (input) {
+            input.addEventListener('change', showPrice);
         });
         var msg = $('[data-char-count]', productForm);
         var left = $('[data-char-left]', productForm);

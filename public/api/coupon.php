@@ -14,7 +14,7 @@ if (!is_post() || !hash_equals(csrf_token(), (string) ($_POST['_token'] ?? '')))
     exit;
 }
 
-$subtotal = cart_subtotal(cart_items());
+$subtotal = cart_subtotal(cart_order_lines());
 if (input('action') === 'remove') {
     remove_coupon();
     echo json_encode(['ok' => true, 'removed' => true]);

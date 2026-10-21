@@ -21,6 +21,7 @@ const ADMIN_ROUTES = [
     'orders'               => 'orders',
     'orders/view'          => 'order-view',
     'coupons'              => 'coupons',
+    'addons'               => 'addons',
     'upload-image'         => 'upload-image',
     'homepage'             => 'homepage',
     'popup'                => 'popup',

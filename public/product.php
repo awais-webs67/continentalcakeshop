@@ -11,6 +11,9 @@ if (!$product || (!$sizes && !$enquiry)) {
 }
 
 $related = get_related_products($product);
+$options = $enquiry ? [] : get_product_options((int) $product['id']);
+$soldOut = product_sold_out($product);
+$paused = ordering_paused();
 $leadHours = $product['lead_time_hours'] !== null ? (int) $product['lead_time_hours'] : (int) setting('min_lead_hours', '24');
 $prices = array_column($sizes, 'price');
 $selected = $sizes[0] ?? null;
@@ -68,6 +71,15 @@ render('header', compact('page'));
                         <a class="btn btn--outline btn--lg" href="tel:<?= e(setting('store_phone_e164')) ?>"><?= icon('phone', '', 20) ?> <?= e(setting('store_phone')) ?></a>
                     </div>
                 </div>
+                <?php elseif ($soldOut || $paused): ?>
+                <div class="enquiry-box enquiry-box--notice">
+                    <p><strong><?= $soldOut ? 'Sold out' . (product_back_label($product) !== '' ? ', back ' . e(product_back_label($product)) : ' for now') : 'Online orders are paused' ?></strong><br>
+                    <?= $soldOut ? 'This cake is not available to order online right now. Call us and we will tell you when it is back, or have a look at our other cakes.' : e(ordering_paused_message()) ?></p>
+                    <div class="enquiry-box__actions">
+                        <a class="btn btn--primary btn--lg" href="tel:<?= e(setting('store_phone_e164')) ?>"><?= icon('phone', '', 20) ?> <?= e(setting('store_phone')) ?></a>
+                        <a class="btn btn--outline btn--lg" href="<?= e(url('shop/' . $product['category_slug'])) ?>">More <?= e(strtolower($product['category_name'])) ?></a>
+                    </div>
+                </div>
                 <?php else: ?>
                 <form class="product-form" method="post" action="<?= e(url('cart')) ?>" data-product-form>
                     <?= csrf_field() ?>
@@ -78,7 +90,7 @@ render('header', compact('page'));
                         <div class="size-options">
                             <?php foreach ($sizes as $i => $size): ?>
                                 <label class="size-option">
-                                    <input type="radio" name="size_id" value="<?= (int) $size['id'] ?>" data-price="<?= e(money($size['price'])) ?>" <?= $i === 0 ? 'checked' : '' ?> required>
+                                    <input type="radio" name="size_id" value="<?= (int) $size['id'] ?>" data-price="<?= e(money($size['price'])) ?>" data-amount="<?= e(number_format((float) $size['price'], 2, '.', '')) ?>" <?= $i === 0 ? 'checked' : '' ?> required>
                                     <span class="size-option__box">
                                         <span class="size-option__label"><?= e($size['label']) ?></span>
                                         <?php if ($size['servings']): ?>
@@ -90,6 +102,22 @@ render('header', compact('page'));
                             <?php endforeach; ?>
                         </div>
                     </fieldset>
+
+                    <?php if ($options): ?>
+                        <fieldset class="field-group">
+                            <legend class="field-label">Options <span class="field-hint">Optional</span></legend>
+                            <div class="option-list">
+                                <?php foreach ($options as $option): ?>
+                                    <label class="option-check">
+                                        <input type="checkbox" name="options[]" value="<?= (int) $option['id'] ?>" data-extra="<?= e(number_format((float) $option['price'], 2, '.', '')) ?>">
+                                        <span class="option-check__box" aria-hidden="true"><?= icon('check', '', 14) ?></span>
+                                        <span class="option-check__name"><?= e($option['name']) ?></span>
+                                        <span class="option-check__price"><?= (float) $option['price'] > 0 ? '+' . e(money($option['price'])) : 'Free' ?></span>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        </fieldset>
+                    <?php endif; ?>
 
                     <?php if ((int) $product['allow_message'] === 1): ?>
                         <div class="field">

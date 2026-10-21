@@ -13,7 +13,7 @@ const ADMIN_SECTIONS = [
     'customers' => ['Customers', ['customers', 'customers/view']],
     'reports'   => ['Sales reports and exports', ['reports', 'reports/export']],
     'coupons'   => ['Coupons', ['coupons']],
-    'products'  => ['Products and categories', ['products', 'products/edit', 'products/import', 'categories', 'categories/edit']],
+    'products'  => ['Products, categories and extras', ['products', 'products/edit', 'products/import', 'categories', 'categories/edit', 'addons']],
     'gallery'   => ['Gallery and reviews', ['gallery', 'reviews']],
     'content'   => ['Homepage, popup, pages and FAQs', ['homepage', 'popup', 'pages', 'pages/edit', 'faqs', 'upload-image']],
     'settings'  => ['Settings', ['settings']],
@@ -355,6 +355,81 @@ function delete_public_image(?string $path): void
     if (is_file($full)) {
         @unlink($full);
     }
+}
+
+// ---------------------------------------------------------------------------
+// Order lines typed by staff (phone orders and order changes)
+// ---------------------------------------------------------------------------
+
+/**
+ * Everything staff can put on an order, for the item picker: every size of every cake
+ * (hidden cakes too, marked), then the extras. Keyed "size:ID" or "addon:ID".
+ */
+function admin_size_choices(): array
+{
+    $choices = [];
+    foreach (db_all(
+        'SELECT s.id, s.label, s.price, p.name, p.is_active, c.name AS category
+         FROM product_sizes s JOIN products p ON p.id = s.product_id JOIN categories c ON c.id = p.category_id
+         WHERE s.is_active = 1 ORDER BY c.sort_order, p.sort_order, p.name, s.sort_order, s.price'
+    ) as $s) {
+        $choices[$s['category']]['size:' . $s['id']] = [
+            'label' => $s['name'] . ', ' . $s['label'] . ' (' . money($s['price']) . ')' . ($s['is_active'] ? '' : ' [hidden]'),
+            'price' => (float) $s['price'],
+        ];
+    }
+    foreach (db_all('SELECT id, name, price, is_active FROM addons ORDER BY sort_order, name') as $a) {
+        $choices['Extras']['addon:' . $a['id']] = ['label' => $a['name'] . ' (' . money($a['price']) . ')' . ($a['is_active'] ? '' : ' [off]'), 'price' => (float) $a['price']];
+    }
+    return $choices;
+}
+
+/**
+ * Turns the "add a line" rows of a staff form into order lines.
+ * Each row: item ("size:ID", "addon:ID" or "custom"), qty, price (optional override),
+ * name (custom lines), options (free text, e.g. Eggless) and message.
+ */
+function admin_order_lines_from_post(mixed $rows): array
+{
+    $lines = [];
+    foreach (is_array($rows) ? $rows : [] as $row) {
+        $item = (string) ($row['item'] ?? '');
+        $qty = min(99, max(0, (int) ($row['qty'] ?? 1)));
+        if ($item === '' || $qty === 0) {
+            continue;
+        }
+        $priceText = trim(str_replace(['$', ','], '', (string) ($row['price'] ?? '')));
+        $override = $priceText !== '' && is_numeric($priceText) ? max(0, round((float) $priceText, 2)) : null;
+        $line = ['product_id' => null, 'size_id' => null, 'addon_id' => null, 'options' => str_limit(trim((string) ($row['options'] ?? '')), 255),
+                 'message' => str_limit(trim((string) ($row['message'] ?? '')), 60), 'qty' => $qty];
+        if (str_starts_with($item, 'size:')) {
+            $size = db_one('SELECT s.id, s.label, s.price, p.id AS product_id, p.name FROM product_sizes s JOIN products p ON p.id = s.product_id WHERE s.id = ?', [(int) substr($item, 5)]);
+            if (!$size) {
+                continue;
+            }
+            $line += ['name' => $size['name'], 'size_label' => $size['label'], 'price' => $override ?? (float) $size['price']];
+            $line['product_id'] = (int) $size['product_id'];
+            $line['size_id'] = (int) $size['id'];
+        } elseif (str_starts_with($item, 'addon:')) {
+            $addon = db_one('SELECT id, name, price FROM addons WHERE id = ?', [(int) substr($item, 6)]);
+            if (!$addon) {
+                continue;
+            }
+            $line += ['name' => $addon['name'], 'size_label' => 'Extra', 'price' => $override ?? (float) $addon['price']];
+            $line['addon_id'] = (int) $addon['id'];
+        } elseif ($item === 'custom') {
+            $name = str_limit(trim((string) ($row['name'] ?? '')), 160);
+            if ($name === '' || $override === null) {
+                continue;
+            }
+            $line += ['name' => $name, 'size_label' => str_limit(trim((string) ($row['size'] ?? '')), 60), 'price' => $override];
+        } else {
+            continue;
+        }
+        $line['line_total'] = round($line['price'] * $qty, 2);
+        $lines[] = $line;
+    }
+    return $lines;
 }
 
 // ---------------------------------------------------------------------------

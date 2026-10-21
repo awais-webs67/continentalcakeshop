@@ -8,9 +8,16 @@ if (is_post()) {
     $action = input('action');
 
     if ($action === 'add') {
-        $added = cart_add((int) input('size_id'), (int) input('qty', '1'), input('message'));
-        flash($added ? 'success' : 'error', $added ? 'Added to your cart.' : 'Sorry, that cake is no longer available.');
+        $error = cart_add_error((int) input('size_id'));
+        $added = $error === null && cart_add((int) input('size_id'), (int) input('qty', '1'), input('message'), (array) ($_POST['options'] ?? []));
+        flash($added ? 'success' : 'error', $added ? 'Added to your cart.' : ($error ?? 'Sorry, that cake is no longer available.'));
         redirect($added ? 'cart' : 'shop');
+    }
+    if ($action === 'addons') {
+        foreach ((array) ($_POST['addon'] ?? []) as $addonId => $qty) {
+            cart_set_addon((int) $addonId, (int) $qty);
+        }
+        flash('success', 'Your extras have been updated.');
     }
     if ($action === 'update') {
         foreach ((array) ($_POST['qty'] ?? []) as $key => $qty) {
@@ -29,7 +36,10 @@ if (is_post()) {
 }
 
 $items = cart_items();
-$subtotal = cart_subtotal($items);
+$addonLines = $items ? cart_addon_lines() : [];
+$addons = $items ? available_addons() : [];
+$chosenAddons = $_SESSION['cart_addons'] ?? [];
+$subtotal = cart_subtotal(array_merge($items, $addonLines));
 
 $page = [
     'title'   => 'Your Cart | ' . setting('store_short_name'),
@@ -46,6 +56,9 @@ render('header', compact('page'));
 
 <section class="section section--compact">
     <div class="container">
+        <?php if ($items && ordering_paused()): ?>
+            <div class="alert alert--info"><?= e(ordering_paused_message()) ?></div>
+        <?php endif; ?>
         <?php if (!$items): ?>
             <div class="empty-state">
                 <?= icon('bag', '', 44) ?>
@@ -55,6 +68,7 @@ render('header', compact('page'));
             </div>
         <?php else: ?>
             <div class="cart-layout">
+                <div class="cart-main">
                 <form class="cart-list" method="post" action="<?= e(url('cart')) ?>" id="cart-form">
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="update">
@@ -77,6 +91,9 @@ render('header', compact('page'));
                                 <?php else: ?>
                                     <p class="cart-item__meta"><?= e($item['size_label']) ?> &middot; <?= e(money($item['price'])) ?></p>
                                 <?php endif; ?>
+                                <?php if ($item['options'] !== ''): ?>
+                                    <p class="cart-item__options"><?= icon('check', '', 14) ?> <?= e($item['options']) ?></p>
+                                <?php endif; ?>
                                 <?php if ($item['message'] !== ''): ?>
                                     <p class="cart-item__message"><?= icon('pen', '', 14) ?> &ldquo;<?= e($item['message']) ?>&rdquo;</p>
                                 <?php endif; ?>
@@ -95,6 +112,32 @@ render('header', compact('page'));
                     <noscript><button class="btn btn--outline btn--sm" type="submit">Update cart</button></noscript>
                 </form>
 
+                <?php if ($addons): ?>
+                    <form class="addons-box" method="post" action="<?= e(url('cart')) ?>">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="action" value="addons">
+                        <h2 class="addons-box__title"><?= icon('gift', '', 20) ?> <?= e(setting('addons_title', 'Add something extra')) ?></h2>
+                        <div class="addons-list">
+                            <?php foreach ($addons as $addon): $qty = (int) ($chosenAddons[(int) $addon['id']] ?? 0); ?>
+                                <div class="addon-row<?= $qty > 0 ? ' is-chosen' : '' ?>">
+                                    <div class="addon-row__info">
+                                        <strong><?= e($addon['name']) ?></strong>
+                                        <?php if ($addon['description']): ?><span><?= e($addon['description']) ?></span><?php endif; ?>
+                                    </div>
+                                    <span class="addon-row__price"><?= e(money($addon['price'])) ?></span>
+                                    <div class="qty qty--sm" data-qty>
+                                        <button type="button" class="qty__btn" data-qty-step="-1" aria-label="Fewer <?= e($addon['name']) ?>"><?= icon('minus', '', 16) ?></button>
+                                        <input class="qty__input" type="number" name="addon[<?= (int) $addon['id'] ?>]" value="<?= $qty ?>" min="0" max="<?= (int) $addon['max_qty'] ?>" inputmode="numeric" aria-label="How many <?= e($addon['name']) ?>" data-auto-update>
+                                        <button type="button" class="qty__btn" data-qty-step="1" aria-label="More <?= e($addon['name']) ?>"><?= icon('plus', '', 16) ?></button>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <noscript><button class="btn btn--outline btn--sm" type="submit">Save extras</button></noscript>
+                    </form>
+                <?php endif; ?>
+                </div>
+
                 <?php foreach ($items as $item): ?>
                     <form id="remove-<?= e($item['key']) ?>" method="post" action="<?= e(url('cart')) ?>" hidden>
                         <?= csrf_field() ?>
@@ -106,6 +149,10 @@ render('header', compact('page'));
                 <aside class="summary-card">
                     <h2 class="summary-card__title">Order summary</h2>
                     <dl class="summary-lines">
+                        <?php if ($addonLines): ?>
+                            <div><dt>Cakes</dt><dd><?= e(money(cart_subtotal($items))) ?></dd></div>
+                            <div><dt>Extras</dt><dd><?= e(money(cart_subtotal($addonLines))) ?></dd></div>
+                        <?php endif; ?>
                         <div><dt>Subtotal</dt><dd><?= e(money($subtotal)) ?></dd></div>
                         <div><dt>Pickup</dt><dd>Free</dd></div>
                     </dl>

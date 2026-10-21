@@ -5,7 +5,7 @@ $days = max(1, min(14, query_int('days', 7)));
 $end = date('Y-m-d', strtotime($start . ' +' . ($days - 1) . ' days'));
 
 $orders = db_all(
-    "SELECT o.*, (SELECT GROUP_CONCAT(CONCAT(quantity, ' x ', product_name, ' (', size_label, ')') SEPARATOR ', ') FROM order_items WHERE order_id = o.id) AS summary
+    "SELECT o.*, (SELECT GROUP_CONCAT(CONCAT(quantity, ' x ', product_name, ' (', CONCAT_WS(', ', NULLIF(size_label, ''), options), ')') SEPARATOR ', ') FROM order_items WHERE order_id = o.id) AS summary
      FROM orders o WHERE o.pickup_date BETWEEN ? AND ? AND o.order_status <> 'cancelled' ORDER BY o.pickup_date, o.pickup_time",
     [$start, $end]
 );

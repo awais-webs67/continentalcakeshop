@@ -12,6 +12,7 @@ const PRODUCT_SORTS = [
 const PRODUCT_LIST_SQL = '
     SELECT p.*, c.name AS category_name, c.slug AS category_slug,
            MIN(s.price) AS price_from, MAX(s.price) AS price_to, COUNT(s.id) AS size_count,
+           (SELECT COUNT(*) FROM product_options po WHERE po.product_id = p.id AND po.is_active = 1) AS option_count,
            (SELECT s2.id FROM product_sizes s2 WHERE s2.product_id = p.id AND s2.is_active = 1 ORDER BY s2.sort_order, s2.price LIMIT 1) AS default_size_id
     FROM products p
     JOIN categories c ON c.id = p.category_id AND c.is_active = 1
@@ -92,6 +93,11 @@ function get_product_sizes(int $productId): array
     );
 }
 
+function get_product_options(int $productId): array
+{
+    return db_all('SELECT * FROM product_options WHERE product_id = ? AND is_active = 1 ORDER BY sort_order, id', [$productId]);
+}
+
 /** Custom cake form, pre-filled with the cake a customer is asking about. */
 function enquiry_url(array $product): string
 {
@@ -126,6 +132,68 @@ function price_label(array $product): string
         return 'From ' . money($product['price_from']);
     }
     return money($product['price_from']);
+}
+
+// ---------------------------------------------------------------------------
+// Sold out cakes and pausing online orders
+// ---------------------------------------------------------------------------
+
+const SOLD_OUT_FOREVER = '9999-12-31';
+
+/** True while a cake is marked sold out (the mark ends by itself after its last day). */
+function product_sold_out(array $product): bool
+{
+    $until = (string) ($product['sold_out_until'] ?? '');
+    return $until !== '' && $until >= date('Y-m-d');
+}
+
+/** When a sold out cake is back, e.g. "tomorrow" or "Saturday 2 November". Empty when unknown. */
+function product_back_label(array $product): string
+{
+    $until = (string) ($product['sold_out_until'] ?? '');
+    if ($until === '' || $until === SOLD_OUT_FOREVER) {
+        return '';
+    }
+    $back = (new DateTimeImmutable($until))->modify('+1 day');
+    return $back->format('Y-m-d') === date('Y-m-d', strtotime('+1 day')) ? 'tomorrow' : $back->format('l j F');
+}
+
+/** Online ordering switched off in Admin > Settings > Ordering (ends by itself after the chosen date). */
+function ordering_paused(): bool
+{
+    if (!setting_bool('ordering_paused')) {
+        return false;
+    }
+    $until = setting('ordering_paused_until');
+    return $until === '' || $until >= date('Y-m-d');
+}
+
+function ordering_paused_message(): string
+{
+    $message = setting('ordering_paused_message', 'We are not taking online orders right now. Please call us and we will do our best to help.');
+    $until = setting('ordering_paused_until');
+    if ($until !== '' && !str_contains($message, '{date}')) {
+        $message .= ' Online orders open again on ' . (new DateTimeImmutable($until))->modify('+1 day')->format('l j F') . '.';
+    }
+    return str_replace('{date}', $until !== '' ? (new DateTimeImmutable($until))->modify('+1 day')->format('l j F') : '', $message);
+}
+
+// ---------------------------------------------------------------------------
+// WhatsApp chat button
+// ---------------------------------------------------------------------------
+
+/** wa.me link for the shop's WhatsApp number (set in Settings), or '' when none is set. */
+function whatsapp_url(string $text = ''): string
+{
+    $digits = preg_replace('/\D/', '', setting('whatsapp_number'));
+    if ($digits === '') {
+        return '';
+    }
+    if (str_starts_with($digits, '0')) {
+        $digits = '61' . substr($digits, 1);
+    }
+    $text = $text !== '' ? $text : setting('whatsapp_message');
+    return 'https://wa.me/' . $digits . ($text !== '' ? '?text=' . rawurlencode($text) : '');
 }
 
 function get_gallery(?int $limit = null, int $offset = 0): array

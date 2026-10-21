@@ -9,11 +9,11 @@ switch ((string) ($_GET['type'] ?? 'orders')) {
     case 'items':
         $rows = db_all(
             "SELECT o.order_number, o.created_at, o.customer_name, o.order_status, o.payment_status,
-                    i.product_name, i.size_label, i.quantity, i.unit_price, i.line_total, i.cake_message
+                    i.product_name, i.size_label, COALESCE(i.options, ''), i.quantity, i.unit_price, i.line_total, i.cake_message
              FROM order_items i JOIN orders o ON o.id = i.order_id WHERE o.created_at BETWEEN ? AND ? ORDER BY o.created_at, o.id",
             $range
         );
-        send_csv($name('items'), ['Order', 'Placed', 'Customer', 'Order status', 'Payment status', 'Cake', 'Size', 'Quantity', 'Unit price', 'Line total', 'Message on cake'],
+        send_csv($name('items'), ['Order', 'Placed', 'Customer', 'Order status', 'Payment status', 'Cake', 'Size', 'Options', 'Quantity', 'Unit price', 'Line total', 'Message on cake'],
             array_map('array_values', $rows));
     case 'daily':
         send_csv($name('daily-sales'), ['Date', 'Orders', 'Sales', 'Paid'],

@@ -66,6 +66,36 @@
             </section>
 
             <section class="card">
+                <div class="card__head"><h2>Options</h2><span class="hint">Optional choices that change the price, e.g. Eggless +$5</span></div>
+                <div class="card__body" data-repeater>
+                    <div class="repeater">
+                        <div class="repeater__row repeater__row--options repeater__row--head"><span>Option</span><span>Extra price (AUD)</span><span></span></div>
+                        <div data-repeater-list class="repeater">
+                            <?php foreach ($optionRows as $i => $option): ?>
+                                <div class="repeater__row repeater__row--options">
+                                    <input type="hidden" name="options[<?= $i ?>][id]" value="<?= (int) $option['id'] ?>">
+                                    <input class="input" name="options[<?= $i ?>][name]" value="<?= e($option['name']) ?>" maxlength="80" placeholder="e.g. Eggless">
+                                    <div class="input-prefix"><span>+$</span><input class="input" name="options[<?= $i ?>][price]" value="<?= e((string) $option['price']) ?>" inputmode="decimal" placeholder="0.00"></div>
+                                    <button type="button" class="repeater__remove" data-repeater-remove aria-label="Remove option"><?= icon('trash', '', 16) ?></button>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <template>
+                        <div class="repeater__row repeater__row--options">
+                            <input type="hidden" name="options[__INDEX__][id]" value="0">
+                            <input class="input" name="options[__INDEX__][name]" maxlength="80" placeholder="e.g. Eggless">
+                            <div class="input-prefix"><span>+$</span><input class="input" name="options[__INDEX__][price]" inputmode="decimal" placeholder="0.00"></div>
+                            <button type="button" class="repeater__remove" data-repeater-remove aria-label="Remove option"><?= icon('trash', '', 16) ?></button>
+                        </div>
+                    </template>
+                    <?= field_error($errors, 'options') ?>
+                    <p style="margin:12px 0 0"><button type="button" class="btn btn--secondary btn--sm" data-repeater-add><?= icon('plus', '', 16) ?> Add an option</button></p>
+                    <p class="hint" style="margin:8px 0 0">Customers tick options on the cake page. Use 0 for a free choice.</p>
+                </div>
+            </section>
+
+            <section class="card">
                 <div class="card__head"><h2>Search engines</h2></div>
                 <div class="card__body form-stack">
                     <label class="field"><span>Page title <small>leave empty to use the product name</small></span><input class="input" name="meta_title" maxlength="160" value="<?= e((string) $product['meta_title']) ?>"></label>
@@ -92,6 +122,16 @@
                     <label class="switch"><input type="checkbox" name="is_featured" value="1" <?= checked((bool) $product['is_featured']) ?>><span class="switch__track"></span><span>Feature on the homepage</span></label>
                     <label class="switch"><input type="checkbox" name="allow_message" value="1" <?= checked((bool) $product['allow_message']) ?>><span class="switch__track"></span><span>Allow a message on the cake</span></label>
                     <label class="switch"><input type="checkbox" name="is_enquiry" value="1" <?= checked((bool) $product['is_enquiry']) ?>><span class="switch__track"></span><span>Price on request (special)</span></label>
+                    <?php $soldOutMode = !product_sold_out($product) ? 'no' : (($product['sold_out_until'] ?? '') === SOLD_OUT_FOREVER ? 'forever' : (($product['sold_out_until'] ?? '') === date('Y-m-d') ? 'today' : 'until')); ?>
+                    <label class="field"><span>Sold out</span>
+                        <select class="input" name="sold_out" data-sold-out>
+                            <option value="no" <?= selected($soldOutMode === 'no') ?>>No, customers can order it</option>
+                            <option value="today" <?= selected($soldOutMode === 'today') ?>>Sold out today (back tomorrow)</option>
+                            <option value="until" <?= selected($soldOutMode === 'until') ?>>Sold out until a date</option>
+                            <option value="forever" <?= selected($soldOutMode === 'forever') ?>>Sold out until I switch it back</option>
+                        </select>
+                    </label>
+                    <label class="field" data-sold-out-date <?= $soldOutMode === 'until' ? '' : 'hidden' ?>><span>Last sold out day</span><input class="input" type="date" name="sold_out_until" min="<?= e(date('Y-m-d')) ?>" value="<?= e($soldOutMode === 'until' ? (string) $product['sold_out_until'] : '') ?>"></label>
                     <p class="hint" style="margin-top:-6px">Specials show an "Enquire" button instead of Add to Cart. Sizes are optional for them.</p>
                     <label class="field"><span>Badge <small>e.g. Customer favourite</small></span><input class="input" name="badge" maxlength="40" value="<?= e((string) $product['badge']) ?>"></label>
                     <label class="field"><span>Notice needed (hours) <small>empty = shop default</small></span><input class="input" type="number" min="0" name="lead_time_hours" value="<?= e((string) $product['lead_time_hours']) ?>"></label>

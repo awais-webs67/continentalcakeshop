@@ -8,6 +8,6 @@ if (!$customer) {
 }
 // Guest orders placed with the same email are shown too, since it is usually the same person.
 $orders = db_all('SELECT * FROM orders WHERE user_id = ? OR (user_id IS NULL AND customer_email = ?) ORDER BY created_at DESC', [$customer['id'], $customer['email']]);
-$paid = array_sum(array_map(static fn ($o) => $o['payment_status'] === 'paid' ? (float) $o['total'] : 0, $orders));
+$paid = array_sum(array_map(static fn ($o) => order_net_paid($o), $orders));
 $requests = db_all('SELECT * FROM custom_requests WHERE email = ? ORDER BY created_at DESC', [$customer['email']]);
 admin_view('customer-view', compact('customer', 'orders', 'paid', 'requests') + ['title' => $customer['name']]);

@@ -32,6 +32,7 @@ if (is_post()) {
         db_run('INSERT INTO products (' . implode(', ', $columns) . ') VALUES (' . implode(', ', array_fill(0, count($columns), '?')) . ')', array_values($copy));
         $newId = (int) $pdo->lastInsertId();
         db_run('INSERT INTO product_sizes (product_id, label, servings, price, sort_order, is_active) SELECT ?, label, servings, price, sort_order, is_active FROM product_sizes WHERE product_id = ?', [$newId, $product['id']]);
+        db_run('INSERT INTO product_options (product_id, name, price, sort_order, is_active) SELECT ?, name, price, sort_order, is_active FROM product_options WHERE product_id = ?', [$newId, $product['id']]);
         $pdo->commit();
         flash('success', 'Copy created. Change the name, photo and prices, then switch on "Show in the shop".');
         redirect(admin_url('products/edit', ['id' => $newId]));
@@ -52,7 +53,25 @@ if (is_post()) {
         'sort_order'        => (int) input('sort_order', '0'),
         'meta_title'        => str_limit(input('meta_title'), 160),
         'meta_description'  => str_limit(input('meta_description'), 255),
+        'sold_out_until'    => match (input('sold_out')) {
+            'today'   => date('Y-m-d'),
+            'forever' => SOLD_OUT_FOREVER,
+            'until'   => preg_match('/^\d{4}-\d{2}-\d{2}$/', input('sold_out_until')) && input('sold_out_until') >= date('Y-m-d') ? input('sold_out_until') : date('Y-m-d'),
+            default   => null,
+        },
     ];
+    $options = [];
+    foreach ((array) ($_POST['options'] ?? []) as $row) {
+        $name = str_limit(trim((string) ($row['name'] ?? '')), 80);
+        $priceText = trim(str_replace(['$', ',', '+'], '', (string) ($row['price'] ?? '')));
+        if ($name === '' && $priceText === '') {
+            continue;
+        }
+        if ($name === '' || ($priceText !== '' && (!is_numeric($priceText) || (float) $priceText < 0))) {
+            $errors['options'] = 'Every option needs a name, and the extra price must be 0 or more.';
+        }
+        $options[] = ['id' => (int) ($row['id'] ?? 0), 'name' => $name, 'price' => round((float) $priceText, 2)];
+    }
     $sizes = [];
     foreach ((array) ($_POST['sizes'] ?? []) as $row) {
         $label = str_limit(trim((string) ($row['label'] ?? '')), 60);
@@ -113,6 +132,17 @@ if (is_post()) {
         }
         $in = implode(',', array_map('intval', $keep ?: [0]));
         db_run("DELETE FROM product_sizes WHERE product_id = ? AND id NOT IN ({$in})", [$productId]);
+        $keepOptions = [0];
+        foreach ($options as $order => $option) {
+            if ($option['id'] && db_value('SELECT 1 FROM product_options WHERE id = ? AND product_id = ?', [$option['id'], $productId])) {
+                db_run('UPDATE product_options SET name = ?, price = ?, sort_order = ?, is_active = 1 WHERE id = ?', [$option['name'], $option['price'], $order, $option['id']]);
+                $keepOptions[] = $option['id'];
+            } else {
+                db_run('INSERT INTO product_options (product_id, name, price, sort_order) VALUES (?, ?, ?, ?)', [$productId, $option['name'], $option['price'], $order]);
+                $keepOptions[] = (int) $pdo->lastInsertId();
+            }
+        }
+        db_run('DELETE FROM product_options WHERE product_id = ? AND id NOT IN (' . implode(',', array_map('intval', $keepOptions)) . ')', [$productId]);
         $pdo->commit();
 
         if (($image || input('remove_image') === '1') && $product && $product['image'] && str_starts_with($product['image'], 'products/') && $product['image'] !== ($data['image'] ?? null)) {
@@ -123,9 +153,11 @@ if (is_post()) {
     }
     $product = array_merge($product ?? [], $data, ['image' => $product['image'] ?? null]);
     $sizeRows = $sizes;
+    $optionRows = $options;
 } else {
+    $optionRows = $product ? db_all('SELECT * FROM product_options WHERE product_id = ? ORDER BY sort_order, id', [$product['id']]) : [];
     $sizeRows = $product ? db_all('SELECT * FROM product_sizes WHERE product_id = ? ORDER BY sort_order, price', [$product['id']]) : [['id' => 0, 'label' => 'Midi', 'servings' => 'Serves 8', 'price' => ''], ['id' => 0, 'label' => 'Large', 'servings' => 'Serves 14', 'price' => '']];
 }
 
-$product ??= ['name' => '', 'slug' => '', 'category_id' => 0, 'short_description' => '', 'description' => '', 'badge' => '', 'is_featured' => 0, 'is_active' => 1, 'allow_message' => 1, 'is_enquiry' => 0, 'lead_time_hours' => null, 'sort_order' => 0, 'meta_title' => '', 'meta_description' => '', 'image' => null];
-admin_view('product-edit', compact('product', 'categories', 'sizeRows', 'errors', 'id') + ['title' => $id ? 'Edit ' . $product['name'] : 'Add product']);
+$product ??= ['name' => '', 'slug' => '', 'category_id' => 0, 'short_description' => '', 'description' => '', 'badge' => '', 'is_featured' => 0, 'is_active' => 1, 'allow_message' => 1, 'is_enquiry' => 0, 'lead_time_hours' => null, 'sold_out_until' => null, 'sort_order' => 0, 'meta_title' => '', 'meta_description' => '', 'image' => null];
+admin_view('product-edit', compact('product', 'categories', 'sizeRows', 'optionRows', 'errors', 'id') + ['title' => $id ? 'Edit ' . $product['name'] : 'Add product']);

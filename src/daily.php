@@ -8,7 +8,7 @@ declare(strict_types=1);
 function daily_summary_data(string $date): array
 {
     $orders = db_all(
-        "SELECT o.*, (SELECT GROUP_CONCAT(CONCAT(i.quantity, ' x ', i.product_name, ' (', i.size_label, ')') SEPARATOR ', ')
+        "SELECT o.*, (SELECT GROUP_CONCAT(CONCAT(i.quantity, ' x ', i.product_name, ' (', CONCAT_WS(', ', NULLIF(i.size_label, ''), i.options), ')') SEPARATOR ', ')
                       FROM order_items i WHERE i.order_id = o.id) AS summary
          FROM orders o WHERE o.pickup_date = ? AND o.order_status <> 'cancelled'
          ORDER BY o.pickup_time IS NULL, o.pickup_time",
@@ -25,7 +25,7 @@ function daily_summary_data(string $date): array
         'requests'    => db_all("SELECT * FROM custom_requests WHERE status IN ('new', 'quoted', 'confirmed') AND event_date BETWEEN ? AND ? ORDER BY event_date", [$date, date('Y-m-d', strtotime($date . ' +7 days'))]),
         'unread'      => unread_thread_count(),
         'tomorrow'    => (int) db_value("SELECT COUNT(*) FROM orders WHERE pickup_date = ? AND order_status <> 'cancelled'", [$tomorrow]),
-        'yesterday_sales' => (float) db_value("SELECT COALESCE(SUM(total), 0) FROM orders WHERE payment_status = 'paid' AND DATE(created_at) = ?", [date('Y-m-d', strtotime($date . ' -1 day'))]),
+        'yesterday_sales' => (float) db_value("SELECT COALESCE(SUM(amount_paid - amount_refunded), 0) FROM orders WHERE order_status <> 'cancelled' AND DATE(created_at) = ?", [date('Y-m-d', strtotime($date . ' -1 day'))]),
     ];
 }
 

@@ -5,7 +5,9 @@ $link = product_url($product);
 <article class="product-card">
     <a class="product-card__media" href="<?= e($link) ?>" tabindex="-1" aria-hidden="true">
         <img src="<?= e(product_image_url($product['image'])) ?>" alt="<?= e($product['name']) ?>" width="600" height="600" loading="lazy" decoding="async">
-        <?php if (!empty($product['badge'])): ?>
+        <?php if (product_sold_out($product)): ?>
+            <span class="product-card__badge product-card__badge--soldout">Sold out</span>
+        <?php elseif (!empty($product['badge'])): ?>
             <span class="product-card__badge"><?= e($product['badge']) ?></span>
         <?php endif; ?>
     </a>
@@ -16,6 +18,8 @@ $link = product_url($product);
             <p class="product-card__price"><?= e(price_label($product)) ?></p>
             <?php if (!empty($product['is_enquiry'])): ?>
                 <a class="product-card__btn product-card__btn--enquire" href="<?= e(enquiry_url($product)) ?>" aria-label="Enquire about <?= e($product['name']) ?>"><?= icon('mail', '', 17) ?> Enquire</a>
+            <?php elseif (product_sold_out($product) || ordering_paused()): ?>
+                <a class="product-card__btn product-card__btn--view" href="<?= e($link) ?>" aria-label="View <?= e($product['name']) ?>"><?= product_sold_out($product) ? 'Sold out' : 'View' ?> <?= icon('arrow', '', 16) ?></a>
             <?php else: ?>
             <form class="product-card__action" method="post" action="<?= e(url('cart')) ?>">
                 <?= csrf_field() ?>

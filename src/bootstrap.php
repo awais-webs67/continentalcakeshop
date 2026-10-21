@@ -76,6 +76,11 @@ require __DIR__ . '/seo.php';
 require __DIR__ . '/icons.php';
 require __DIR__ . '/migrations.php';
 
+// New code that came with database changes updates the database on the first request.
+if (PHP_SAPI !== 'cli') {
+    auto_migrate();
+}
+
 if (session_status() === PHP_SESSION_NONE && PHP_SAPI !== 'cli') {
     session_name('ccs_session');
     session_set_cookie_params([

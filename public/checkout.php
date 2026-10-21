@@ -8,13 +8,27 @@ if (!$items) {
     flash('info', 'Your cart is empty. Add a cake to get started.');
     redirect('shop');
 }
+if (ordering_paused()) {
+    flash('error', ordering_paused_message());
+    redirect('cart');
+}
+// A cake that sold out after it went in the cart has to come out first.
+$soldOutNames = array_column(array_filter(array_map(
+    static fn ($i) => db_one('SELECT name, sold_out_until FROM products WHERE id = ?', [$i['product_id']]),
+    $items
+), static fn ($p) => $p && product_sold_out($p)), 'name');
+if ($soldOutNames) {
+    flash('error', 'Sorry, ' . implode(', ', array_unique($soldOutNames)) . ' just sold out. Please remove it from your cart to continue.');
+    redirect('cart');
+}
+$lines = cart_order_lines();
 
 $leadHours = cart_lead_hours($items);
 $methods = available_payment_methods();
 $pickupEnabled = setting_bool('pickup_enabled');
 $deliveryEnabled = setting_bool('delivery_enabled');
 $fulfilmentOptions = array_keys(array_filter(['pickup' => $pickupEnabled, 'delivery' => $deliveryEnabled]));
-$subtotal = cart_subtotal($items);
+$subtotal = cart_subtotal($lines);
 $deliveryFee = (float) setting('delivery_fee', '0');
 $freeOver = (float) setting('delivery_free_over', '0');
 $coupon = coupons_enabled() ? active_coupon($subtotal) : null;
@@ -149,7 +163,7 @@ if (is_post()) {
     }
 
     try {
-        $order = create_order($data, $items, $coupon);
+        $order = create_order($data, $lines, $coupon);
     } catch (CouponUnavailable $e) {
         remove_coupon();
         remember_input(array_diff_key($data, ['payment_proof' => true, 'user_id' => true]) + ['payment_proof_token' => input('payment_proof_token')]);
@@ -409,12 +423,17 @@ render('header', compact('page'));
             <aside class="summary-card checkout-summary">
                 <h2 class="summary-card__title">Your order</h2>
                 <ul class="summary-items">
-                    <?php foreach ($items as $item): ?>
+                    <?php foreach ($lines as $item): ?>
                         <li>
-                            <img src="<?= e(product_image_url($item['image'])) ?>" alt="" width="56" height="56" loading="lazy">
+                            <?php if ($item['addon_id']): ?>
+                                <span class="summary-items__icon" aria-hidden="true"><?= icon('gift', '', 22) ?></span>
+                            <?php else: ?>
+                                <img src="<?= e(product_image_url($item['image'])) ?>" alt="" width="56" height="56" loading="lazy">
+                            <?php endif; ?>
                             <div>
                                 <strong><?= e($item['name']) ?></strong>
-                                <span><?= e($item['size_label']) ?> &times; <?= (int) $item['qty'] ?></span>
+                                <span><?= e($item['addon_id'] ? 'Extra' : $item['size_label']) ?> &times; <?= (int) $item['qty'] ?></span>
+                                <?php if ($item['options'] !== ''): ?><span class="summary-items__msg"><?= e($item['options']) ?></span><?php endif; ?>
                                 <?php if ($item['message'] !== ''): ?><span class="summary-items__msg">&ldquo;<?= e($item['message']) ?>&rdquo;</span><?php endif; ?>
                             </div>
                             <span><?= e(money($item['line_total'])) ?></span>

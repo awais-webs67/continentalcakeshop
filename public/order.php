@@ -9,7 +9,7 @@ if (!$order || !hash_equals($order['access_token'], input('t'))) {
 }
 
 // Customer chose to retry a card payment that was cancelled or failed.
-if (is_post() && input('action') === 'pay' && $order['payment_method'] === PAYMENT_STRIPE && $order['payment_status'] !== 'paid') {
+if (is_post() && input('action') === 'pay' && $order['payment_method'] === PAYMENT_STRIPE && order_balance($order) > 0 && $order['order_status'] !== 'cancelled') {
     verify_csrf();
     try {
         redirect(stripe_create_checkout($order, get_order_items((int) $order['id'])));
@@ -28,14 +28,14 @@ if ($order['payment_method'] === PAYMENT_STRIPE && input('session_id') !== '') {
     }
     $order = get_order((int) $order['id']);
 }
-if (input('cancelled') === '1' && $order['payment_status'] !== 'paid') {
+if (input('cancelled') === '1' && order_balance($order) > 0) {
     flash('info', 'Card payment was cancelled. Your order is saved, so you can pay below whenever you are ready.');
     redirect(order_url($order));
 }
 
 $items = get_order_items((int) $order['id']);
-$paid = $order['payment_status'] === 'paid';
-$awaitingCard = $order['payment_method'] === PAYMENT_STRIPE && !$paid;
+$balance = order_balance($order);
+$awaitingCard = $order['payment_method'] === PAYMENT_STRIPE && $balance > 0 && !in_array($order['order_status'], ['cancelled'], true) && $order['payment_status'] !== 'refunded';
 
 $page = [
     'title'   => 'Order ' . $order['order_number'] . ' | ' . setting('store_short_name'),
@@ -54,7 +54,7 @@ render('header', compact('page'));
                 <form method="post" action="<?= e(order_url($order)) ?>">
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="pay">
-                    <button class="btn btn--primary btn--lg" type="submit"><?= icon('card', '', 20) ?> Pay <?= e(money($order['total'])) ?> now</button>
+                    <button class="btn btn--primary btn--lg" type="submit"><?= icon('card', '', 20) ?> Pay <?= e(money($balance)) ?> now</button>
                 </form>
             <?php else: ?>
                 <h1>Thank you, <?= e(strtok($order['customer_name'], ' ')) ?>!</h1>
@@ -96,7 +96,7 @@ render('header', compact('page'));
                     <li>
                         <div>
                             <strong><?= (int) $item['quantity'] ?> &times; <?= e($item['product_name']) ?></strong>
-                            <span><?= e($item['size_label']) ?><?= $item['cake_message'] ? ' &middot; Message: &ldquo;' . e($item['cake_message']) . '&rdquo;' : '' ?></span>
+                            <span><?= e(order_item_detail($item)) ?></span>
                         </div>
                         <span><?= e(money($item['line_total'])) ?></span>
                     </li>
@@ -112,6 +112,12 @@ render('header', compact('page'));
                 <?php endif; ?>
             </dl>
             <div class="summary-total"><span>Total</span><strong><?= e(money($order['total'])) ?></strong></div>
+            <?php if ((float) $order['amount_paid'] > 0 && $balance > 0): ?>
+                <dl class="summary-lines">
+                    <div><dt>Paid so far</dt><dd><?= e(money(order_net_paid($order))) ?></dd></div>
+                    <div><dt><strong>Balance to pay</strong></dt><dd><strong><?= e(money($balance)) ?></strong></dd></div>
+                </dl>
+            <?php endif; ?>
             <?php if (setting_bool('gst_registered')): ?><p class="field-help">Includes GST of <?= e(money(round((float) $order['total'] / 11, 2))) ?><?= setting('store_abn') !== '' ? ' &middot; ABN ' . e(setting('store_abn')) : '' ?></p><?php endif; ?>
         </div>
 

@@ -49,7 +49,7 @@
         });
         list.addEventListener('click', function (e) {
             var btn = e.target.closest('[data-repeater-remove]');
-            if (btn) btn.closest('.repeater__row').remove();
+            if (btn) btn.closest('.repeater__row, .line-row').remove();
         });
     });
 
@@ -369,3 +369,29 @@
         }
     });
 })();
+
+// Product editor: the date field only matters for "Sold out until a date".
+(function () {
+    var select = document.querySelector('[data-sold-out]');
+    var dateField = document.querySelector('[data-sold-out-date]');
+    if (!select || !dateField) return;
+    select.addEventListener('change', function () { dateField.hidden = select.value !== 'until'; });
+})();
+
+// Order line rows: choosing a cake fills in its price; "Something else" asks for a name.
+document.addEventListener('change', function (e) {
+    var select = e.target.closest && e.target.closest('[data-line-item]');
+    if (!select) return;
+    var row = select.closest('[data-line-row]');
+    var price = row.querySelector('[data-line-price]');
+    var custom = row.querySelector('[data-line-custom]');
+    var option = select.options[select.selectedIndex];
+    custom.hidden = select.value !== 'custom';
+    if (price && (price.value === '' || price.getAttribute('data-auto') === '1')) {
+        price.value = option && option.getAttribute('data-price') ? option.getAttribute('data-price') : '';
+        price.setAttribute('data-auto', '1');
+    }
+});
+document.addEventListener('input', function (e) {
+    if (e.target.matches && e.target.matches('[data-line-price]')) e.target.removeAttribute('data-auto');
+});

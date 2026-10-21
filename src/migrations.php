@@ -88,8 +88,52 @@ function run_migrations(?callable $progress = null): array
                 }
             }
         }
-        db_run('INSERT INTO schema_migrations (migration) VALUES (?)', [$name]);
+        db_run('INSERT IGNORE INTO schema_migrations (migration) VALUES (?)', [$name]);
         $ran[] = $name;
     }
     return $ran;
+}
+
+/**
+ * Brings the database up to date by itself after new code is uploaded or pulled, so the site
+ * never runs new code against an old database. It only does work when a new migration file
+ * appears (the newest file name is remembered in the schema_version setting), and a database
+ * lock makes sure two visitors never run it at the same time. Turn it off with
+ * 'auto_migrate' => false in config.php to run updates only from Admin > System check.
+ */
+function auto_migrate(): void
+{
+    if (config('auto_migrate', true) === false) {
+        return;
+    }
+    $files = migration_files();
+    if (!$files) {
+        return;
+    }
+    $latest = basename((string) end($files));
+    try {
+        if (setting('schema_version') === $latest) {
+            return;
+        }
+        if ((int) db_value("SELECT GET_LOCK('ccs_migrate', 15)") !== 1) {
+            return;
+        }
+    } catch (Throwable $e) {
+        error_log('Database update check failed: ' . $e->getMessage());
+        return;
+    }
+    try {
+        $ran = run_migrations();
+        setting_save('schema_version', $latest);
+        if ($ran) {
+            error_log('Database updated automatically: ' . implode(', ', $ran));
+        }
+    } catch (Throwable $e) {
+        error_log('Automatic database update failed: ' . $e->getMessage());
+    } finally {
+        try {
+            db_value("SELECT RELEASE_LOCK('ccs_migrate')");
+        } catch (Throwable) {
+        }
+    }
 }

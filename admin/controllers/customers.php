@@ -10,7 +10,7 @@ if ($q !== '') {
 }
 $result = paginate(
     "SELECT u.id, u.name, u.email, u.phone, u.created_at, u.last_login_at,
-            COUNT(o.id) AS order_count, COALESCE(SUM(CASE WHEN o.payment_status = 'paid' THEN o.total END), 0) AS spent,
+            COUNT(o.id) AS order_count, COALESCE(SUM(o.amount_paid - o.amount_refunded), 0) AS spent,
             MAX(o.created_at) AS last_order_at
      FROM users u LEFT JOIN orders o ON o.user_id = u.id
      WHERE {$where} GROUP BY u.id ORDER BY u.created_at DESC",
