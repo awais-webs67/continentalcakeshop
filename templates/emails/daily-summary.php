@@ -1,7 +1,7 @@
 <?php
 /** @var string $date @var array $pickups @var array $deliveries @var int $to_verify @var int $new_orders @var int $to_schedule @var array $requests @var int $unread @var int $tomorrow @var float $yesterday_sales */
 $row = 'padding:9px 0;border-bottom:1px solid #E3EAE8;font-size:14px;color:#2E2E33;vertical-align:top';
-$head = 'margin:22px 0 6px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:#1C8F77';
+$head = 'margin:22px 0 6px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:#1E9B82';
 $alerts = array_filter([
     $to_verify ? $to_verify . ' payment screenshot' . ($to_verify === 1 ? '' : 's') . ' to check' : null,
     $new_orders ? $new_orders . ' new order' . ($new_orders === 1 ? '' : 's') . ' to confirm' : null,

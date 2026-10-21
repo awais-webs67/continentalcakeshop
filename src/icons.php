@@ -118,6 +118,6 @@ function rating_stars(float $rating, int $size = 18): string
 /** Stable soft colour for a reviewer's initial. */
 function avatar_colour(string $name): string
 {
-    $colours = ['#1C8F77', '#2F6F5E', '#5B4BB7', '#C46A1B', '#1F6FA8', '#8E3E86'];
+    $colours = ['#1E9B82', '#2F6F5E', '#5B4BB7', '#C46A1B', '#1F6FA8', '#8E3E86'];
     return $colours[crc32($name) % count($colours)];
 }

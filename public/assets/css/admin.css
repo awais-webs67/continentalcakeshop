@@ -1,7 +1,7 @@
 /* The Continental Cake Shop: admin panel */
 
 :root {
-    --brand: #1C8F77;
+    --brand: #1E9B82;
     --brand-dark: #146B5A;
     --brand-deep: #0E5447;
     --brand-mint: #58DCBF;
@@ -41,7 +41,7 @@ a:hover { color: var(--brand-dark); }
 h1, h2, h3 { font-family: var(--font-head); color: var(--ink); line-height: 1.2; margin: 0 0 .5em; font-weight: 600; }
 p { margin: 0 0 1em; }
 button, input, select, textarea { font: inherit; color: inherit; }
-:focus-visible { outline: 3px solid rgba(28, 143, 119, .35); outline-offset: 2px; }
+:focus-visible { outline: 3px solid rgba(30, 155, 130, .35); outline-offset: 2px; }
 [hidden] { display: none !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .icon { flex-shrink: 0; }
@@ -116,7 +116,7 @@ body.sidebar-open .sidebar-overlay { opacity: 1; visibility: visible; }
 .topbar__search kbd { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); padding: 1px 8px; border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 6px; background: #fff; color: var(--muted); font: 600 12px var(--font-body); pointer-events: none; }
 .topbar__search input:focus + kbd { display: none; }
 .topbar__actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-.topbar__new { gap: 6px; height: 40px; padding: 0 12px; border-radius: 12px; list-style: none; box-shadow: 0 4px 12px rgba(28, 143, 119, .25); }
+.topbar__new { gap: 6px; height: 40px; padding: 0 12px; border-radius: 12px; list-style: none; box-shadow: 0 4px 12px rgba(30, 155, 130, .25); }
 .topbar__new::-webkit-details-marker { display: none; }
 .topbar__new span { display: none; }
 .topbar__site { display: none; }
@@ -294,7 +294,7 @@ a.stat:hover { border-color: var(--brand-mint); }
 }
 textarea.input { min-height: 96px; resize: vertical; line-height: 1.5; }
 textarea.input--code { min-height: 380px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
-.input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(28, 143, 119, .12); }
+.input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(30, 155, 130, .12); }
 .hint { margin: 0; color: var(--muted); font-size: 13px; }
 .field-error { margin: -6px 0 0; color: var(--red); font-size: 13px; font-weight: 600; }
 .input-prefix { position: relative; }
@@ -307,7 +307,7 @@ textarea.input--code { min-height: 380px; font-family: ui-monospace, SFMono-Regu
 .switch__track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .2); transition: transform .2s; }
 .switch input:checked + .switch__track { background: var(--brand); }
 .switch input:checked + .switch__track::after { transform: translateX(18px); }
-.switch input:focus-visible + .switch__track { outline: 3px solid rgba(28, 143, 119, .35); outline-offset: 2px; }
+.switch input:focus-visible + .switch__track { outline: 3px solid rgba(30, 155, 130, .35); outline-offset: 2px; }
 .switch small { display: block; font-weight: 400; color: var(--muted); }
 
 .form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 16px 20px; border-top: 1px solid var(--line); background: #FAFBFB; border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
@@ -601,7 +601,7 @@ a.stat--brand:hover { border-color: transparent; filter: brightness(1.05); }
 .page-head p { font-size: 14.5px; }
 .btn { border-radius: 11px; transition: background-color .15s, border-color .15s, color .15s, box-shadow .15s, transform .1s; }
 .btn:active { transform: translateY(1px); }
-.btn--primary { background: linear-gradient(180deg, #1E987E 0%, var(--brand) 100%); box-shadow: 0 1px 0 rgba(255, 255, 255, .18) inset, 0 4px 12px -2px rgba(28, 143, 119, .35); }
+.btn--primary { background: linear-gradient(180deg, #20A489 0%, var(--brand) 100%); box-shadow: 0 1px 0 rgba(255, 255, 255, .18) inset, 0 4px 12px -2px rgba(30, 155, 130, .35); }
 .btn--primary:hover { background: var(--brand-dark); }
 .btn--secondary { box-shadow: 0 1px 2px rgba(16, 24, 22, .05); }
 .btn--secondary:hover { background: var(--brand-softer); }

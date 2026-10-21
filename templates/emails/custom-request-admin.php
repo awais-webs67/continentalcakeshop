@@ -1,7 +1,7 @@
 <?php /** @var array $request */ ?>
 <p style="margin:0 0 12px"><strong><?= e($request['name']) ?></strong> asked for a custom cake.</p>
-<p style="margin:0 0 12px">Phone: <a href="tel:<?= e($request['phone']) ?>" style="color:#1C8F77"><?= e($request['phone']) ?></a><br>
-Email: <a href="mailto:<?= e($request['email']) ?>" style="color:#1C8F77"><?= e($request['email']) ?></a></p>
+<p style="margin:0 0 12px">Phone: <a href="tel:<?= e($request['phone']) ?>" style="color:#1E9B82"><?= e($request['phone']) ?></a><br>
+Email: <a href="mailto:<?= e($request['email']) ?>" style="color:#1E9B82"><?= e($request['email']) ?></a></p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0;background:#F1FCF9;border-radius:12px">
     <tr><td style="padding:16px 18px;font-size:14px;line-height:1.7">
         <strong>Occasion:</strong> <?= e($request['occasion']) ?><br>

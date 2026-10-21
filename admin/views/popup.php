@@ -66,7 +66,7 @@ $couponProblem = $selectedCoupon ? coupon_error($selectedCoupon, PHP_FLOAT_MAX) 
                 <div class="card__head"><h2>Preview</h2></div>
                 <div class="card__body" style="background:var(--bg)">
                     <div class="popup-preview">
-                        <img class="popup-preview__image" id="popup-preview-image" src="<?= setting('popup_image') !== '' ? e(product_image_url(setting('popup_image'))) : 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 9%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22%3E%3Cstop stop-color=%22%231C8F77%22/%3E%3Cstop offset=%221%22 stop-color=%22%2358DCBF%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2216%22 height=%229%22 fill=%22url(%23g)%22/%3E%3C/svg%3E' ?>" alt="">
+                        <img class="popup-preview__image" id="popup-preview-image" src="<?= setting('popup_image') !== '' ? e(product_image_url(setting('popup_image'))) : 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 9%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22%3E%3Cstop stop-color=%22%231E9B82%22/%3E%3Cstop offset=%221%22 stop-color=%22%2358DCBF%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2216%22 height=%229%22 fill=%22url(%23g)%22/%3E%3C/svg%3E' ?>" alt="">
                         <div class="popup-preview__body">
                             <h3 class="popup-preview__title" data-preview-title><?= e(setting('popup_title')) ?></h3>
                             <p class="hint" data-preview-text><?= e(setting('popup_text')) ?></p>
