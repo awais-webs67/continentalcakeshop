@@ -183,7 +183,7 @@ function render_email(string $name, array $data): string
 
 function email_button(string $href, string $label): string
 {
-    return '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0"><tr><td style="border-radius:999px;background:#1A8670">'
+    return '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0"><tr><td style="border-radius:999px;background:#1C8F77">'
         . '<a href="' . e($href) . '" style="display:inline-block;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#FFFFFF;text-decoration:none;border-radius:999px">' . e($label) . '</a>'
         . '</td></tr></table>';
 }

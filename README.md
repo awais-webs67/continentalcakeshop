@@ -21,7 +21,7 @@ Plain PHP 8.1+ and MySQL/MariaDB, with no framework and no Composer packages, so
 - FAQ page and editable Privacy Policy, Terms, Refund Policy and Allergen pages (stored in the `pages` and `faqs` tables; review the wording with the shop before launch)
 - Optional customer accounts: register, log in, password reset, order history with live order status, and account creation during checkout
 - SEO: clean URLs, unique titles and descriptions, canonical tags, Open Graph, `Bakery`, `Product` and `BreadcrumbList` structured data, `sitemap.xml` and `robots.txt`
-- Responsive layout in the shop's green colours (#1A8670 and #58DCBF), with a mobile slide-in menu (close button, tap outside or Esc to close)
+- Responsive layout in the shop's green colours (#1C8F77 and #58DCBF), with a mobile slide-in menu (close button, tap outside or Esc to close)
 
 ## What the admin panel does
 

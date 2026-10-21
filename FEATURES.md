@@ -328,7 +328,7 @@ Settings tabs in the admin: shop details, opening hours, ordering and pickup, de
 
 ## 24. Design and front-end assets
 
-- Brand colours: dark green `#1A8670` (main), mint `#58DCBF` (accents), deep green `#0E5447`. They are CSS variables at the top of `public/assets/css/style.css` (website) and `admin.css` (admin).
+- Brand colours: dark green `#1C8F77` (main), mint `#58DCBF` (accents), deep green `#0E5447`. They are CSS variables at the top of `public/assets/css/style.css` (website) and `admin.css` (admin).
 - Fonts: Outfit (headings) and DM Sans (text).
 - `public/assets/js/main.js`: website behaviour (menu, checkout, slots, uploads, coupon box, popup).
 - `public/assets/js/admin.js`: admin behaviour (menus, dropdowns, editor, previews, repeaters, mobile tables).

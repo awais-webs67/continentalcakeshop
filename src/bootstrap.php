@@ -33,9 +33,9 @@ if (!config('debug') && PHP_SAPI !== 'cli') {
         }
         echo '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Something went wrong</title>'
             . '<div style="max-width:480px;margin:15vh auto;padding:24px;font-family:system-ui,sans-serif;text-align:center;color:#33363B">'
-            . '<h1 style="color:#1A8670;font-size:24px">Sorry, something went wrong</h1>'
+            . '<h1 style="color:#1C8F77;font-size:24px">Sorry, something went wrong</h1>'
             . '<p>Please try again in a minute. If it keeps happening, call or message the shop and we will help with your order.</p>'
-            . '<p><a href="/" style="color:#1A8670;font-weight:600">Back to the homepage</a></p></div>';
+            . '<p><a href="/" style="color:#1C8F77;font-weight:600">Back to the homepage</a></p></div>';
     });
 }
 

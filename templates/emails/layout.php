@@ -1,6 +1,6 @@
 <?php
 /** @var string $content @var string $title @var string $preheader */
-$brand = '#1A8670';
+$brand = '#1C8F77';
 ?>
 <!doctype html>
 <html lang="en-AU">
