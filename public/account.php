@@ -26,6 +26,21 @@ if (is_post()) {
         redirect('account#details');
     }
 
+    if ($action === 'reorder') {
+        $order = db_one('SELECT * FROM orders WHERE id = ? AND user_id = ?', [(int) input('order_id'), $user['id']]);
+        if (!$order) {
+            redirect('account');
+        }
+        $before = cart_count();
+        $skipped = cart_reorder($order);
+        if (cart_count() > $before) {
+            flash('success', 'We added the cakes from ' . $order['order_number'] . ' to your cart at today\'s prices.' . ($skipped ? ' Not available any more: ' . implode(', ', array_unique($skipped)) . '.' : ''));
+            redirect('cart');
+        }
+        flash('error', 'Sorry, the cakes from that order are not available to order online right now.');
+        redirect('account');
+    }
+
     if ($action === 'password') {
         $hash = (string) db_value('SELECT password_hash FROM users WHERE id = ?', [$user['id']]);
         $new = (string) ($_POST['new_password'] ?? '');
@@ -92,7 +107,15 @@ render('header', compact('page'));
                             <h3><?= e($order['order_number']) ?></h3>
                             <p><?= e(date('j M Y', strtotime($order['created_at']))) ?> &middot; <?= (int) $order['item_count'] ?> item<?= (int) $order['item_count'] === 1 ? '' : 's' ?> &middot; <?= e(money($order['total'])) ?></p>
                         </div>
-                        <a class="btn btn--outline btn--sm" href="<?= e(order_url($order)) ?>">View Order</a>
+                        <div class="order-card__actions">
+                            <a class="btn btn--outline btn--sm" href="<?= e(order_url($order)) ?>">View Order</a>
+                            <?php if (($order['channel'] ?? 'online') !== 'quote'): ?>
+                                <form method="post" action="<?= e(url('account')) ?>">
+                                    <?= csrf_field() ?><input type="hidden" name="action" value="reorder"><input type="hidden" name="order_id" value="<?= (int) $order['id'] ?>">
+                                    <button class="btn btn--primary btn--sm" type="submit"><?= icon('bag', '', 16) ?> Order again</button>
+                                </form>
+                            <?php endif; ?>
+                        </div>
                     </div>
                     <p class="order-card__pickup"><?= icon('calendar', '', 18) ?> <?= $order['fulfilment'] === 'delivery' ? 'Delivery' : 'Pickup' ?>: <strong><?= e(order_when($order)) ?></strong></p>
                     <?php if ($order['order_status'] === 'cancelled'): ?>

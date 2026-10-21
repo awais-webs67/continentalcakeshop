@@ -57,10 +57,10 @@ $navLinks = [
 <body class="<?= e($page['body_class']) ?>">
 <a class="skip-link" href="#main">Skip to content</a>
 
-<?php $announcement = setting('announcement_text'); ?>
-<div class="topbar<?= $announcement === '' ? ' topbar--no-text' : '' ?>">
+<?php $announcement = ordering_paused() ? ordering_paused_message() : setting('announcement_text'); ?>
+<div class="topbar<?= $announcement === '' ? ' topbar--no-text' : '' ?><?= ordering_paused() ? ' topbar--paused' : '' ?>">
     <div class="container topbar__inner">
-        <?php if ($announcement !== ''): ?><p class="topbar__text"><?= icon('truck', '', 17) ?> <?= e($announcement) ?></p><?php endif; ?>
+        <?php if ($announcement !== ''): ?><p class="topbar__text"><?= icon(ordering_paused() ? 'info' : 'truck', '', 17) ?> <?= e($announcement) ?></p><?php endif; ?>
         <div class="topbar__meta">
             <span><?= icon('clock', '', 16) ?> <?= e(today_hours_label()) ?></span>
             <a href="<?= e($phoneHref) ?>"><?= icon('phone', '', 16) ?> <?= e($phone) ?></a>

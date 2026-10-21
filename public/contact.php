@@ -71,6 +71,9 @@ render('header', compact('page'));
     <div class="container contact-layout">
         <div class="contact-details">
             <a class="contact-tile" href="tel:<?= e(setting('store_phone_e164')) ?>"><?= icon('phone', '', 24) ?><span><strong>Call</strong><?= e(setting('store_phone')) ?></span></a>
+            <?php if (whatsapp_url() !== ''): ?>
+                <a class="contact-tile" href="<?= e(whatsapp_url()) ?>" target="_blank" rel="noopener"><?= icon('whatsapp', '', 24) ?><span><strong>WhatsApp</strong>Chat with us</span></a>
+            <?php endif; ?>
             <a class="contact-tile" href="mailto:<?= e(setting('store_email')) ?>"><?= icon('mail', '', 24) ?><span><strong>Email</strong><?= e(setting('store_email')) ?></span></a>
             <a class="contact-tile" href="<?= e(store_maps_url()) ?>" target="_blank" rel="noopener"><?= icon('pin', '', 24) ?><span><strong>Visit</strong><?= e(store_address_line()) ?></span></a>
             <?php if ($quickFaqs): ?>

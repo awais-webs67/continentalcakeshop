@@ -46,6 +46,11 @@ $mask = static function (string $key): string {
         </div>
         <p class="hint" style="align-self:end">Helps Google show the shop on the map. In Google Maps, right-click the shop and click the numbers to copy them.</p>
         <?= field_error($errors, 'store_latitude') ?><?= field_error($errors, 'store_longitude') ?>
+        <div class="form-grid" style="gap:12px">
+            <label class="field"><span>WhatsApp number <small>optional, shows a chat button on the website</small></span><input class="input" name="whatsapp_number" value="<?= $v('whatsapp_number') ?>" placeholder="0412 345 678"></label>
+            <label class="field"><span>First message <small>typed for the customer</small></span><input class="input" name="whatsapp_message" value="<?= $v('whatsapp_message') ?>"></label>
+        </div>
+        <?= field_error($errors, 'whatsapp_number') ?>
     </div>
 
 <?php elseif ($tab === 'hours'): ?>
@@ -73,6 +78,15 @@ $mask = static function (string $key): string {
         <label class="field"><span>Last pickup before closing <small>minutes</small></span><input class="input" type="number" min="0" name="last_slot_buffer_minutes" value="<?= $v('last_slot_buffer_minutes') ?>"></label>
         <label class="field"><span>Most pickups per time slot <small>0 = no limit</small></span><input class="input" type="number" min="0" name="max_orders_per_slot" value="<?= $v('max_orders_per_slot') ?>"></label>
         <label class="field"><span>Most deliveries per day <small>0 = no limit</small></span><input class="input" type="number" min="0" name="max_deliveries_per_day" value="<?= $v('max_deliveries_per_day') ?>"></label>
+    </div>
+    <div class="card__body form-stack" style="border-top:1px solid var(--line)">
+        <h3 class="label">Pause online orders</h3>
+        <label class="switch"><input type="checkbox" name="ordering_paused" value="1" <?= $on('ordering_paused') ?>><span class="switch__track"></span><span>Stop taking online orders for now<small>For holidays or very busy days. Customers can still browse, send custom cake requests and call. A notice shows at the top of every page.</small></span></label>
+        <div class="form-grid">
+            <label class="field"><span>Last paused day <small>optional, orders open again the day after</small></span><input class="input" type="date" name="ordering_paused_until" value="<?= $v('ordering_paused_until') ?>"></label>
+            <label class="field"><span>Notice for customers</span><input class="input" name="ordering_paused_message" maxlength="255" value="<?= $v('ordering_paused_message') ?>"></label>
+        </div>
+        <?php if (ordering_paused()): ?><p class="alert alert--error" style="margin:0">Online orders are paused right now.</p><?php endif; ?>
     </div>
     <div class="card__body form-stack" style="border-top:1px solid var(--line)">
         <h3 class="label">How customers get their cake</h3>

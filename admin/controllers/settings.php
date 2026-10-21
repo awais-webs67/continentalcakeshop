@@ -12,8 +12,8 @@ const SETTINGS_TABS = [
 
 // Plain text settings each tab may change. Anything not listed here is ignored.
 const SETTINGS_FIELDS = [
-    'store'    => ['store_name' => 120, 'store_short_name' => 80, 'store_phone' => 40, 'store_email' => 190, 'store_street' => 120, 'store_suburb' => 80, 'store_state' => 10, 'store_postcode' => 10, 'store_founded' => 4, 'store_abn' => 20, 'store_latitude' => 12, 'store_longitude' => 12],
-    'ordering' => ['min_lead_hours' => 4, 'custom_lead_days' => 3, 'max_advance_days' => 4, 'slot_interval_minutes' => 3, 'last_slot_buffer_minutes' => 4, 'max_orders_per_slot' => 4, 'max_deliveries_per_day' => 4, 'delivery_fee' => 10, 'delivery_free_over' => 10, 'delivery_min_order' => 10, 'delivery_note' => 255, 'delivery_postcodes' => 255],
+    'store'    => ['store_name' => 120, 'store_short_name' => 80, 'store_phone' => 40, 'store_email' => 190, 'store_street' => 120, 'store_suburb' => 80, 'store_state' => 10, 'store_postcode' => 10, 'store_founded' => 4, 'store_abn' => 20, 'store_latitude' => 12, 'store_longitude' => 12, 'whatsapp_number' => 20, 'whatsapp_message' => 160],
+    'ordering' => ['min_lead_hours' => 4, 'custom_lead_days' => 3, 'max_advance_days' => 4, 'slot_interval_minutes' => 3, 'last_slot_buffer_minutes' => 4, 'max_orders_per_slot' => 4, 'max_deliveries_per_day' => 4, 'delivery_fee' => 10, 'delivery_free_over' => 10, 'delivery_min_order' => 10, 'delivery_note' => 255, 'delivery_postcodes' => 255, 'ordering_paused_until' => 10, 'ordering_paused_message' => 255],
     'payments' => ['payment_stripe_label' => 60, 'payment_stripe_note' => 255, 'payment_payid_label' => 60, 'payment_payid_note' => 255, 'payment_bank_label' => 60, 'payment_bank_note' => 255, 'payid_identifier' => 120, 'payid_account_name' => 120, 'bank_account_name' => 120, 'bank_bsb' => 7, 'bank_account_number' => 20, 'stripe_publishable_key' => 255],
     'emails'   => ['order_notification_email' => 190, 'email_accent_note' => 255, 'daily_email_to' => 190, 'daily_email_minutes_before' => 4, 'reminder_send_hour' => 2, 'review_delay_hours' => 3, 'mail_from_address' => 190, 'mail_from_name' => 120, 'smtp_host' => 190, 'smtp_port' => 5, 'smtp_username' => 190],
     'homepage' => ['hero_eyebrow' => 120, 'hero_title' => 120, 'hero_subtitle' => 400, 'announcement_text' => 200, 'google_rating' => 3, 'google_review_count' => 10, 'google_reviews_url' => 500],
@@ -21,7 +21,7 @@ const SETTINGS_FIELDS = [
 ];
 
 const SETTINGS_SWITCHES = [
-    'ordering' => ['pickup_enabled', 'delivery_enabled'],
+    'ordering' => ['pickup_enabled', 'delivery_enabled', 'ordering_paused'],
     'payments' => ['payment_stripe_enabled', 'payment_payid_enabled', 'payment_bank_enabled'],
     'emails'   => ['send_customer_emails', 'daily_email_enabled', 'reminder_email_enabled', 'review_email_enabled'],
     'store'    => ['gst_registered'],
@@ -103,6 +103,10 @@ if (is_post()) {
                 $errors[$key] = 'Use a number like -35.4167 (copy it from Google Maps).';
             }
         }
+        $wa = preg_replace('/\D/', '', $values['whatsapp_number']);
+        if ($wa !== '' && !preg_match('/^(0[45]\d{8}|61[45]\d{8}|\d{9,15})$/', $wa)) {
+            $errors['whatsapp_number'] = 'Enter the mobile number used for WhatsApp, e.g. 0412 345 678.';
+        }
         $digits = preg_replace('/\D/', '', $values['store_phone']);
         $values['store_phone_e164'] = $digits !== '' ? '+61' . ltrim(str_starts_with($digits, '61') ? substr($digits, 2) : $digits, '0') : '';
     }
@@ -137,6 +141,12 @@ if (is_post()) {
         $values['delivery_postcodes'] = implode(', ', array_filter(array_map('trim', explode(',', $values['delivery_postcodes']))));
         if ($values['delivery_postcodes'] !== '' && !preg_match('/^\d{4}(-\d{4})?(, \d{4}(-\d{4})?)*$/', $values['delivery_postcodes'])) {
             $errors['delivery_postcodes'] = 'Use postcodes or ranges separated by commas, e.g. 2600-2620, 2900-2914.';
+        }
+        if ($values['ordering_paused_until'] !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $values['ordering_paused_until'])) {
+            $values['ordering_paused_until'] = '';
+        }
+        if ($values['ordering_paused_message'] === '') {
+            $values['ordering_paused_message'] = 'We are not taking online orders right now. Please call us and we will do our best to help.';
         }
         if ($values['pickup_enabled'] === '0' && $values['delivery_enabled'] === '0') {
             $errors['fulfilment'] = 'Keep pickup or delivery switched on, or customers cannot order.';

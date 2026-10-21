@@ -28,7 +28,7 @@
                     <div class="muted"><?= $p['is_featured'] ? 'Featured on homepage' : '' ?><?= $p['badge'] ? ($p['is_featured'] ? ' &middot; ' : '') . e($p['badge']) : '' ?></div></td>
                 <td><?= e($p['category_name']) ?></td>
                 <td><?= $p['is_enquiry'] ? '<span class="muted">Price on request</span>' : ($p['size_count'] ? e(money($p['price_from'])) . ((int) $p['size_count'] > 1 ? ' <span class="muted">+' . ((int) $p['size_count'] - 1) . ' sizes</span>' : '') : '<span class="badge badge--cancelled">No sizes</span>') ?></td>
-                <td><?= $p['is_active'] ? status_badge('active', 'Visible') : status_badge('inactive', 'Hidden') ?></td>
+                <td><?= $p['is_active'] ? status_badge('active', 'Visible') : status_badge('inactive', 'Hidden') ?><?= product_sold_out($p) ? ' ' . status_badge('pending', 'Sold out') : '' ?></td>
                 <td class="num">
                     <form method="post" style="display:inline"><?= csrf_field() ?><input type="hidden" name="_back" value="<?= e(admin_url('products') . page_link($result['page'])) ?>"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>"><input type="hidden" name="action" value="toggle"><button class="link-btn" type="submit"><?= $p['is_active'] ? 'Hide' : 'Show' ?></button></form>
                     &nbsp;<a class="link-btn" href="<?= e(admin_url('products/edit', ['id' => $p['id']])) ?>">Edit</a>

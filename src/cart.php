@@ -265,3 +265,38 @@ function cart_lead_hours(array $items): int
     }
     return $hours;
 }
+
+/**
+ * Puts the cakes and extras of a past order back in the cart, at today's prices.
+ * Returns the names of anything that can no longer be ordered.
+ */
+function cart_reorder(array $order): array
+{
+    $skipped = [];
+    foreach (get_order_items((int) $order['id']) as $item) {
+        if ($item['addon_id']) {
+            if (db_value('SELECT 1 FROM addons WHERE id = ? AND is_active = 1', [$item['addon_id']]) && addons_enabled()) {
+                cart_set_addon((int) $item['addon_id'], (int) ($_SESSION['cart_addons'][(int) $item['addon_id']] ?? 0) + (int) $item['quantity']);
+            } else {
+                $skipped[] = $item['product_name'];
+            }
+            continue;
+        }
+        if (!$item['size_id'] || cart_add_error((int) $item['size_id']) !== null) {
+            $skipped[] = $item['product_name'];
+            continue;
+        }
+        // Options were saved by name; pick the ones the cake still offers.
+        $optionIds = [];
+        if ($item['options'] && $item['product_id']) {
+            $names = array_map('trim', explode(',', (string) $item['options']));
+            foreach (db_all('SELECT id, name FROM product_options WHERE product_id = ? AND is_active = 1', [$item['product_id']]) as $option) {
+                if (in_array($option['name'], $names, true)) {
+                    $optionIds[] = (int) $option['id'];
+                }
+            }
+        }
+        cart_add((int) $item['size_id'], (int) $item['quantity'], (string) $item['cake_message'], $optionIds);
+    }
+    return $skipped;
+}
