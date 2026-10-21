@@ -1,6 +1,5 @@
 <?php
 $todayKey = day_key(new DateTime());
-$status = today_status();
 $mapQuery = rawurlencode(setting('store_name') . ', ' . store_address_line());
 ?>
 <section class="section visit">
@@ -8,18 +7,6 @@ $mapQuery = rawurlencode(setting('store_name') . ', ' . store_address_line());
         <div class="visit__info">
             <h2 class="section-title"><?= e(setting('home_visit_title')) ?></h2>
             <p class="visit__address"><?= icon('pin', '', 20) ?> <?= e(store_address_line()) ?></p>
-
-            <?php // Phones: only today, with a live open or closed status. Desktop keeps the full week below. ?>
-            <div class="visit-today <?= $status['open'] ? 'is-open' : 'is-closed' ?>">
-                <div class="visit-today__top">
-                    <span class="visit-today__date"><?= icon('calendar', '', 18) ?> <?= e((new DateTime())->format('l j F')) ?></span>
-                    <span class="visit-today__badge"><span class="visit-today__dot" aria-hidden="true"></span><?= $status['open'] ? 'Open now' : 'Closed now' ?></span>
-                </div>
-                <p class="visit-today__hours"><?= e($status['headline']) ?></p>
-                <?php if ($status['detail'] !== ''): ?>
-                    <p class="visit-today__detail"><?= icon('clock', '', 16) ?> <?= e($status['detail']) ?></p>
-                <?php endif; ?>
-            </div>
 
             <table class="hours-table">
                 <caption class="sr-only">Opening hours</caption>
