@@ -14,6 +14,10 @@ return [
     // Canberra follows Sydney time, including daylight saving.
     'timezone' => 'Australia/Sydney',
 
+    // Database changes that come with an update are applied by themselves on the first visit.
+    // Set to false to run them only from Admin > System check (or php database/migrate.php).
+    'auto_migrate' => true,
+
     // MySQL database. On cPanel: MySQL Databases > create a database and a user, then add the user
     // to the database with ALL PRIVILEGES. cPanel adds your account name in front of both,
     // e.g. 'name' => 'cpuser_cakes' and 'user' => 'cpuser_cakeadmin'.

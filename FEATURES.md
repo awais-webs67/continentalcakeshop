@@ -18,9 +18,9 @@ Read it before changing anything. For putting the site live, see [DEPLOY.md](DEP
 11. [Customer accounts](#11-customer-accounts)
 12. [Messages between customers and the shop](#12-messages-between-customers-and-the-shop)
 13. [Emails](#13-emails)
-14. [Morning email (cron)](#14-morning-email-cron)
+14. [Scheduled jobs: morning email, reminders, reviews, backups](#14-scheduled-jobs-morning-email-reminders-reviews-backups)
 15. [Content: homepage, pages, FAQs, text editor](#15-content-homepage-pages-faqs-text-editor)
-16. [SEO](#16-seo)
+16. [SEO and moving from the old website](#16-seo-and-moving-from-the-old-website)
 17. [Admin panel](#17-admin-panel)
 18. [Staff accounts and permissions](#18-staff-accounts-and-permissions)
 19. [Sales reports and CSV exports](#19-sales-reports-and-csv-exports)
@@ -31,6 +31,7 @@ Read it before changing anything. For putting the site live, see [DEPLOY.md](DEP
 24. [Design and front-end assets](#24-design-and-front-end-assets)
 25. [How to add things](#25-how-to-add-things)
 26. [Testing a change](#26-testing-a-change)
+27. [Tax invoices](#27-tax-invoices)
 
 ## 1. How the code is organised
 
@@ -45,7 +46,8 @@ templates/     Website header, footer, partials, homepage sections and email tem
 admin/         Admin controllers (logic) and views (HTML). Not web accessible.
 database/      schema.sql + seed.sql, install.sql (one-file import), migrations/.
 cron/run.php   Scheduled tasks, run every 15 minutes by cPanel cron.
-storage/       Private uploads, logs and the encryption key. Never web accessible.
+storage/       Private uploads, logs, backups and the encryption key. Never web accessible.
+tests/         run.php: automatic checks (php tests/run.php).
 config/        config.php (not in git), copied from config.example.php.
 ```
 
@@ -83,11 +85,17 @@ config/        config.php (not in git), copied from config.example.php.
 
 **Specials ("price on request").** When a product's enquiry flag is on, the page shows an **Enquire** button that opens the custom cake form with the cake name filled in, instead of Add to Cart.
 
+**Options.** Choices on one cake that change its price, such as "Eggless +$5" (`product_options` table, edited in the product editor). Customers tick them on the cake page; the price updates live (`main.js`). The chosen names are saved on the order line (`order_items.options`) and shown in emails, the kitchen ticket, the morning email and exports.
+
+**Photos.** The main photo is `products.image` (with `image_alt`); extra photos are in `product_images`. The cake page shows a gallery with thumbnails. `save_product_photos()` in `admin/bootstrap.php` handles uploads (several at once), alt text, order, removing and "make main". A photo file is only deleted when nothing uses it any more (`delete_public_image()`).
+
+**Sold out.** `products.sold_out_until` is the last day a cake is sold out (`9999-12-31` = until switched back). `product_sold_out()` and `product_back_label()` in `src/catalog.php`. Sold out cakes show a badge, cannot be added to the cart and are `OutOfStock` in the structured data.
+
 **Code**
 - Pages: `public/shop.php`, `public/product.php`, card: `templates/partials/product-card.php`
-- Functions: `src/catalog.php` (`get_products`, `get_product_by_slug`, `get_product_sizes`, `price_label`, `enquiry_url`, `product_image_url`)
+- Functions: `src/catalog.php` (`get_products`, `get_product_by_slug`, `get_product_sizes`, `get_product_options`, `price_label`, `enquiry_url`, `product_image_url`, `product_sold_out`), `src/seo.php` (`get_product_images`, `product_image_alt`)
 - Admin: Products, Categories, Gallery, Reviews (`admin/controllers/product-edit.php` and others)
-- Tables: `products`, `product_sizes`, `categories`, `gallery_images`, `reviews`
+- Tables: `products`, `product_sizes`, `product_options`, `product_images`, `categories`, `gallery_images`, `reviews`
 
 Product photos are resized and saved as WebP in `public/uploads/`. A photo is only deleted when no other product, category or gallery item still uses it.
 
@@ -95,7 +103,13 @@ Product photos are resized and saved as WebP in `public/uploads/`. A photo is on
 
 **What it does.** Customers add cakes with a size, quantity and an optional free message on the cake. The cart is kept in the PHP session.
 
-**Code:** `public/cart.php`, `src/cart.php` (`cart_add`, `cart_items`, `cart_subtotal`, `cart_lead_hours`). Limits: `CART_MAX_QTY`, `CAKE_MESSAGE_MAX`.
+**Code:** `public/cart.php`, `src/cart.php` (`cart_add`, `cart_add_error`, `cart_items`, `cart_subtotal`, `cart_lead_hours`, `cart_reorder`). Limits: `CART_MAX_QTY`, `CAKE_MESSAGE_MAX`. A cart line is one size with its options and message (`cart_line_key`).
+
+**Extras.** Candles, cake knife, topper, gift card: rows in the `addons` table, managed in **Admin > Extras** and switched on with the `addons_enabled` setting. The customer picks quantities in the cart (`$_SESSION['cart_addons']`). `cart_order_lines()` returns the cakes followed by the extras, in the same shape, and everything that totals or saves an order uses it, so extras appear in totals, Stripe, emails and reports (as category "Extras"). Extras are saved as order lines with `addon_id`.
+
+**Order again.** In the customer account, `cart_reorder()` puts a past order back in the cart at today's prices and lists what is no longer available.
+
+**Pausing orders.** Settings > Ordering can pause online orders, optionally until a date (`ordering_paused`, `ordering_paused_until`, `ordering_paused_message`). While paused the top bar shows the notice, Add to Cart and checkout are blocked, and custom cake requests still work. `ordering_paused()` in `src/catalog.php`.
 
 `cart_lead_hours()` returns the longest notice time of the cakes in the cart. That notice decides the first date the customer can choose.
 
@@ -119,7 +133,7 @@ Product photos are resized and saved as WebP in `public/uploads/`. A photo is on
 
 **Order lifecycle**
 
-| Status (`orders.status`) | Shown as |
+| Status (`orders.order_status`) | Shown as |
 |---|---|
 | `new` | Received |
 | `confirmed` | Confirmed |
@@ -132,17 +146,22 @@ Product photos are resized and saved as WebP in `public/uploads/`. A photo is on
 |---|---|
 | `pending` | Awaiting payment (Stripe not finished) |
 | `awaiting_verification` | Payment being checked (PayID or bank screenshot uploaded) |
+| `partially_paid` | Part paid (a deposit or part of the total) |
 | `paid` | Paid |
 | `failed` | Payment failed |
 | `refunded` | Refunded |
 
 Every change is written to `order_events`. That table is the timeline on the admin order page.
 
+**Where orders come from** (`orders.channel`): `online` (checkout), `phone` and `in_store` (typed by staff in **Admin > Orders > New order**, `admin/controllers/order-new.php`) and `quote` (a custom cake quote accepted online, section 9). Staff orders can use any cake size, extra or a custom line with its own price (`admin_order_lines_from_post()` and the `line-adder` partial), any date and time, a delivery fee and a discount.
+
+**Changing an order.** On the admin order page staff can change quantities and prices, remove lines, add lines, and change the delivery fee and discount. `recalculate_order_total()` puts the total back together and the payment status follows (section 6).
+
 **Code**
 - `public/checkout.php`, `public/order.php` (private order page at `/order/<number>`)
-- `src/orders.php`: `create_order` (one database transaction, coupon redeemed inside it), `mark_order_paid`, `log_order_event`, `get_order`
-- Admin: `orders` (list, filters, search), `orders/view` (status, payment check, delivery time, refund, notes, messages), `orders/print` (kitchen ticket)
-- Tables: `orders`, `order_items`, `order_events`
+- `src/orders.php`: `create_order` (one database transaction, coupon redeemed inside it), `insert_order_lines`, `mark_order_paid`, `record_payment`, `record_refund`, `order_balance`, `recalculate_order_total`, `log_order_event`, `get_order`, `order_item_detail`
+- Admin: `orders` (list, filters, search), `orders/new` (phone and shop orders), `orders/view` (status, payments, items, customer details, delivery time, refunds, notes, messages), `orders/print` (kitchen ticket)
+- Tables: `orders`, `order_items`, `order_events`, `payments`
 
 Order numbers look like `CCS-261019-F714F` (date plus random part), made by `generate_order_number()`.
 
@@ -153,14 +172,17 @@ A payment method only shows at checkout when it is switched on **and** its detai
 **Stripe card payments**
 1. `stripe_create_checkout()` creates a Stripe Checkout session and sends the customer to Stripe. A coupon discount is passed as a one-off Stripe coupon (`amount_off`).
 2. When the customer comes back, `public/order.php` calls `stripe_confirm_session()`.
-3. Stripe also calls `/stripe-webhook` (`public/stripe-webhook.php`). The signature is checked with `stripe_verify_webhook()`, then `mark_order_paid()` runs. Both paths are safe to run twice.
-4. Refunds: the admin order page calls `stripe_refund()`.
+3. Stripe also calls `/stripe-webhook` (`public/stripe-webhook.php`). The signature is checked with `stripe_verify_webhook()`, then `mark_order_paid()` runs. Both paths are safe to run twice, because the payment is recorded with the Stripe payment id as its reference.
+4. Part payments: when something is already paid (or a quote deposit is paid), `stripe_create_checkout()` charges one line with the amount owing instead of the items.
+5. Refunds: the admin order page calls `stripe_refund($order, $amount)`, which refunds the newest card payments first. Refunds made in the Stripe dashboard arrive as `charge.refunded` and are copied with `stripe_sync_refunds()`.
 
 Stripe is called with plain cURL in `stripe_request()`. There is no Stripe library.
 
-**PayID and bank transfer.** The customer sees the details, pays from their bank app and uploads a screenshot. The order becomes "Payment being checked". Staff open the screenshot in the admin and click **Confirm payment**.
+**PayID and bank transfer.** The customer sees the details, pays from their bank app and uploads a screenshot. The order becomes "Payment being checked". Staff open the screenshot in the admin and record the payment.
 
-**Code:** `src/payments.php` (`payment_method_definitions`, `available_payment_methods`), `public/stripe-webhook.php`.
+**Payment history.** Every payment and refund is a row in the `payments` table (amount, method, reference, note, staff member). `record_payment()` and `record_refund()` add a row (a reference already recorded is ignored), then `refresh_order_payment()` works out `orders.amount_paid`, `orders.amount_refunded` and the payment status: part paid, paid or refunded. `order_balance()` is what is still owing. Staff can record cash and EFTPOS too (`IN_STORE_PAYMENT_METHODS`). A partial refund also lowers the order total, so nothing shows as owing; a full refund marks the order refunded. Reports and customer spend use the money kept (`amount_paid - amount_refunded`).
+
+**Code:** `src/payments.php` (`payment_method_definitions`, `available_payment_methods`, `staff_payment_methods`, Stripe functions), `src/orders.php` (payment history), `public/stripe-webhook.php`.
 
 ## 7. Coupons
 
@@ -180,7 +202,9 @@ Stripe is called with plain cURL in `stripe_request()`. There is no Stripe libra
 
 **What it does.** A form for custom cakes: occasion, date, number of people (typed by the customer), pickup or delivery, description and a reference photo. Staff see it in the admin, send a branded quote email with a price, and track the status (`new`, `quoted`, `confirmed`, `closed`). Each request has a message thread.
 
-**Code:** `public/custom-cakes.php`, `src/mail.php` (`send_custom_request_emails`, `send_custom_quote_email`), admin `custom-requests` and `custom-requests/view`. Table: `custom_requests`.
+**Quotes paid online.** With a price, staff can set a deposit and switch on "Let the customer accept and pay online". The quote email then has an **Accept and pay** button to `/quote/<token>` (`public/quote.php`). The customer chooses deposit or full price, adds a delivery address if needed and pays by card, PayID or bank. `order_for_quote()` makes an order (channel `quote`) with one line for the custom cake, links it to the request (`custom_requests.order_id`) and its conversation, and sets the request to Confirmed. The rest is paid like any order.
+
+**Code:** `public/custom-cakes.php`, `public/quote.php`, `src/quotes.php`, `src/mail.php` (`send_custom_request_emails`, `send_custom_quote_email`), admin `custom-requests` and `custom-requests/view`. Table: `custom_requests`.
 
 ## 10. File uploads and private files
 
@@ -223,18 +247,26 @@ All emails use one branded layout with the logo: `templates/emails/layout.php`. 
 | `contact-customer`, `contact-admin` | Contact form |
 | `message-customer`, `message-admin` | New message in a conversation |
 | `password-reset` | Customer or staff password reset |
+| `order-reminder` | The day before pickup or delivery |
+| `review-request` | A while after the order is completed |
 | `daily-summary` | Morning email |
 | `test` | Test button in Settings |
 
 **Sending.** `send_mail()` in `src/mail.php` uses one of three drivers: `smtp` (own SMTP client, no library), `mail` (PHP mail) or `log` (saves to `storage/logs/mail` for testing). Settings saved in **Admin > Settings > Emails** win over `config.php`. The SMTP password is encrypted with AES-256-GCM using the key in `storage/app.key` (`secret_encrypt`, `secret_decrypt` in `src/settings.php`).
 
-## 14. Morning email (cron)
+## 14. Scheduled jobs: morning email, reminders, reviews, backups
 
-**What it does.** On each open day, a set time before opening, the shop gets a plan for the day: pickups, deliveries, deliveries without a time, payments to check, new requests and unread messages. It also proves that email is working.
+cPanel runs `cron/run.php` every 15 minutes. It calls `run_scheduled_tasks()` in `src/daily.php`, which saves `cron_last_run` and runs each job on its own (one failing job never stops the others). **Admin > System check** shows if the cron job has stopped.
 
-**How it runs.** cPanel runs `cron/run.php` every 15 minutes. It calls `run_scheduled_tasks()` in `src/daily.php`, which saves `cron_last_run`, skips closed days, waits for the right time and sends once per day (`daily_email_last_sent`). **Admin > System check** shows if the cron job has stopped. Settings: `daily_email_enabled`, `daily_email_to`, `daily_email_minutes_before`.
+| Job | What it does | Settings |
+|---|---|---|
+| `morning_email_task` | On open days, a set time before opening: pickups, deliveries, deliveries without a time, payments to check, new requests, unread messages. Also proves that email works. Once a day (`daily_email_last_sent`). | `daily_email_enabled`, `daily_email_to`, `daily_email_minutes_before` |
+| `reminder_email_task` | From a set hour the day before: reminder with the time, address, anything still to pay and the order link (`order-reminder` email). Once per order (`orders.reminder_sent_at`, cleared when staff move the date). | `reminder_email_enabled`, `reminder_send_hour` |
+| `review_request_task` | A set number of hours after an order is marked Completed (`orders.completed_at`): asks for a Google review (`review-request` email). Each customer at most once every 120 days; never for refunded orders or orders older than 14 days. | `review_email_enabled`, `review_delay_hours`, `google_reviews_url` |
+| `backup_task` | After 2am, once a night: full database backup (`src/backup.php`). | `backup_enabled`, `backup_keep_days` |
+| `cleanup_task` | Once a day: removes "not found" entries older than 90 days and expired password links. | |
 
-New scheduled jobs belong in `run_scheduled_tasks()`.
+New scheduled jobs: add a function `something_task(DateTimeImmutable $now): string` and add its name to the list in `run_scheduled_tasks()`.
 
 ## 15. Content: homepage, pages, FAQs, text editor
 
@@ -247,9 +279,14 @@ New scheduled jobs belong in `run_scheduled_tasks()`.
 ## 16. SEO
 
 - Clean URLs, unique titles and descriptions, canonical tags and Open Graph (`page_meta()` in `src/seo.php`).
-- Structured data: `Bakery` (with address, hours, ABN), `Product` and `BreadcrumbList` (`json_ld`, `local_business_schema`, `product_schema`).
-- `/sitemap.xml` with product images (`public/sitemap.php`) and `/robots.txt` (`public/robots.php`).
-- **Old website links.** Old URLs such as `/allcakes`, `/mud-cakes`, `/about-us` are sent with a 301 to the new pages. Built-in list: `LEGACY_REDIRECTS`. Staff can add more in Settings (`seo_redirects`). Applied in `public/404.php` through `legacy_redirect_target()`.
+- Structured data: `Bakery` (with address, hours, ABN, areas served), `Product` (one offer per size with availability, every photo, servings) and `BreadcrumbList` (`json_ld`, `local_business_schema`, `product_schema`).
+- `/sitemap.xml` with every product photo and the landing pages (`public/sitemap.php`) and `/robots.txt` (`public/robots.php`).
+- **Homepage.** The title starts with "Cake Shop Canberra", like the old site. The hero's small line is part of the `h1`, so the main heading reads "Cake shop in Greenway, Canberra since 2015 / Fresh cakes for every celebration".
+- **Old website links.** All 16 pages of the old Wix site (`/allcakes`, `/mud-cakes`, `/gallery-06`, `/about-us`...) are sent with a 301 to their new page. Built-in list: `LEGACY_REDIRECTS`. The old gallery pages go to the landing pages (or Custom Cakes when a landing page is off). Staff can add more in Settings (`seo_redirects`) or from Admin > SEO. Applied in `public/404.php` through `legacy_redirect_target()`.
+- **Automatic redirects.** Changing the web address of a cake, category or landing page adds a redirect from the old address (`add_seo_redirect()`), so rankings and old links keep working.
+- **Landing pages** (`pages.type = 'landing'`): Birthday, Wedding, Baby shower and Halal cakes in Canberra, shown by `public/page.php` with text, cake photos and a quote button that fills in the occasion. Any simple address (`/something`) is checked against the pages table before the 404 page. Staff add more in Admin > Pages; `RESERVED_SLUGS` lists addresses a page can never take.
+- **Product SEO checklist.** `product_seo_checks()` (11 checks: focus keyword in title, description, address and text, lengths, local words, enough text, photos) runs in the product editor while staff type (the same rules in `admin.js`), and each cake's score shows in the product list. "Fill in for me" writes a title, description and photo text. Automatic cake titles always fit in 60 characters (`product_default_title()`).
+- **Admin > SEO** (`admin/controllers/seo.php`): launch checklist, a check of every old address, addresses not found (logged by `log_not_found()` in the `not_found_log` table) with one-click redirects, the redirects list, and "Suggest keywords" for cakes without one.
 - Google Analytics 4 and Search Console verification from Settings (`analytics_tags()`).
 - Filtered and search pages are `noindex`.
 - On the live site every request goes to one address: HTTPS and the same www or non-www host as `app_url` (`src/bootstrap.php`).
@@ -263,19 +300,20 @@ New scheduled jobs belong in `run_scheduled_tasks()`.
 | Route | What it is |
 |---|---|
 | `/admin` | Dashboard: today, payments to check, deliveries to schedule, sales chart, recent orders |
-| `orders`, `orders/view`, `orders/print` | Orders, order detail, kitchen ticket |
+| `orders`, `orders/new`, `orders/view`, `orders/print` | Orders, phone and shop orders, order detail, kitchen ticket |
 | `pickups` | Pickups and deliveries by day |
 | `custom-requests` | Custom cake requests and quotes |
 | `messages` | Inbox of customer conversations |
 | `customers` | Customer accounts with orders and spend |
 | `reports`, `reports/export` | Sales reports and CSV exports |
 | `coupons`, `popup` | Discount codes, promo popup |
-| `products`, `products/edit`, `products/import` | Cakes, duplicate, Excel/CSV import |
-| `categories`, `gallery`, `reviews` | Catalogue content |
-| `homepage`, `pages`, `faqs` | Website content |
+| `products`, `products/edit`, `products/import` | Cakes (photos, options, sold out, SEO checklist), duplicate, Excel/CSV import |
+| `categories`, `addons`, `gallery`, `reviews` | Catalogue content, extras for the cart |
+| `homepage`, `pages`, `pages/edit`, `faqs` | Website content, landing and policy pages |
+| `seo` | Launch checklist, old addresses, addresses not found, redirects |
 | `settings` | Every shop setting (section 21) |
 | `admins` (owner only) | Staff accounts and their access |
-| `system` (owner only) | Server checks, cron status, one-click database update |
+| `system` (owner only) | Server checks, cron status, database updates, backups to make and download |
 | `account` | Own name, email and password |
 
 First visit to `/admin` with no accounts opens `setup`, which creates the owner.
@@ -302,7 +340,7 @@ For any date range (presets: today, yesterday, this week, this month, last month
 
 Nearly everything a shop owner may want to change is a row in the `settings` table (key and value), not code. Read with `setting('key', 'default')`, save with `setting_save()`. Values are cached per request.
 
-Settings tabs in the admin: shop details, opening hours, ordering and pickup, delivery, payments, emails, homepage, social and SEO. A new setting needs a default row in a migration (section 23) and a field in `admin/views/settings.php` plus saving code in `admin/controllers/settings.php`.
+Settings tabs in the admin: shop details (including the WhatsApp number for the chat button, `whatsapp_url()`), opening hours, ordering and pickup (including pausing online orders), delivery, payments, emails (including reminders and review requests), homepage, social and SEO. A new setting needs a default row in a migration (section 23) and a field in `admin/views/settings.php` plus saving code in `admin/controllers/settings.php`.
 
 `config/config.php` only holds what cannot live in the database: `app_url`, `debug`, timezone, database login and the default mail settings.
 
@@ -310,8 +348,9 @@ Settings tabs in the admin: shop details, opening hours, ordering and pickup, de
 
 - Prepared statements for all SQL, `e()` for all output, CSRF token on every form.
 - Passwords hashed with `password_hash()`. Login lockout after 5 tries. Session cookie is HttpOnly, SameSite=Lax and Secure on HTTPS.
-- Private folders (`storage`, `config`, `database`, `src`, `templates`, `cron`, `.git`) are blocked in the root `.htaccess`, even if mod_rewrite is off. `storage/.htaccess` denies everything. `public/uploads/.htaccess` stops scripts from running there.
-- Payment screenshots and custom photos are only served to logged-in staff with the right section access.
+- Private folders (`storage`, `config`, `database`, `src`, `templates`, `cron`, `tests`, `.git`) are blocked in the root `.htaccess`, even if mod_rewrite is off. `storage/.htaccess` denies everything. `public/uploads/.htaccess` stops scripts from running there.
+- Payment screenshots and custom photos are only served to logged-in staff with the right section access. Order pages, invoices, quotes and conversations are opened with long random tokens.
+- Database backups are stored in `storage/backups` and can only be downloaded by the owner.
 - Public forms have spam protection: a hidden honeypot field, a minimum fill time of 3 seconds and a rate limit (`spam_trap_fields`, `is_spam_submission`).
 - Security headers in `public/.htaccess`. HSTS is sent on HTTPS.
 - With `debug => false`, errors are hidden from visitors, saved to `storage/logs/php-errors.log`, and a friendly error page is shown.
@@ -320,23 +359,28 @@ Settings tabs in the admin: shop details, opening hours, ordering and pickup, de
 
 - `database/schema.sql` + `database/seed.sql` are the source. `database/install.sql` is the one-file import for a new site.
 - Changes to an existing database go in a new numbered file in `database/migrations/` (next number after the last one, for example `012_something.sql`). Never edit a migration that has already shipped.
-- Run them with `php database/migrate.php` or **Admin > System check > Update database**. Applied files are stored in `schema_migrations`. Code: `src/migrations.php`.
+- They run by themselves on the first visit after new code arrives (`auto_migrate()` in `src/migrations.php`, called from `src/bootstrap.php`): the newest migration name is kept in the `schema_version` setting, and a database lock stops two visitors running them at once. Set `'auto_migrate' => false` in `config.php` to run them only by hand with `php database/migrate.php` or **Admin > System check > Update database**. Applied files are stored in `schema_migrations`. A migration must be safe to run twice.
 - Settings and other default data go between `-- @data-start` and `-- @data-end` in the migration, using `INSERT IGNORE` so existing values are never overwritten.
-- After adding a migration, also update `schema.sql`/`seed.sql` and rebuild `install.sql`: import both into an empty database and export with `mysqldump --skip-comments`.
+- After adding a migration, also update `schema.sql`/`seed.sql` and rebuild `install.sql`: import the old `install.sql` into an empty database, run the migrations, export with `mysqldump --skip-comments --skip-dump-date` and keep the four comment lines at the top. Check that a database built from `schema.sql` + `seed.sql` has the same columns, indexes and rows.
 
-**Tables:** `settings`, `categories`, `products`, `product_sizes`, `gallery_images`, `reviews`, `orders`, `order_items`, `order_events`, `coupons`, `blocked_dates`, `custom_requests`, `contact_messages`, `threads`, `thread_messages`, `pages`, `faqs`, `users`, `password_resets`, `admins`, `admin_password_resets`, `schema_migrations`.
+**Tables:** `settings`, `categories`, `products`, `product_sizes`, `product_options`, `product_images`, `addons`, `gallery_images`, `reviews`, `orders`, `order_items`, `order_events`, `payments`, `coupons`, `blocked_dates`, `custom_requests`, `threads`, `thread_messages`, `pages`, `faqs`, `users`, `password_resets`, `admins`, `admin_password_resets`, `not_found_log`, `schema_migrations`. `contact_messages` is no longer used: migration 010 copied its messages into `threads`, and it is kept only so older databases keep their history.
+
+**Backups.** `src/backup.php` writes every table to `storage/backups/db-YYYY-MM-DD-HHMMSS.sql.gz` (dates in UTC), every night through the cron job and on demand from Admin > System check. Old backups are removed after `backup_keep_days` (at least 3 stay). Restore by importing the file in phpMyAdmin.
 
 ## 24. Design and front-end assets
 
 - Brand colours: dark green `#1E9B82` (main), mint `#58DCBF` (accents), deep green `#0E5447`. They are CSS variables at the top of `public/assets/css/style.css` (website) and `admin.css` (admin).
 - Fonts: Outfit (headings) and DM Sans (text).
-- `public/assets/js/main.js`: website behaviour (menu, checkout, slots, uploads, coupon box, popup).
+- `public/assets/js/main.js`: website behaviour (menu, checkout, slots, uploads, coupon box, popup, product options price, photo gallery, quote amount).
+- **Visit us on phones.** Under 900px the homepage "Visit us" section shows a card with today's date, a live Open now / Closed now badge, today's hours and when the shop next opens (`today_status()` in `src/settings.php`, holiday closures count as closed), and a map card. Desktop keeps the week table.
 - `public/assets/js/admin.js`: admin behaviour (menus, dropdowns, editor, previews, repeaters, mobile tables).
 - No build step. Edit the files directly. CSS and JS links include the file time, so browsers load the new version after a change.
 
 ## 25. How to add things
 
-**A new website page**
+**A new text page** (no code): Admin > Pages > Add a landing page.
+
+**A new website page with its own code**
 1. Create `public/your-page.php` starting with the bootstrap require, set `$page`, include the header and footer.
 2. Add a rewrite rule in `public/.htaccess` (and in `public/router.php` for the PHP built-in server).
 3. Add it to `public/sitemap.php` if Google should find it.
@@ -352,15 +396,19 @@ Settings tabs in the admin: shop details, opening hours, ordering and pickup, de
 
 **A new setting:** see section 21.
 **A new homepage section:** add a file in `templates/home/`, add it to `HOME_SECTIONS` and to the default `home_sections` list in a migration, and add its fields in `admin/views/homepage.php`.
-**A new scheduled job:** add it to `run_scheduled_tasks()` in `src/daily.php`.
+**A new scheduled job:** add a `name_task(DateTimeImmutable $now): string` function and add it to the list in `run_scheduled_tasks()` in `src/daily.php`.
 
 ## 26. Testing a change
 
-There is no automated test suite yet. Before pushing:
+Before pushing:
 
-1. `php -l` on every PHP file you changed.
+1. `php -l` on every PHP file you changed, and `php tests/run.php` (automatic checks for prices, coupons, delivery areas, pickup times, safe HTML, Stripe signatures, SEO and the payment history; add a check when you change one of these).
 2. Run the site locally (README > Local development) with `'mail' => ['driver' => 'log']`, so emails are saved in `storage/logs/mail` instead of being sent.
 3. Walk through the affected flow by hand: add to cart, checkout with pickup and with delivery, each payment method, a coupon, and the matching admin page.
 4. Check the page on a phone width (390px), a tablet (768px) and a laptop (1280px).
 5. If you added a migration, run it on a copy of an older database and on a fresh install.
 6. Open **Admin > System check** and make sure everything is OK.
+
+## 27. Tax invoices
+
+**What it does.** Every order has a printable page at `/order/<number>/invoice` (`public/invoice.php`): a **tax invoice** with the shop's ABN, the date of issue, the items with their options, discount, delivery, the GST included (total / 11) and every payment and refund with the balance due. When the shop is not registered for GST or has no ABN, the same page is a **receipt**. Customers open it from their order page (the private link, `invoice_url()`), staff from the admin order page. It prints cleanly or saves as a PDF from the browser.

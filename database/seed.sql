@@ -524,5 +524,87 @@ INSERT IGNORE INTO settings (setting_key, setting_value) VALUES
 ('daily_email_last_sent',      ''),
 ('cron_last_run',              '');
 
+-- Data from migration 012_payments_addons_options.sql
+-- Orders paid or refunded before the ledger existed get one matching row each, so totals stay right.
+INSERT IGNORE INTO payments (order_id, kind, amount, method, reference, note, created_at)
+SELECT id, 'payment', total, payment_method, CONCAT('legacy-pay-', id), 'Recorded before payment history was kept', updated_at
+FROM orders WHERE payment_status IN ('paid', 'refunded');
+INSERT IGNORE INTO payments (order_id, kind, amount, method, reference, note, created_at)
+SELECT id, 'refund', total, payment_method, CONCAT('legacy-refund-', id), 'Recorded before payment history was kept', updated_at
+FROM orders WHERE payment_status = 'refunded';
+UPDATE orders SET amount_paid = total WHERE payment_status IN ('paid', 'refunded') AND amount_paid = 0;
+UPDATE orders SET amount_refunded = total WHERE payment_status = 'refunded' AND amount_refunded = 0;
+UPDATE orders SET completed_at = updated_at WHERE order_status = 'completed' AND completed_at IS NULL;
+-- Old completed orders never get a review request email.
+UPDATE orders SET review_requested_at = updated_at WHERE order_status = 'completed' AND review_requested_at IS NULL;
+
+-- Starter add-ons, switched off until the shop checks the prices.
+INSERT INTO addons (name, description, price, max_qty, sort_order, is_active)
+SELECT * FROM (
+    SELECT 'Birthday candles' AS name, 'Pack of 12 candles' AS description, 3.00 AS price, 5 AS max_qty, 1 AS sort_order, 0 AS is_active UNION ALL
+    SELECT 'Number candle', 'One gold number candle. Tell us the number in the order notes', 4.00, 4, 2, 0 UNION ALL
+    SELECT 'Cake knife', 'Plastic cake knife', 2.00, 3, 3, 0 UNION ALL
+    SELECT 'Happy Birthday topper', 'Gold acrylic topper', 8.00, 2, 4, 0 UNION ALL
+    SELECT 'Gift card', 'Handwritten card. Write your message in the order notes', 5.00, 3, 5, 0
+) AS starter WHERE NOT EXISTS (SELECT 1 FROM addons);
+
+INSERT IGNORE INTO settings (setting_key, setting_value) VALUES
+('addons_enabled', '0'),
+('addons_title',   'Add something extra');
+
+-- Data from migration 013_sold_out_pause_whatsapp.sql
+INSERT IGNORE INTO settings (setting_key, setting_value) VALUES
+('ordering_paused',         '0'),
+('ordering_paused_until',   ''),
+('ordering_paused_message', 'We are not taking online orders right now. Please call us and we will do our best to help.'),
+('whatsapp_number',         ''),
+('whatsapp_message',        'Hi, I have a question about a cake.');
+
+-- Data from migration 014_quote_payments.sql
+INSERT IGNORE INTO settings (setting_key, setting_value) VALUES
+('quote_default_deposit_percent', '50');
+
+-- Data from migration 015_reminders_reviews.sql
+INSERT IGNORE INTO settings (setting_key, setting_value) VALUES
+('reminder_email_enabled', '1'),
+('reminder_send_hour',     '10'),
+('review_email_enabled',   '1'),
+('review_delay_hours',     '20');
+
+-- Data from migration 017_seo_landing_pages.sql
+-- Only changed when the shop has not edited them yet.
+UPDATE settings SET setting_value = 'Cake Shop Canberra | The Continental Cake Shop, Greenway'
+WHERE setting_key = 'seo_home_title' AND setting_value = 'The Continental Cake Shop Canberra | Halal Cakes in Greenway, ACT';
+UPDATE settings SET setting_value = 'Cake shop in Greenway, Canberra since 2015'
+WHERE setting_key = 'hero_eyebrow' AND setting_value = 'Baked in Greenway, Canberra since 2015';
+
+INSERT IGNORE INTO pages (slug, type, title, summary, occasion, show_gallery, sort_order, body, is_active, meta_title, meta_description) VALUES
+('birthday-cakes-canberra', 'landing', 'Birthday cakes in Canberra',
+ 'Fresh birthday cakes from our shop in Greenway, ready to order online or made to your own design.', 'Birthday', 1, 1,
+ '<h2>A birthday cake made fresh in Greenway</h2><p>At {store_name} we bake birthday cakes in our own kitchen in Greenway, Tuggeranong, with 100% Halal ingredients. Choose a favourite from the shop, such as a black forest torte, a red velvet cake or a chocolate mud cake, and add a free message on top. Or tell us your idea and we will design a cake just for the birthday person.</p><h2>Ready-made birthday cakes to order online</h2><p>Our standard cakes come in two sizes: a Midi that serves about 8 people and a Large that serves about 14. Order online, choose your pickup day and time, and the cake will be ready when you arrive. Please order at least {min_lead_hours} hours ahead.</p><ul><li>Tortes, mud cakes, velvet cakes and cheesecakes</li><li>Free message on the cake</li><li>Candles, a cake knife and toppers can be added in the cart</li></ul><p><a href="{url:shop}">See all our cakes</a></p><h2>Custom birthday cakes for kids and adults</h2><p>Unicorns, football, number cakes, favourite colours or a photo you love: send us your idea with a reference photo and we will reply with a quote. Custom cakes need about {custom_lead_days} days notice, more for busy weekends.</p><p>Questions? Call us on {store_phone} or visit us at {store_address}.</p>',
+ 1, 'Birthday Cakes Canberra | The Continental Cake Shop',
+ 'Birthday cakes in Canberra made fresh in Greenway with 100% Halal ingredients. Order a favourite online or get a quote for a custom kids or adults cake.'),
+('wedding-cakes-canberra', 'landing', 'Wedding and engagement cakes in Canberra',
+ 'Wedding, engagement and anniversary cakes designed with you and made fresh in our Greenway kitchen.', 'Wedding', 1, 2,
+ '<h2>Your wedding cake, made in Canberra</h2><p>From an elegant single tier for an engagement party to a tall tiered cake for the wedding day, {store_name} designs and bakes celebration cakes in Greenway, Tuggeranong. Every cake is made with 100% Halal ingredients.</p><h2>How it works</h2><ol><li>Send us your date, number of guests, flavours and a photo of the style you like.</li><li>We reply with a quote and any questions.</li><li>Accept the quote and pay a deposit online to book your date.</li></ol><p>Popular flavours include vanilla, chocolate, red velvet and our continental cream cakes. We can match your colours, flowers and theme.</p><h2>Book early</h2><p>Wedding cakes need at least {custom_lead_days} days notice, and spring and summer weekends fill up quickly, so please ask as early as you can. Call {store_phone} or send a request below.</p>',
+ 1, 'Wedding Cakes Canberra | The Continental Cake Shop',
+ 'Wedding and engagement cakes in Canberra, designed with you and made fresh in Greenway with 100% Halal ingredients. Send your idea and get a quote today.'),
+('baby-shower-cakes-canberra', 'landing', 'Baby shower and gender reveal cakes in Canberra',
+ 'Sweet cakes for baby showers, gender reveals, christenings and first birthdays, made fresh in Greenway.', 'Baby shower', 1, 3,
+ '<h2>Cakes to welcome a new baby</h2><p>{store_name} makes baby shower cakes, gender reveal cakes with a pink or blue surprise inside, christening cakes and first birthday cakes in our Greenway kitchen, with 100% Halal ingredients.</p><h2>Make it yours</h2><ul><li>Soft pastel colours, teddy bears, clouds, florals or your own theme</li><li>A name or a message on the cake</li><li>Sizes for a small family lunch or a big party</li></ul><p>Send us your idea and a reference photo, and we will reply with a quote. Please allow at least {custom_lead_days} days notice.</p><h2>Need a cake sooner?</h2><p>Our ready-made cakes can be ordered online with {min_lead_hours} hours notice, and we will write a message of your choice on top. <a href="{url:shop}">Browse our cakes</a> or call us on {store_phone}.</p>',
+ 1, 'Baby Shower Cakes Canberra | Continental Cake Shop',
+ 'Baby shower, gender reveal and christening cakes in Canberra, made fresh in Greenway with 100% Halal ingredients. Get a quote for a custom cake or order online.'),
+('halal-cakes-canberra', 'landing', 'Halal cakes in Canberra',
+ 'Every cake we bake is made with 100% Halal ingredients in our shop in Greenway, Tuggeranong.', 'Birthday', 1, 4,
+ '<h2>100% Halal ingredients in every cake</h2><p>{store_name} is an independent cake shop in Greenway, Canberra. Every torte, mud cake, velvet cake and cheesecake we make uses 100% Halal ingredients, so you can share them with everyone at your celebration.</p><h2>Cakes for every occasion</h2><p>Birthdays, Eid, weddings, engagements, aqiqah and baby showers: choose a cake from our shop to order online, or ask us to design a custom cake for your event.</p><ul><li><a href="{url:shop}">Order a cake online</a> with {min_lead_hours} hours notice</li><li><a href="{url:custom-cakes}">Request a custom cake</a> with {custom_lead_days} days notice</li><li>Pick up from {store_address}</li></ul><h2>Dietary needs</h2><p>Some cakes can be made eggless, so look for the options on each cake page or call us on {store_phone}. Our kitchen handles milk, eggs, wheat, soy and nuts. <a href="{url:allergens}">Read our allergen information</a>.</p>',
+ 1, 'Halal Cakes Canberra | The Continental Cake Shop',
+ 'Looking for Halal cakes in Canberra? Every cake at The Continental Cake Shop in Greenway is made with 100% Halal ingredients. Order online or get a quote.');
+
+-- Data from migration 018_backups.sql
+INSERT IGNORE INTO settings (setting_key, setting_value) VALUES
+('backup_enabled',   '1'),
+('backup_keep_days', '14'),
+('backup_last_run',  '');
+
 INSERT IGNORE INTO schema_migrations (migration) VALUES
-('001_customer_accounts.sql'), ('002_pages_and_faqs.sql'), ('003_hero_image_setting.sql'), ('004_teal_hero_cake.sql'), ('005_admin_panel.sql'), ('006_delivery_announcement.sql'), ('007_delivery_and_sizes.sql'), ('008_coupons_popup_delivery_windows.sql'), ('009_homepage_sections_and_mail.sql'), ('010_messages_reports_permissions.sql'), ('011_daily_email_settings.sql');
+('001_customer_accounts.sql'), ('002_pages_and_faqs.sql'), ('003_hero_image_setting.sql'), ('004_teal_hero_cake.sql'), ('005_admin_panel.sql'), ('006_delivery_announcement.sql'), ('007_delivery_and_sizes.sql'), ('008_coupons_popup_delivery_windows.sql'), ('009_homepage_sections_and_mail.sql'), ('010_messages_reports_permissions.sql'), ('011_daily_email_settings.sql'), ('012_payments_addons_options.sql'), ('013_sold_out_pause_whatsapp.sql'), ('014_quote_payments.sql'), ('015_reminders_reviews.sql'), ('016_product_photos_seo.sql'), ('017_seo_landing_pages.sql'), ('018_backups.sql');

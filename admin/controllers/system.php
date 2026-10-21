@@ -1,6 +1,29 @@
 <?php
 $admin = require_admin('owner');
 
+// Download a backup (owner only, like the rest of this page).
+if (isset($_GET['download'])) {
+    $file = backup_path((string) $_GET['download']);
+    if (!$file) {
+        http_response_code(404);
+        exit('Backup not found');
+    }
+    header('Content-Type: application/gzip');
+    header('Content-Length: ' . filesize($file));
+    header('Content-Disposition: attachment; filename="' . basename($file) . '"');
+    readfile($file);
+    exit;
+}
+
+if (is_post() && input('action') === 'backup') {
+    try {
+        flash('success', 'Backup saved: ' . backup_database() . '. Download it below to keep a copy off the server.');
+    } catch (Throwable $e) {
+        flash('error', 'The backup could not be made: ' . $e->getMessage());
+    }
+    redirect(admin_url('system'));
+}
+
 if (is_post() && input('action') === 'migrate') {
     try {
         $ran = run_migrations();
@@ -27,6 +50,7 @@ $checks = [
         ['storage is writable (keeps the key for saved passwords)', $writable(STORAGE_PATH), 'Set the storage folder permission to 755 (or 775).'],
         ['storage/uploads is writable', $writable(STORAGE_PATH . '/uploads'), 'Set the folder permission to 755 (or 775) in File Manager.'],
         ['storage/logs is writable', $writable(STORAGE_PATH . '/logs') || (!is_dir(STORAGE_PATH . '/logs') && $writable(STORAGE_PATH)), 'Create storage/logs and make it writable.'],
+        ['Backup made in the last 2 days', ($last = list_backups()[0]['time'] ?? 0) > time() - 2 * 86400, 'Backups are made every night by the scheduled job. Press "Back up now" below and check the cron job.'],
     ],
     'Configuration' => [
         ['Website address uses https', str_starts_with($appUrl, 'https://'), 'Set app_url in config/config.php to https://your-domain once SSL is active.'],
@@ -40,4 +64,5 @@ $checks = [
 $pending = pending_migrations();
 $mailDir = STORAGE_PATH . '/logs/mail';
 $recentMail = is_dir($mailDir) ? array_slice(array_reverse(glob($mailDir . '/*.html') ?: []), 0, 5) : [];
-admin_view('system', compact('checks', 'pending', 'recentMail', 'appUrl') + ['title' => 'System check']);
+$backups = list_backups();
+admin_view('system', compact('checks', 'pending', 'recentMail', 'appUrl', 'backups') + ['title' => 'System check']);

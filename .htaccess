@@ -18,7 +18,7 @@ Options -Indexes
 # Extra safety in case mod_rewrite is ever switched off: private folders and files are
 # never served. Payment screenshots and custom cake photos live in storage/.
 <IfModule mod_alias.c>
-    RedirectMatch 404 /(storage|config|database|src|templates|cron|\.git)(/|$)
+    RedirectMatch 404 /(storage|config|database|src|templates|cron|tests|\.git)(/|$)
 </IfModule>
 <FilesMatch "\.(sql|md|lock|log|env|example|key|ini)$">
     Require all denied

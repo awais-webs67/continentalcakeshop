@@ -10,3 +10,5 @@
 !/public/uploads/content/.gitkeep
 /public/uploads/popup/*
 !/public/uploads/popup/.gitkeep
+/storage/backups/*
+!/storage/backups/.gitkeep

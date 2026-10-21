@@ -14,6 +14,33 @@
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+DROP TABLE IF EXISTS `addons`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `addons` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(120) NOT NULL,
+  `description` varchar(255) DEFAULT NULL,
+  `price` decimal(10,2) NOT NULL,
+  `max_qty` int(10) unsigned NOT NULL DEFAULT 10,
+  `sort_order` int(11) NOT NULL DEFAULT 0,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `addons` WRITE;
+/*!40000 ALTER TABLE `addons` DISABLE KEYS */;
+INSERT INTO `addons` VALUES
+(1,'Birthday candles','Pack of 12 candles',3.00,5,1,0,'2026-10-21 10:26:07','2026-10-21 10:26:07'),
+(2,'Number candle','One gold number candle. Tell us the number in the order notes',4.00,4,2,0,'2026-10-21 10:26:07','2026-10-21 10:26:07'),
+(3,'Cake knife','Plastic cake knife',2.00,3,3,0,'2026-10-21 10:26:07','2026-10-21 10:26:07'),
+(4,'Happy Birthday topper','Gold acrylic topper',8.00,2,4,0,'2026-10-21 10:26:07','2026-10-21 10:26:07'),
+(5,'Gift card','Handwritten card. Write your message in the order notes',5.00,3,5,0,'2026-10-21 10:26:07','2026-10-21 10:26:07');
+/*!40000 ALTER TABLE `addons` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `admin_password_resets`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -85,6 +112,7 @@ CREATE TABLE `categories` (
   `slug` varchar(140) NOT NULL,
   `description` text DEFAULT NULL,
   `image` varchar(255) DEFAULT NULL,
+  `image_alt` varchar(160) DEFAULT NULL,
   `sort_order` int(11) NOT NULL DEFAULT 0,
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
   `meta_title` varchar(160) DEFAULT NULL,
@@ -100,12 +128,12 @@ CREATE TABLE `categories` (
 LOCK TABLES `categories` WRITE;
 /*!40000 ALTER TABLE `categories` DISABLE KEYS */;
 INSERT INTO `categories` VALUES
-(1,'Tortes','tortes','Light layered sponge tortes filled with cream, fruit and our house fillings. A favourite for birthdays and family get-togethers.','categories/tortes.webp',1,1,'Tortes in Canberra | The Continental Cake Shop','Order layered sponge tortes online in Canberra: Black Forest, Lotus Biscoff, Raffaello, Tiramisu and more. Pick up in Greenway.','2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(2,'Velvet Cakes','velvet-cakes','Soft velvet sponge layered with smooth cream cheese frosting, in four flavours.','categories/velvet-cakes.webp',2,1,'Red Velvet & Velvet Cakes Canberra | The Continental Cake Shop','Red velvet, pistachio, blueberry and orange mango velvet cakes, made fresh in Greenway, Canberra. Order online for pickup.','2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(3,'Mud Cakes','mud-cakes','Dense, moist mud cakes that hold up well for decorating and travel well to parties.','categories/mud-cakes.webp',3,1,'Mud Cakes Canberra | The Continental Cake Shop','Chocolate, white gold, marble and caramel mud cakes made fresh in Canberra. Order online and pick up in Greenway.','2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(4,'Baked Cheesecakes','baked-cheesecakes','Classic oven-baked cheesecakes on a biscuit base. Available in full and half sizes.','categories/baked-cheesecakes.webp',4,1,'Baked Cheesecakes Canberra | The Continental Cake Shop','American, blueberry, marble, tropical and hazelnut baked cheesecakes. Full and half sizes, ready for pickup in Greenway.','2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(5,'Continental Cheesecakes','continental-cheesecakes','Our light, set continental-style cheesecakes in eight flavours. Full and half sizes.','categories/continental-cheesecakes.webp',5,1,'Continental Cheesecakes Canberra | The Continental Cake Shop','Light continental cheesecakes in eight flavours including pistachio, passionfruit and tangy lemon. Order online in Canberra.','2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(6,'Tea Cakes & Desserts','tea-cakes-desserts','Carrot cake, pavlova, profiterole towers and more for morning tea and dessert tables.','categories/tea-cakes-desserts.webp',6,1,'Tea Cakes & Desserts Canberra | The Continental Cake Shop','Carrot cake, pavlova and profiterole towers from The Continental Cake Shop in Greenway, Canberra.','2026-10-18 13:35:43','2026-10-18 13:35:43');
+(1,'Tortes','tortes','Light layered sponge tortes filled with cream, fruit and our house fillings. A favourite for birthdays and family get-togethers.','categories/tortes.webp',NULL,1,1,'Tortes in Canberra | The Continental Cake Shop','Order layered sponge tortes online in Canberra: Black Forest, Lotus Biscoff, Raffaello, Tiramisu and more. Pick up in Greenway.','2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(2,'Velvet Cakes','velvet-cakes','Soft velvet sponge layered with smooth cream cheese frosting, in four flavours.','categories/velvet-cakes.webp',NULL,2,1,'Red Velvet & Velvet Cakes Canberra | The Continental Cake Shop','Red velvet, pistachio, blueberry and orange mango velvet cakes, made fresh in Greenway, Canberra. Order online for pickup.','2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(3,'Mud Cakes','mud-cakes','Dense, moist mud cakes that hold up well for decorating and travel well to parties.','categories/mud-cakes.webp',NULL,3,1,'Mud Cakes Canberra | The Continental Cake Shop','Chocolate, white gold, marble and caramel mud cakes made fresh in Canberra. Order online and pick up in Greenway.','2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(4,'Baked Cheesecakes','baked-cheesecakes','Classic oven-baked cheesecakes on a biscuit base. Available in full and half sizes.','categories/baked-cheesecakes.webp',NULL,4,1,'Baked Cheesecakes Canberra | The Continental Cake Shop','American, blueberry, marble, tropical and hazelnut baked cheesecakes. Full and half sizes, ready for pickup in Greenway.','2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(5,'Continental Cheesecakes','continental-cheesecakes','Our light, set continental-style cheesecakes in eight flavours. Full and half sizes.','categories/continental-cheesecakes.webp',NULL,5,1,'Continental Cheesecakes Canberra | The Continental Cake Shop','Light continental cheesecakes in eight flavours including pistachio, passionfruit and tangy lemon. Order online in Canberra.','2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(6,'Tea Cakes & Desserts','tea-cakes-desserts','Carrot cake, pavlova, profiterole towers and more for morning tea and dessert tables.','categories/tea-cakes-desserts.webp',NULL,6,1,'Tea Cakes & Desserts Canberra | The Continental Cake Shop','Carrot cake, pavlova and profiterole towers from The Continental Cake Shop in Greenway, Canberra.','2026-10-18 13:35:43','2026-10-18 13:35:43');
 /*!40000 ALTER TABLE `categories` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `contact_messages`;
@@ -172,9 +200,14 @@ CREATE TABLE `custom_requests` (
   `reference_image` varchar(255) DEFAULT NULL COMMENT 'Path inside storage/uploads',
   `status` enum('new','quoted','confirmed','closed') NOT NULL DEFAULT 'new',
   `quoted_price` decimal(10,2) DEFAULT NULL,
+  `deposit_amount` decimal(10,2) DEFAULT NULL COMMENT 'Paid to accept the quote; NULL = full price',
+  `quote_token` char(32) DEFAULT NULL,
+  `quote_sent_at` datetime DEFAULT NULL,
+  `order_id` int(10) unsigned DEFAULT NULL COMMENT 'Order made when the customer accepted the quote',
   `admin_notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_custom_quote_token` (`quote_token`),
   KEY `idx_custom_status` (`status`,`event_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -268,6 +301,24 @@ INSERT INTO `gallery_images` VALUES
 (29,'gallery/custom-29.webp','Two-tier pink rosette cake',1,29,'2026-10-18 13:35:43');
 /*!40000 ALTER TABLE `gallery_images` ENABLE KEYS */;
 UNLOCK TABLES;
+DROP TABLE IF EXISTS `not_found_log`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `not_found_log` (
+  `path` varchar(255) NOT NULL,
+  `hits` int(10) unsigned NOT NULL DEFAULT 1,
+  `referrer` varchar(255) DEFAULT NULL,
+  `first_seen` datetime NOT NULL,
+  `last_seen` datetime NOT NULL,
+  PRIMARY KEY (`path`),
+  KEY `idx_not_found_last` (`last_seen`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `not_found_log` WRITE;
+/*!40000 ALTER TABLE `not_found_log` DISABLE KEYS */;
+/*!40000 ALTER TABLE `not_found_log` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `order_events`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -298,8 +349,10 @@ CREATE TABLE `order_items` (
   `order_id` int(10) unsigned NOT NULL,
   `product_id` int(10) unsigned DEFAULT NULL,
   `size_id` int(10) unsigned DEFAULT NULL,
+  `addon_id` int(10) unsigned DEFAULT NULL,
   `product_name` varchar(160) NOT NULL,
   `size_label` varchar(60) NOT NULL,
+  `options` varchar(255) DEFAULT NULL COMMENT 'Chosen product options, e.g. Eggless',
   `unit_price` decimal(10,2) NOT NULL,
   `quantity` int(10) unsigned NOT NULL,
   `cake_message` varchar(60) DEFAULT NULL,
@@ -325,6 +378,8 @@ CREATE TABLE `orders` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `order_number` varchar(30) NOT NULL,
   `user_id` int(10) unsigned DEFAULT NULL,
+  `channel` varchar(20) NOT NULL DEFAULT 'online' COMMENT 'online, phone, in_store or quote',
+  `custom_request_id` int(10) unsigned DEFAULT NULL,
   `access_token` char(32) NOT NULL,
   `customer_name` varchar(120) NOT NULL,
   `customer_email` varchar(190) NOT NULL,
@@ -342,14 +397,19 @@ CREATE TABLE `orders` (
   `coupon_code` varchar(40) DEFAULT NULL,
   `discount` decimal(10,2) NOT NULL DEFAULT 0.00,
   `total` decimal(10,2) NOT NULL,
+  `amount_paid` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `amount_refunded` decimal(10,2) NOT NULL DEFAULT 0.00,
   `payment_method` varchar(20) NOT NULL,
-  `payment_status` enum('pending','awaiting_verification','paid','failed','refunded') NOT NULL DEFAULT 'pending',
+  `payment_status` enum('pending','awaiting_verification','partially_paid','paid','failed','refunded') NOT NULL DEFAULT 'pending',
   `order_status` enum('new','confirmed','in_progress','ready','completed','cancelled') NOT NULL DEFAULT 'new',
   `payment_reference` varchar(190) DEFAULT NULL,
   `payment_proof` varchar(255) DEFAULT NULL COMMENT 'Path inside storage/uploads',
   `stripe_session_id` varchar(255) DEFAULT NULL,
   `notes` text DEFAULT NULL,
   `admin_notes` text DEFAULT NULL,
+  `completed_at` datetime DEFAULT NULL,
+  `reminder_sent_at` datetime DEFAULT NULL,
+  `review_requested_at` datetime DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
@@ -358,6 +418,7 @@ CREATE TABLE `orders` (
   KEY `idx_orders_status` (`order_status`,`payment_status`),
   KEY `idx_orders_stripe` (`stripe_session_id`),
   KEY `idx_orders_user` (`user_id`,`created_at`),
+  KEY `idx_orders_custom` (`custom_request_id`),
   CONSTRAINT `fk_orders_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -372,8 +433,12 @@ DROP TABLE IF EXISTS `pages`;
 CREATE TABLE `pages` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `slug` varchar(80) NOT NULL,
+  `type` varchar(20) NOT NULL DEFAULT 'policy' COMMENT 'policy or landing',
   `title` varchar(160) NOT NULL,
   `summary` varchar(255) DEFAULT NULL,
+  `occasion` varchar(60) DEFAULT NULL COMMENT 'Landing pages: occasion filled in on the quote form',
+  `show_gallery` tinyint(1) NOT NULL DEFAULT 1,
+  `sort_order` int(11) NOT NULL DEFAULT 0,
   `body` mediumtext NOT NULL,
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
   `meta_title` varchar(160) DEFAULT NULL,
@@ -381,16 +446,20 @@ CREATE TABLE `pages` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `slug` (`slug`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `pages` WRITE;
 /*!40000 ALTER TABLE `pages` DISABLE KEYS */;
 INSERT INTO `pages` VALUES
-(1,'privacy-policy','Privacy Policy','How we collect, use and protect your personal information.','<p>{store_name} (\"we\", \"us\") respects your privacy. This policy explains what personal information we collect when you use our website or place an order, and how we handle it in line with the Australian Privacy Principles in the <em>Privacy Act 1988</em> (Cth).</p>\n<h2>Information we collect</h2>\n<ul>\n<li><strong>Contact details:</strong> your name, email address and phone number when you place an order, request a custom cake quote, send us a message or create an account.</li>\n<li><strong>Order details:</strong> the cakes you order, messages for your cake, pickup or delivery date and time, delivery address (if used) and any notes you add.</li>\n<li><strong>Payment information:</strong> card payments are processed by Stripe. We never see or store your full card number. If you pay by PayID or bank transfer, we keep the payment screenshot or receipt you upload.</li>\n<li><strong>Photos you send us:</strong> reference images uploaded with a custom cake request.</li>\n<li><strong>Account details:</strong> if you create an account, we store your details and a securely encrypted version of your password.</li>\n</ul>\n<h2>How we use your information</h2>\n<ul>\n<li>To prepare your order and have it ready at the time you chose.</li>\n<li>To contact you about your order, your custom cake quote or your enquiry.</li>\n<li>To check payments and keep records required for tax and accounting.</li>\n<li>To show your order history when you log in to your account.</li>\n</ul>\n<p>We do not sell your personal information, and we do not send marketing emails unless you ask us to.</p>\n<h2>Who we share it with</h2>\n<p>We only share information with the services we need to run the shop, such as our payment provider (Stripe), our website host and our email provider. They may only use it to provide their service to us.</p>\n<h2>Cookies</h2>\n<p>Our website uses a small session cookie so your cart and login work while you browse. We do not use advertising cookies.</p>\n<h2>Keeping your information safe</h2>\n<p>We store your information on secure servers and limit access to staff who need it. Payment screenshots and reference photos are kept in a private area that is not publicly accessible.</p>\n<h2>Accessing or correcting your information</h2>\n<p>You can update your details from your account page, or contact us to see, correct or delete the information we hold about you.</p>\n<h2>Questions or complaints</h2>\n<p>Please contact us on {store_phone} or {store_email}. If you are not happy with our response, you can contact the Office of the Australian Information Commissioner at <a href=\"https://www.oaic.gov.au\" target=\"_blank\" rel=\"noopener\">oaic.gov.au</a>.</p>',1,NULL,NULL,'2026-10-18 13:35:43'),
-(2,'terms','Terms and Conditions','The terms that apply when you order from our website.','<p>These terms apply when you place an order with {store_name} through this website. By placing an order you agree to them.</p>\n<h2>Orders</h2>\n<ul>\n<li>Please order at least {min_lead_hours} hours before your pickup time for cakes from our menu, and at least {custom_lead_days} days ahead for custom cakes.</li>\n<li>Your order is confirmed once payment has been received. For PayID and bank transfer, this is after we have checked your payment screenshot.</li>\n<li>We will contact you if we cannot fulfil your order as placed, for example if an ingredient is unavailable.</li>\n</ul>\n<h2>Prices and payment</h2>\n<ul>\n<li>All prices are in Australian dollars.</li>\n<li>Prices shown at checkout are the prices you pay. Custom cakes are priced by quote.</li>\n</ul>\n<h2>Pickup</h2>\n<ul>\n<li>Please collect your order from {store_address} at the time you selected. If you need to change the time, call us on {store_phone} as early as possible.</li>\n<li>Once collected, please keep cream and cheesecake products refrigerated and transport them on a flat surface.</li>\n</ul>\n<h2>Our cakes</h2>\n<ul>\n<li>Every cake is handmade, so colours, decorations and shapes may differ slightly from photos on our website.</li>\n<li>For custom cakes, we will match your design as closely as we can. Characters and printed images may be adapted.</li>\n<li>Our products are made in a kitchen that handles common allergens. Please read our <a href=\"{url:allergens}\">allergen information</a> before ordering.</li>\n</ul>\n<h2>Cancellations and refunds</h2>\n<p>Please see our <a href=\"{url:refund-policy}\">Refund and Cancellation Policy</a>.</p>\n<h2>Your rights</h2>\n<p>Nothing in these terms limits your rights under the Australian Consumer Law.</p>\n<h2>Contact</h2>\n<p>{store_name}, {store_address}. Phone {store_phone}, email {store_email}.</p>',1,NULL,NULL,'2026-10-18 13:35:43'),
-(3,'refund-policy','Refund and Cancellation Policy','What to do if you need to cancel or have a problem with your order.','<p>We want you to love your cake. This policy explains what happens if you need to cancel or if something is not right with your order.</p>\n<h2>Cancelling or changing an order</h2>\n<p>Please contact us on {store_phone} as early as possible if you need to cancel or change your order. Because every cake is made to order, we may not be able to offer a refund once we have started preparing your cake, buying special ingredients or making decorations.</p>\n<h2>Custom cakes</h2>\n<p>Custom cakes take extra preparation. Any cancellation terms for your custom cake will be explained when we send your quote.</p>\n<h2>If something is wrong</h2>\n<p>If your order is not what you ordered, is damaged when you collect it, or there is a problem with quality, please let us know straight away, ideally before you leave the shop or on the same day, and keep the cake if you can. We will work with you to fix it with a replacement, a credit or a refund.</p>\n<h2>Refunds</h2>\n<p>Approved refunds are returned to the original payment method. Card refunds usually appear within 5 to 10 business days, depending on your bank.</p>\n<h2>Your rights</h2>\n<p>Our products come with guarantees that cannot be excluded under the Australian Consumer Law. This policy does not limit those rights.</p>',1,NULL,NULL,'2026-10-18 13:35:43'),
-(4,'allergens','Allergen Information','Important information for customers with food allergies or intolerances.','<p>Your safety matters to us. Please read this before ordering if you or your guests have a food allergy or intolerance.</p>\n<h2>Our kitchen</h2>\n<p>Our cakes are made in a kitchen that handles common allergens, including milk, eggs, wheat (gluten), soy and tree nuts such as hazelnuts, almonds and pistachios. Because we use shared equipment and work areas, <strong>we cannot guarantee that any product is completely free from traces of allergens</strong>.</p>\n<h2>Gluten-free, eggless and vegan cakes</h2>\n<p>We can make gluten-free, eggless and vegan options on request. Please call us on {store_phone} before ordering so we can confirm what is possible for your cake. These cakes are made in the same kitchen, so they may still contain traces of other allergens.</p>\n<h2>Halal</h2>\n<p>All our products are made with 100% Halal ingredients.</p>\n<h2>Ask us</h2>\n<p>If you have any questions about ingredients, please call us or ask in store before you order. Add any allergy details to the notes at checkout so our team can see them.</p>',1,NULL,NULL,'2026-10-18 13:35:43');
+(1,'privacy-policy','policy','Privacy Policy','How we collect, use and protect your personal information.',NULL,1,0,'<p>{store_name} (\"we\", \"us\") respects your privacy. This policy explains what personal information we collect when you use our website or place an order, and how we handle it in line with the Australian Privacy Principles in the <em>Privacy Act 1988</em> (Cth).</p>\n<h2>Information we collect</h2>\n<ul>\n<li><strong>Contact details:</strong> your name, email address and phone number when you place an order, request a custom cake quote, send us a message or create an account.</li>\n<li><strong>Order details:</strong> the cakes you order, messages for your cake, pickup or delivery date and time, delivery address (if used) and any notes you add.</li>\n<li><strong>Payment information:</strong> card payments are processed by Stripe. We never see or store your full card number. If you pay by PayID or bank transfer, we keep the payment screenshot or receipt you upload.</li>\n<li><strong>Photos you send us:</strong> reference images uploaded with a custom cake request.</li>\n<li><strong>Account details:</strong> if you create an account, we store your details and a securely encrypted version of your password.</li>\n</ul>\n<h2>How we use your information</h2>\n<ul>\n<li>To prepare your order and have it ready at the time you chose.</li>\n<li>To contact you about your order, your custom cake quote or your enquiry.</li>\n<li>To check payments and keep records required for tax and accounting.</li>\n<li>To show your order history when you log in to your account.</li>\n</ul>\n<p>We do not sell your personal information, and we do not send marketing emails unless you ask us to.</p>\n<h2>Who we share it with</h2>\n<p>We only share information with the services we need to run the shop, such as our payment provider (Stripe), our website host and our email provider. They may only use it to provide their service to us.</p>\n<h2>Cookies</h2>\n<p>Our website uses a small session cookie so your cart and login work while you browse. We do not use advertising cookies.</p>\n<h2>Keeping your information safe</h2>\n<p>We store your information on secure servers and limit access to staff who need it. Payment screenshots and reference photos are kept in a private area that is not publicly accessible.</p>\n<h2>Accessing or correcting your information</h2>\n<p>You can update your details from your account page, or contact us to see, correct or delete the information we hold about you.</p>\n<h2>Questions or complaints</h2>\n<p>Please contact us on {store_phone} or {store_email}. If you are not happy with our response, you can contact the Office of the Australian Information Commissioner at <a href=\"https://www.oaic.gov.au\" target=\"_blank\" rel=\"noopener\">oaic.gov.au</a>.</p>',1,NULL,NULL,'2026-10-18 13:35:43'),
+(2,'terms','policy','Terms and Conditions','The terms that apply when you order from our website.',NULL,1,0,'<p>These terms apply when you place an order with {store_name} through this website. By placing an order you agree to them.</p>\n<h2>Orders</h2>\n<ul>\n<li>Please order at least {min_lead_hours} hours before your pickup time for cakes from our menu, and at least {custom_lead_days} days ahead for custom cakes.</li>\n<li>Your order is confirmed once payment has been received. For PayID and bank transfer, this is after we have checked your payment screenshot.</li>\n<li>We will contact you if we cannot fulfil your order as placed, for example if an ingredient is unavailable.</li>\n</ul>\n<h2>Prices and payment</h2>\n<ul>\n<li>All prices are in Australian dollars.</li>\n<li>Prices shown at checkout are the prices you pay. Custom cakes are priced by quote.</li>\n</ul>\n<h2>Pickup</h2>\n<ul>\n<li>Please collect your order from {store_address} at the time you selected. If you need to change the time, call us on {store_phone} as early as possible.</li>\n<li>Once collected, please keep cream and cheesecake products refrigerated and transport them on a flat surface.</li>\n</ul>\n<h2>Our cakes</h2>\n<ul>\n<li>Every cake is handmade, so colours, decorations and shapes may differ slightly from photos on our website.</li>\n<li>For custom cakes, we will match your design as closely as we can. Characters and printed images may be adapted.</li>\n<li>Our products are made in a kitchen that handles common allergens. Please read our <a href=\"{url:allergens}\">allergen information</a> before ordering.</li>\n</ul>\n<h2>Cancellations and refunds</h2>\n<p>Please see our <a href=\"{url:refund-policy}\">Refund and Cancellation Policy</a>.</p>\n<h2>Your rights</h2>\n<p>Nothing in these terms limits your rights under the Australian Consumer Law.</p>\n<h2>Contact</h2>\n<p>{store_name}, {store_address}. Phone {store_phone}, email {store_email}.</p>',1,NULL,NULL,'2026-10-18 13:35:43'),
+(3,'refund-policy','policy','Refund and Cancellation Policy','What to do if you need to cancel or have a problem with your order.',NULL,1,0,'<p>We want you to love your cake. This policy explains what happens if you need to cancel or if something is not right with your order.</p>\n<h2>Cancelling or changing an order</h2>\n<p>Please contact us on {store_phone} as early as possible if you need to cancel or change your order. Because every cake is made to order, we may not be able to offer a refund once we have started preparing your cake, buying special ingredients or making decorations.</p>\n<h2>Custom cakes</h2>\n<p>Custom cakes take extra preparation. Any cancellation terms for your custom cake will be explained when we send your quote.</p>\n<h2>If something is wrong</h2>\n<p>If your order is not what you ordered, is damaged when you collect it, or there is a problem with quality, please let us know straight away, ideally before you leave the shop or on the same day, and keep the cake if you can. We will work with you to fix it with a replacement, a credit or a refund.</p>\n<h2>Refunds</h2>\n<p>Approved refunds are returned to the original payment method. Card refunds usually appear within 5 to 10 business days, depending on your bank.</p>\n<h2>Your rights</h2>\n<p>Our products come with guarantees that cannot be excluded under the Australian Consumer Law. This policy does not limit those rights.</p>',1,NULL,NULL,'2026-10-18 13:35:43'),
+(4,'allergens','policy','Allergen Information','Important information for customers with food allergies or intolerances.',NULL,1,0,'<p>Your safety matters to us. Please read this before ordering if you or your guests have a food allergy or intolerance.</p>\n<h2>Our kitchen</h2>\n<p>Our cakes are made in a kitchen that handles common allergens, including milk, eggs, wheat (gluten), soy and tree nuts such as hazelnuts, almonds and pistachios. Because we use shared equipment and work areas, <strong>we cannot guarantee that any product is completely free from traces of allergens</strong>.</p>\n<h2>Gluten-free, eggless and vegan cakes</h2>\n<p>We can make gluten-free, eggless and vegan options on request. Please call us on {store_phone} before ordering so we can confirm what is possible for your cake. These cakes are made in the same kitchen, so they may still contain traces of other allergens.</p>\n<h2>Halal</h2>\n<p>All our products are made with 100% Halal ingredients.</p>\n<h2>Ask us</h2>\n<p>If you have any questions about ingredients, please call us or ask in store before you order. Add any allergy details to the notes at checkout so our team can see them.</p>',1,NULL,NULL,'2026-10-18 13:35:43'),
+(5,'birthday-cakes-canberra','landing','Birthday cakes in Canberra','Fresh birthday cakes from our shop in Greenway, ready to order online or made to your own design.','Birthday',1,1,'<h2>A birthday cake made fresh in Greenway</h2><p>At {store_name} we bake birthday cakes in our own kitchen in Greenway, Tuggeranong, with 100% Halal ingredients. Choose a favourite from the shop, such as a black forest torte, a red velvet cake or a chocolate mud cake, and add a free message on top. Or tell us your idea and we will design a cake just for the birthday person.</p><h2>Ready-made birthday cakes to order online</h2><p>Our standard cakes come in two sizes: a Midi that serves about 8 people and a Large that serves about 14. Order online, choose your pickup day and time, and the cake will be ready when you arrive. Please order at least {min_lead_hours} hours ahead.</p><ul><li>Tortes, mud cakes, velvet cakes and cheesecakes</li><li>Free message on the cake</li><li>Candles, a cake knife and toppers can be added in the cart</li></ul><p><a href=\"{url:shop}\">See all our cakes</a></p><h2>Custom birthday cakes for kids and adults</h2><p>Unicorns, football, number cakes, favourite colours or a photo you love: send us your idea with a reference photo and we will reply with a quote. Custom cakes need about {custom_lead_days} days notice, more for busy weekends.</p><p>Questions? Call us on {store_phone} or visit us at {store_address}.</p>',1,'Birthday Cakes Canberra | The Continental Cake Shop','Birthday cakes in Canberra made fresh in Greenway with 100% Halal ingredients. Order a favourite online or get a quote for a custom kids or adults cake.','2026-10-21 10:26:08'),
+(6,'wedding-cakes-canberra','landing','Wedding and engagement cakes in Canberra','Wedding, engagement and anniversary cakes designed with you and made fresh in our Greenway kitchen.','Wedding',1,2,'<h2>Your wedding cake, made in Canberra</h2><p>From an elegant single tier for an engagement party to a tall tiered cake for the wedding day, {store_name} designs and bakes celebration cakes in Greenway, Tuggeranong. Every cake is made with 100% Halal ingredients.</p><h2>How it works</h2><ol><li>Send us your date, number of guests, flavours and a photo of the style you like.</li><li>We reply with a quote and any questions.</li><li>Accept the quote and pay a deposit online to book your date.</li></ol><p>Popular flavours include vanilla, chocolate, red velvet and our continental cream cakes. We can match your colours, flowers and theme.</p><h2>Book early</h2><p>Wedding cakes need at least {custom_lead_days} days notice, and spring and summer weekends fill up quickly, so please ask as early as you can. Call {store_phone} or send a request below.</p>',1,'Wedding Cakes Canberra | The Continental Cake Shop','Wedding and engagement cakes in Canberra, designed with you and made fresh in Greenway with 100% Halal ingredients. Send your idea and get a quote today.','2026-10-21 10:26:08'),
+(7,'baby-shower-cakes-canberra','landing','Baby shower and gender reveal cakes in Canberra','Sweet cakes for baby showers, gender reveals, christenings and first birthdays, made fresh in Greenway.','Baby shower',1,3,'<h2>Cakes to welcome a new baby</h2><p>{store_name} makes baby shower cakes, gender reveal cakes with a pink or blue surprise inside, christening cakes and first birthday cakes in our Greenway kitchen, with 100% Halal ingredients.</p><h2>Make it yours</h2><ul><li>Soft pastel colours, teddy bears, clouds, florals or your own theme</li><li>A name or a message on the cake</li><li>Sizes for a small family lunch or a big party</li></ul><p>Send us your idea and a reference photo, and we will reply with a quote. Please allow at least {custom_lead_days} days notice.</p><h2>Need a cake sooner?</h2><p>Our ready-made cakes can be ordered online with {min_lead_hours} hours notice, and we will write a message of your choice on top. <a href=\"{url:shop}\">Browse our cakes</a> or call us on {store_phone}.</p>',1,'Baby Shower Cakes Canberra | Continental Cake Shop','Baby shower, gender reveal and christening cakes in Canberra, made fresh in Greenway with 100% Halal ingredients. Get a quote for a custom cake or order online.','2026-10-21 10:26:08'),
+(8,'halal-cakes-canberra','landing','Halal cakes in Canberra','Every cake we bake is made with 100% Halal ingredients in our shop in Greenway, Tuggeranong.','Birthday',1,4,'<h2>100% Halal ingredients in every cake</h2><p>{store_name} is an independent cake shop in Greenway, Canberra. Every torte, mud cake, velvet cake and cheesecake we make uses 100% Halal ingredients, so you can share them with everyone at your celebration.</p><h2>Cakes for every occasion</h2><p>Birthdays, Eid, weddings, engagements, aqiqah and baby showers: choose a cake from our shop to order online, or ask us to design a custom cake for your event.</p><ul><li><a href=\"{url:shop}\">Order a cake online</a> with {min_lead_hours} hours notice</li><li><a href=\"{url:custom-cakes}\">Request a custom cake</a> with {custom_lead_days} days notice</li><li>Pick up from {store_address}</li></ul><h2>Dietary needs</h2><p>Some cakes can be made eggless, so look for the options on each cake page or call us on {store_phone}. Our kitchen handles milk, eggs, wheat, soy and nuts. <a href=\"{url:allergens}\">Read our allergen information</a>.</p>',1,'Halal Cakes Canberra | The Continental Cake Shop','Looking for Halal cakes in Canberra? Every cake at The Continental Cake Shop in Greenway is made with 100% Halal ingredients. Order online or get a quote.','2026-10-21 10:26:08');
 /*!40000 ALTER TABLE `pages` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `password_resets`;
@@ -413,6 +482,72 @@ CREATE TABLE `password_resets` (
 LOCK TABLES `password_resets` WRITE;
 /*!40000 ALTER TABLE `password_resets` DISABLE KEYS */;
 /*!40000 ALTER TABLE `password_resets` ENABLE KEYS */;
+UNLOCK TABLES;
+DROP TABLE IF EXISTS `payments`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `payments` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `order_id` int(10) unsigned NOT NULL,
+  `kind` enum('payment','refund') NOT NULL DEFAULT 'payment',
+  `amount` decimal(10,2) NOT NULL,
+  `method` varchar(20) NOT NULL,
+  `reference` varchar(190) DEFAULT NULL,
+  `note` varchar(255) DEFAULT NULL,
+  `admin_id` int(10) unsigned DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_payments_reference` (`reference`),
+  KEY `idx_payments_order` (`order_id`,`created_at`),
+  KEY `fk_payments_admin` (`admin_id`),
+  CONSTRAINT `fk_payments_admin` FOREIGN KEY (`admin_id`) REFERENCES `admins` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_payments_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `payments` WRITE;
+/*!40000 ALTER TABLE `payments` DISABLE KEYS */;
+/*!40000 ALTER TABLE `payments` ENABLE KEYS */;
+UNLOCK TABLES;
+DROP TABLE IF EXISTS `product_images`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `product_images` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `product_id` int(10) unsigned NOT NULL,
+  `image` varchar(255) NOT NULL COMMENT 'Path inside public/uploads',
+  `alt` varchar(160) DEFAULT NULL,
+  `sort_order` int(11) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_product_images` (`product_id`,`sort_order`),
+  CONSTRAINT `fk_product_images_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `product_images` WRITE;
+/*!40000 ALTER TABLE `product_images` DISABLE KEYS */;
+/*!40000 ALTER TABLE `product_images` ENABLE KEYS */;
+UNLOCK TABLES;
+DROP TABLE IF EXISTS `product_options`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `product_options` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `product_id` int(10) unsigned NOT NULL,
+  `name` varchar(80) NOT NULL,
+  `price` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Added to the size price',
+  `sort_order` int(11) NOT NULL DEFAULT 0,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  PRIMARY KEY (`id`),
+  KEY `idx_options_product` (`product_id`,`is_active`,`sort_order`),
+  CONSTRAINT `fk_options_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `product_options` WRITE;
+/*!40000 ALTER TABLE `product_options` DISABLE KEYS */;
+/*!40000 ALTER TABLE `product_options` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `product_sizes`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -529,15 +664,18 @@ CREATE TABLE `products` (
   `short_description` varchar(255) DEFAULT NULL,
   `description` text DEFAULT NULL,
   `image` varchar(255) DEFAULT NULL,
+  `image_alt` varchar(160) DEFAULT NULL COMMENT 'Describes the main photo for Google and screen readers',
   `badge` varchar(40) DEFAULT NULL,
   `is_featured` tinyint(1) NOT NULL DEFAULT 0,
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
   `allow_message` tinyint(1) NOT NULL DEFAULT 1,
   `is_enquiry` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Priced on request: shows an enquiry button instead of add to cart',
+  `sold_out_until` date DEFAULT NULL COMMENT 'Last day the cake is sold out; 9999-12-31 = until switched back',
   `lead_time_hours` int(10) unsigned DEFAULT NULL COMMENT 'Overrides the global minimum notice when set',
   `sort_order` int(11) NOT NULL DEFAULT 0,
   `meta_title` varchar(160) DEFAULT NULL,
   `meta_description` varchar(255) DEFAULT NULL,
+  `focus_keyword` varchar(80) DEFAULT NULL COMMENT 'Words people search for, e.g. black forest cake canberra',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
@@ -552,47 +690,47 @@ CREATE TABLE `products` (
 LOCK TABLES `products` WRITE;
 /*!40000 ALTER TABLE `products` DISABLE KEYS */;
 INSERT INTO `products` VALUES
-(1,1,'Black Forest Torte','black-forest-torte','Chocolate sponge layered with fresh cream and cherries.','A classic Black Forest torte: layers of chocolate sponge, vanilla cream and sour cherries, finished with chocolate on top. Light, not too sweet and always popular for birthdays and family celebrations.','products/black-forest-torte.webp',NULL,1,1,1,0,NULL,1,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(2,1,'Mousse Torte','mousse-torte','Sponge layers with a light, airy mousse filling.','Soft sponge layered with a light, airy mousse filling and finished with cream. A gentle, creamy torte that suits any occasion.','products/mousse-torte.webp',NULL,0,1,1,0,NULL,2,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(3,1,'Strawberry Torte','strawberry-torte','Vanilla sponge with fresh cream and strawberries.','Vanilla sponge layered with fresh cream and strawberries. A fresh, fruity torte that is a favourite for birthdays and morning teas.','products/strawberry-torte.webp',NULL,0,1,1,0,NULL,3,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(4,1,'Caramel Torte','caramel-torte','Sponge layers with smooth caramel cream.','A Hungarian-style sponge torte layered with chocolate buttercream and topped with caramel. Rich, smooth and a great choice for caramel lovers.','products/caramel-torte.webp',NULL,0,1,1,0,NULL,4,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(5,1,'Zebra Torte','zebra-torte','Chocolate and vanilla sponge layered together with cream.','Chocolate and vanilla sponge layered together with cream, covered in chocolate crumbs and finished with cream rosettes. Two favourite flavours in one cake.','products/zebra-torte.webp',NULL,0,1,1,0,NULL,5,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(6,1,'Hazelnut Torte','hazelnut-torte','Sponge layered with rich hazelnut cream.','Sponge layers filled with a rich hazelnut cream. A nutty, chocolatey torte for anyone who loves hazelnut.','products/hazelnut-torte.webp',NULL,1,1,1,0,NULL,6,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(7,1,'Double Choc Strawberry Torte','double-choc-strawberry-torte','Chocolate sponge with chocolate cream and strawberries.','Chocolate sponge with chocolate cream and fresh strawberries. Chocolate and berries in every slice.','products/double-choc-strawberry-torte.webp',NULL,1,1,1,0,NULL,7,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(8,1,'Cookies \'n\' Cream Torte','cookies-n-cream-torte','Sponge layers with cookies and cream filling.','Sponge layered with a cookies and cream filling and decorated with chocolate biscuits. A big hit at kids\' parties.','products/cookies-n-cream-torte.webp',NULL,0,1,1,0,NULL,8,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(9,1,'Vanilla Torte','vanilla-torte','Classic vanilla sponge with fresh cream.','Our classic vanilla sponge layered with fresh cream. Simple, light and easy to personalise with a message on top.','products/vanilla-torte.webp',NULL,0,1,1,0,NULL,9,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(10,1,'Tiramisu Torte','tiramisu-torte','Coffee-soaked sponge with a creamy tiramisu filling.','Coffee-soaked sponge layered with a creamy tiramisu filling and dusted with cocoa. One of our most loved cakes.','products/tiramisu-torte.webp','Customer favourite',1,1,1,0,NULL,10,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(11,1,'Lotus Biscoff Torte','lotus-biscoff-torte','Sponge layers with Biscoff cream and crushed Lotus biscuits.','Sponge layered with Biscoff cream and crushed Lotus biscuits, finished with a caramelised biscuit topping.',NULL,NULL,0,1,1,0,NULL,11,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(12,1,'Rainbow Torte','rainbow-torte','Colourful rainbow sponge layers with cream. Great for kids\' parties.','Bright rainbow sponge layers with cream. A colourful surprise when you cut it, perfect for kids\' birthdays.','products/rainbow-torte.webp',NULL,0,1,1,0,NULL,12,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(13,1,'Honey-Bee Torte','honey-bee-torte','Sponge layers with a honey cream filling.','Our honey-bee (bee sting) torte: three layers of honey flavoured sponge with fresh continental cream and vanilla custard.','products/honey-bee-torte.webp',NULL,0,1,1,0,NULL,13,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(14,1,'Continental Torte','continental-torte','Our signature house torte.','Our signature house torte, made the continental way with soft sponge and cream. A shop favourite since 2015.','products/continental-torte.webp',NULL,0,1,1,0,NULL,14,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(15,1,'Raffaello Torte','raffaello-torte','Coconut and almond cream torte inspired by Raffaello.','A coconut and almond cream torte inspired by Raffaello, finished with coconut. Light, creamy and elegant.',NULL,NULL,0,1,1,0,NULL,15,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(16,2,'Red Velvet Cake','red-velvet-cake','Red velvet sponge with cream cheese frosting.','Soft red velvet sponge layered with smooth cream cheese frosting. A customer favourite for birthdays and anniversaries.','products/red-velvet-cake.webp','Customer favourite',1,1,1,0,NULL,1,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(17,2,'Pistachio Velvet Cake','pistachio-velvet-cake','Pistachio velvet sponge with cream cheese frosting.','Pistachio velvet sponge layered with cream cheese frosting. A soft, nutty twist on the classic velvet cake.',NULL,NULL,0,1,1,0,NULL,2,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(18,2,'Blueberry Velvet Cake','blueberry-velvet-cake','Blueberry velvet sponge with cream cheese frosting.','Blueberry velvet sponge layered with cream cheese frosting, with a gentle berry flavour.',NULL,NULL,0,1,1,0,NULL,3,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(19,2,'Orange Mango Velvet Cake','orange-mango-velvet-cake','Orange and mango velvet sponge with cream cheese frosting.','Orange and mango velvet sponge layered with cream cheese frosting. Fresh, fruity and a little different.',NULL,NULL,0,1,1,0,NULL,4,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(20,3,'Chocolate Mud Cake','chocolate-mud-cake','Rich, moist chocolate mud cake.','A rich, moist chocolate mud cake. Dense enough to decorate and carry, which makes it a great base for birthday cakes.','products/chocolate-mud-cake.webp',NULL,1,1,1,0,NULL,1,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(21,3,'White Gold Mud Cake','white-gold-mud-cake','White chocolate mud cake with a caramel note.','White chocolate mud cake with a soft caramel note. Moist, rich and very popular for celebrations.','products/white-gold-mud-cake.webp',NULL,0,1,1,0,NULL,2,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(22,3,'Marble Mud Cake','marble-mud-cake','Chocolate and vanilla mud cake swirled together.','Chocolate and vanilla mud cake swirled together for a marbled look in every slice.','products/marble-mud-cake.webp',NULL,0,1,1,0,NULL,3,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(23,3,'Caramel Mud Cake','caramel-mud-cake','Moist caramel mud cake.','A moist caramel mud cake with a deep, buttery flavour.','products/caramel-mud-cake.webp',NULL,0,1,1,0,NULL,4,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(24,3,'Treasure Cake','treasure-cake','Our signature Treasure mud cake.','Our signature Treasure cake: a rich mud cake decorated with chocolates and treats on top.','products/treasure-cake.webp',NULL,0,1,1,0,NULL,5,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(25,4,'American Baked Cheesecake','american-baked-cheesecake','Creamy New York style baked cheesecake.','A creamy New York style cheesecake baked on a biscuit base. Smooth, rich and classic.','products/american-baked-cheesecake.webp',NULL,0,1,1,0,NULL,1,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(26,4,'Blueberry Baked Cheesecake','blueberry-baked-cheesecake','Baked cheesecake with blueberries.','Creamy baked cheesecake on a biscuit base with blueberries.','products/blueberry-baked-cheesecake.webp',NULL,0,1,1,0,NULL,2,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(27,4,'Marble Baked Cheesecake','marble-baked-cheesecake','Baked cheesecake swirled with chocolate.','Baked cheesecake swirled with chocolate on a biscuit base.','products/marble-baked-cheesecake.webp',NULL,0,1,1,0,NULL,3,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(28,4,'Tropical Baked Cheesecake','tropical-baked-cheesecake','Baked cheesecake with tropical fruit.','Baked cheesecake on a biscuit base with a tropical fruit topping.','products/tropical-baked-cheesecake.webp',NULL,0,1,1,0,NULL,4,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(29,4,'Hazelnut Baked Cheesecake','hazelnut-baked-cheesecake','Baked cheesecake with hazelnut.','Baked cheesecake with hazelnut on a biscuit base. Rich and nutty.','products/hazelnut-baked-cheesecake.webp',NULL,0,1,1,0,NULL,5,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(30,5,'Choc Chip Cheesecake','choc-chip-cheesecake','Light continental cheesecake with chocolate chips.','A light, set continental cheesecake with chocolate chips on a biscuit base.','products/choc-chip-cheesecake.webp',NULL,0,1,1,0,NULL,1,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(31,5,'Caramel Cheesecake','caramel-cheesecake','Light continental cheesecake with caramel.','A light, set continental cheesecake with caramel on a biscuit base.','products/caramel-cheesecake.webp',NULL,0,1,1,0,NULL,2,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(32,5,'Strawberry Cheesecake','strawberry-cheesecake','Light continental cheesecake with strawberry.','A light, set continental cheesecake with strawberry on a biscuit base. Fresh and fruity.','products/strawberry-cheesecake.webp',NULL,1,1,1,0,NULL,3,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(33,5,'Passionfruit Cheesecake','passionfruit-cheesecake','Light continental cheesecake with passionfruit.','A light, set continental cheesecake with a passionfruit topping. Sweet and a little tangy.','products/passionfruit-cheesecake.webp',NULL,0,1,1,0,NULL,4,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(34,5,'Cookies Cheesecake','cookies-cheesecake','Light continental cheesecake with cookie pieces.','A light, set continental cheesecake with cookie pieces through it.',NULL,NULL,0,1,1,0,NULL,5,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(35,5,'Tangy Lemon Cheesecake','tangy-lemon-cheesecake','Light continental cheesecake with a tangy lemon finish.','A light, set continental cheesecake with a tangy lemon finish. Refreshing after a big meal.','products/tangy-lemon-cheesecake.webp',NULL,0,1,1,0,NULL,6,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(36,5,'Blueberry Cheesecake','blueberry-cheesecake','Light continental cheesecake with blueberry.','A light, set continental cheesecake with blueberry on a biscuit base.','products/blueberry-cheesecake.webp',NULL,0,1,1,0,NULL,7,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(37,5,'Pistachio Cheesecake','pistachio-cheesecake','Light continental cheesecake with pistachio.','A light, set continental cheesecake with pistachio. Creamy and nutty.',NULL,NULL,0,1,1,0,NULL,8,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(38,6,'Carrot Cake','carrot-cake','Spiced carrot cake with cream cheese icing.','Moist spiced carrot cake with cream cheese icing. Great for morning tea.','products/carrot-cake.webp',NULL,0,1,1,0,NULL,1,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(39,6,'Profiterole Tower','profiterole-tower','A tower of cream-filled profiteroles. A real centrepiece.','A tower of cream-filled profiteroles, finished with chocolate. A real centrepiece for parties and dessert tables.','products/profiterole-tower.webp',NULL,1,1,1,0,NULL,2,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(40,6,'Pavlova','pavlova','Crisp meringue with soft centre, cream and fruit.','Crisp meringue with a soft centre, topped with fresh cream and fruit.','products/pavlova.webp',NULL,0,1,1,0,NULL,3,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
-(41,6,'Orange & Poppy Seed Cake','orange-poppy-seed-cake','Orange and poppy seed tea cake.','A moist orange and poppy seed tea cake. Lovely with a cup of tea or coffee.','products/orange-poppy-seed-cake.webp',NULL,0,1,1,0,NULL,4,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43');
+(1,1,'Black Forest Torte','black-forest-torte','Chocolate sponge layered with fresh cream and cherries.','A classic Black Forest torte: layers of chocolate sponge, vanilla cream and sour cherries, finished with chocolate on top. Light, not too sweet and always popular for birthdays and family celebrations.','products/black-forest-torte.webp',NULL,NULL,1,1,1,0,NULL,NULL,1,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(2,1,'Mousse Torte','mousse-torte','Sponge layers with a light, airy mousse filling.','Soft sponge layered with a light, airy mousse filling and finished with cream. A gentle, creamy torte that suits any occasion.','products/mousse-torte.webp',NULL,NULL,0,1,1,0,NULL,NULL,2,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(3,1,'Strawberry Torte','strawberry-torte','Vanilla sponge with fresh cream and strawberries.','Vanilla sponge layered with fresh cream and strawberries. A fresh, fruity torte that is a favourite for birthdays and morning teas.','products/strawberry-torte.webp',NULL,NULL,0,1,1,0,NULL,NULL,3,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(4,1,'Caramel Torte','caramel-torte','Sponge layers with smooth caramel cream.','A Hungarian-style sponge torte layered with chocolate buttercream and topped with caramel. Rich, smooth and a great choice for caramel lovers.','products/caramel-torte.webp',NULL,NULL,0,1,1,0,NULL,NULL,4,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(5,1,'Zebra Torte','zebra-torte','Chocolate and vanilla sponge layered together with cream.','Chocolate and vanilla sponge layered together with cream, covered in chocolate crumbs and finished with cream rosettes. Two favourite flavours in one cake.','products/zebra-torte.webp',NULL,NULL,0,1,1,0,NULL,NULL,5,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(6,1,'Hazelnut Torte','hazelnut-torte','Sponge layered with rich hazelnut cream.','Sponge layers filled with a rich hazelnut cream. A nutty, chocolatey torte for anyone who loves hazelnut.','products/hazelnut-torte.webp',NULL,NULL,1,1,1,0,NULL,NULL,6,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(7,1,'Double Choc Strawberry Torte','double-choc-strawberry-torte','Chocolate sponge with chocolate cream and strawberries.','Chocolate sponge with chocolate cream and fresh strawberries. Chocolate and berries in every slice.','products/double-choc-strawberry-torte.webp',NULL,NULL,1,1,1,0,NULL,NULL,7,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(8,1,'Cookies \'n\' Cream Torte','cookies-n-cream-torte','Sponge layers with cookies and cream filling.','Sponge layered with a cookies and cream filling and decorated with chocolate biscuits. A big hit at kids\' parties.','products/cookies-n-cream-torte.webp',NULL,NULL,0,1,1,0,NULL,NULL,8,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(9,1,'Vanilla Torte','vanilla-torte','Classic vanilla sponge with fresh cream.','Our classic vanilla sponge layered with fresh cream. Simple, light and easy to personalise with a message on top.','products/vanilla-torte.webp',NULL,NULL,0,1,1,0,NULL,NULL,9,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(10,1,'Tiramisu Torte','tiramisu-torte','Coffee-soaked sponge with a creamy tiramisu filling.','Coffee-soaked sponge layered with a creamy tiramisu filling and dusted with cocoa. One of our most loved cakes.','products/tiramisu-torte.webp',NULL,'Customer favourite',1,1,1,0,NULL,NULL,10,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(11,1,'Lotus Biscoff Torte','lotus-biscoff-torte','Sponge layers with Biscoff cream and crushed Lotus biscuits.','Sponge layered with Biscoff cream and crushed Lotus biscuits, finished with a caramelised biscuit topping.',NULL,NULL,NULL,0,1,1,0,NULL,NULL,11,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(12,1,'Rainbow Torte','rainbow-torte','Colourful rainbow sponge layers with cream. Great for kids\' parties.','Bright rainbow sponge layers with cream. A colourful surprise when you cut it, perfect for kids\' birthdays.','products/rainbow-torte.webp',NULL,NULL,0,1,1,0,NULL,NULL,12,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(13,1,'Honey-Bee Torte','honey-bee-torte','Sponge layers with a honey cream filling.','Our honey-bee (bee sting) torte: three layers of honey flavoured sponge with fresh continental cream and vanilla custard.','products/honey-bee-torte.webp',NULL,NULL,0,1,1,0,NULL,NULL,13,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(14,1,'Continental Torte','continental-torte','Our signature house torte.','Our signature house torte, made the continental way with soft sponge and cream. A shop favourite since 2015.','products/continental-torte.webp',NULL,NULL,0,1,1,0,NULL,NULL,14,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(15,1,'Raffaello Torte','raffaello-torte','Coconut and almond cream torte inspired by Raffaello.','A coconut and almond cream torte inspired by Raffaello, finished with coconut. Light, creamy and elegant.',NULL,NULL,NULL,0,1,1,0,NULL,NULL,15,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(16,2,'Red Velvet Cake','red-velvet-cake','Red velvet sponge with cream cheese frosting.','Soft red velvet sponge layered with smooth cream cheese frosting. A customer favourite for birthdays and anniversaries.','products/red-velvet-cake.webp',NULL,'Customer favourite',1,1,1,0,NULL,NULL,1,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(17,2,'Pistachio Velvet Cake','pistachio-velvet-cake','Pistachio velvet sponge with cream cheese frosting.','Pistachio velvet sponge layered with cream cheese frosting. A soft, nutty twist on the classic velvet cake.',NULL,NULL,NULL,0,1,1,0,NULL,NULL,2,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(18,2,'Blueberry Velvet Cake','blueberry-velvet-cake','Blueberry velvet sponge with cream cheese frosting.','Blueberry velvet sponge layered with cream cheese frosting, with a gentle berry flavour.',NULL,NULL,NULL,0,1,1,0,NULL,NULL,3,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(19,2,'Orange Mango Velvet Cake','orange-mango-velvet-cake','Orange and mango velvet sponge with cream cheese frosting.','Orange and mango velvet sponge layered with cream cheese frosting. Fresh, fruity and a little different.',NULL,NULL,NULL,0,1,1,0,NULL,NULL,4,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(20,3,'Chocolate Mud Cake','chocolate-mud-cake','Rich, moist chocolate mud cake.','A rich, moist chocolate mud cake. Dense enough to decorate and carry, which makes it a great base for birthday cakes.','products/chocolate-mud-cake.webp',NULL,NULL,1,1,1,0,NULL,NULL,1,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(21,3,'White Gold Mud Cake','white-gold-mud-cake','White chocolate mud cake with a caramel note.','White chocolate mud cake with a soft caramel note. Moist, rich and very popular for celebrations.','products/white-gold-mud-cake.webp',NULL,NULL,0,1,1,0,NULL,NULL,2,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(22,3,'Marble Mud Cake','marble-mud-cake','Chocolate and vanilla mud cake swirled together.','Chocolate and vanilla mud cake swirled together for a marbled look in every slice.','products/marble-mud-cake.webp',NULL,NULL,0,1,1,0,NULL,NULL,3,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(23,3,'Caramel Mud Cake','caramel-mud-cake','Moist caramel mud cake.','A moist caramel mud cake with a deep, buttery flavour.','products/caramel-mud-cake.webp',NULL,NULL,0,1,1,0,NULL,NULL,4,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(24,3,'Treasure Cake','treasure-cake','Our signature Treasure mud cake.','Our signature Treasure cake: a rich mud cake decorated with chocolates and treats on top.','products/treasure-cake.webp',NULL,NULL,0,1,1,0,NULL,NULL,5,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(25,4,'American Baked Cheesecake','american-baked-cheesecake','Creamy New York style baked cheesecake.','A creamy New York style cheesecake baked on a biscuit base. Smooth, rich and classic.','products/american-baked-cheesecake.webp',NULL,NULL,0,1,1,0,NULL,NULL,1,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(26,4,'Blueberry Baked Cheesecake','blueberry-baked-cheesecake','Baked cheesecake with blueberries.','Creamy baked cheesecake on a biscuit base with blueberries.','products/blueberry-baked-cheesecake.webp',NULL,NULL,0,1,1,0,NULL,NULL,2,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(27,4,'Marble Baked Cheesecake','marble-baked-cheesecake','Baked cheesecake swirled with chocolate.','Baked cheesecake swirled with chocolate on a biscuit base.','products/marble-baked-cheesecake.webp',NULL,NULL,0,1,1,0,NULL,NULL,3,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(28,4,'Tropical Baked Cheesecake','tropical-baked-cheesecake','Baked cheesecake with tropical fruit.','Baked cheesecake on a biscuit base with a tropical fruit topping.','products/tropical-baked-cheesecake.webp',NULL,NULL,0,1,1,0,NULL,NULL,4,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(29,4,'Hazelnut Baked Cheesecake','hazelnut-baked-cheesecake','Baked cheesecake with hazelnut.','Baked cheesecake with hazelnut on a biscuit base. Rich and nutty.','products/hazelnut-baked-cheesecake.webp',NULL,NULL,0,1,1,0,NULL,NULL,5,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(30,5,'Choc Chip Cheesecake','choc-chip-cheesecake','Light continental cheesecake with chocolate chips.','A light, set continental cheesecake with chocolate chips on a biscuit base.','products/choc-chip-cheesecake.webp',NULL,NULL,0,1,1,0,NULL,NULL,1,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(31,5,'Caramel Cheesecake','caramel-cheesecake','Light continental cheesecake with caramel.','A light, set continental cheesecake with caramel on a biscuit base.','products/caramel-cheesecake.webp',NULL,NULL,0,1,1,0,NULL,NULL,2,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(32,5,'Strawberry Cheesecake','strawberry-cheesecake','Light continental cheesecake with strawberry.','A light, set continental cheesecake with strawberry on a biscuit base. Fresh and fruity.','products/strawberry-cheesecake.webp',NULL,NULL,1,1,1,0,NULL,NULL,3,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(33,5,'Passionfruit Cheesecake','passionfruit-cheesecake','Light continental cheesecake with passionfruit.','A light, set continental cheesecake with a passionfruit topping. Sweet and a little tangy.','products/passionfruit-cheesecake.webp',NULL,NULL,0,1,1,0,NULL,NULL,4,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(34,5,'Cookies Cheesecake','cookies-cheesecake','Light continental cheesecake with cookie pieces.','A light, set continental cheesecake with cookie pieces through it.',NULL,NULL,NULL,0,1,1,0,NULL,NULL,5,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(35,5,'Tangy Lemon Cheesecake','tangy-lemon-cheesecake','Light continental cheesecake with a tangy lemon finish.','A light, set continental cheesecake with a tangy lemon finish. Refreshing after a big meal.','products/tangy-lemon-cheesecake.webp',NULL,NULL,0,1,1,0,NULL,NULL,6,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(36,5,'Blueberry Cheesecake','blueberry-cheesecake','Light continental cheesecake with blueberry.','A light, set continental cheesecake with blueberry on a biscuit base.','products/blueberry-cheesecake.webp',NULL,NULL,0,1,1,0,NULL,NULL,7,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(37,5,'Pistachio Cheesecake','pistachio-cheesecake','Light continental cheesecake with pistachio.','A light, set continental cheesecake with pistachio. Creamy and nutty.',NULL,NULL,NULL,0,1,1,0,NULL,NULL,8,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(38,6,'Carrot Cake','carrot-cake','Spiced carrot cake with cream cheese icing.','Moist spiced carrot cake with cream cheese icing. Great for morning tea.','products/carrot-cake.webp',NULL,NULL,0,1,1,0,NULL,NULL,1,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(39,6,'Profiterole Tower','profiterole-tower','A tower of cream-filled profiteroles. A real centrepiece.','A tower of cream-filled profiteroles, finished with chocolate. A real centrepiece for parties and dessert tables.','products/profiterole-tower.webp',NULL,NULL,1,1,1,0,NULL,NULL,2,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(40,6,'Pavlova','pavlova','Crisp meringue with soft centre, cream and fruit.','Crisp meringue with a soft centre, topped with fresh cream and fruit.','products/pavlova.webp',NULL,NULL,0,1,1,0,NULL,NULL,3,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43'),
+(41,6,'Orange & Poppy Seed Cake','orange-poppy-seed-cake','Orange and poppy seed tea cake.','A moist orange and poppy seed tea cake. Lovely with a cup of tea or coffee.','products/orange-poppy-seed-cake.webp',NULL,NULL,0,1,1,0,NULL,NULL,4,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43');
 /*!40000 ALTER TABLE `products` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `reviews`;
@@ -642,7 +780,14 @@ INSERT INTO `schema_migrations` VALUES
 ('008_coupons_popup_delivery_windows.sql','2026-10-18 13:35:43'),
 ('009_homepage_sections_and_mail.sql','2026-10-18 13:35:43'),
 ('010_messages_reports_permissions.sql','2026-10-18 13:35:43'),
-('011_daily_email_settings.sql','2026-10-18 13:35:43');
+('011_daily_email_settings.sql','2026-10-18 13:35:43'),
+('012_payments_addons_options.sql','2026-10-21 10:26:07'),
+('013_sold_out_pause_whatsapp.sql','2026-10-21 10:26:07'),
+('014_quote_payments.sql','2026-10-21 10:26:08'),
+('015_reminders_reviews.sql','2026-10-21 10:26:08'),
+('016_product_photos_seo.sql','2026-10-21 10:26:08'),
+('017_seo_landing_pages.sql','2026-10-21 10:26:08'),
+('018_backups.sql','2026-10-21 10:26:08');
 /*!40000 ALTER TABLE `schema_migrations` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `settings`;
@@ -659,7 +804,12 @@ CREATE TABLE `settings` (
 LOCK TABLES `settings` WRITE;
 /*!40000 ALTER TABLE `settings` DISABLE KEYS */;
 INSERT INTO `settings` VALUES
+('addons_enabled','0','2026-10-21 10:26:07'),
+('addons_title','Add something extra','2026-10-21 10:26:07'),
 ('announcement_text','Delivery all over Canberra','2026-10-18 13:35:43'),
+('backup_enabled','1','2026-10-21 10:26:08'),
+('backup_keep_days','14','2026-10-21 10:26:08'),
+('backup_last_run','','2026-10-21 10:26:08'),
 ('bank_account_name','','2026-10-18 13:35:43'),
 ('bank_account_number','','2026-10-18 13:35:43'),
 ('bank_bsb','','2026-10-18 13:35:43'),
@@ -685,7 +835,7 @@ INSERT INTO `settings` VALUES
 ('hero_btn1_url','shop','2026-10-18 13:35:43'),
 ('hero_btn2_text','Request a Custom Cake','2026-10-18 13:35:43'),
 ('hero_btn2_url','custom-cakes','2026-10-18 13:35:43'),
-('hero_eyebrow','Baked in Greenway, Canberra since 2015','2026-10-18 13:35:43'),
+('hero_eyebrow','Cake shop in Greenway, Canberra since 2015','2026-10-21 10:26:08'),
 ('hero_image','gallery/hero-cake-teal.webp','2026-10-18 13:35:43'),
 ('hero_show_shop_card','1','2026-10-18 13:35:43'),
 ('hero_subtitle','Tortes, mud cakes, velvet cakes and cheesecakes made in our shop with 100% Halal ingredients. Order online, choose your pickup time, and we will have it ready.','2026-10-18 13:35:43'),
@@ -717,6 +867,9 @@ INSERT INTO `settings` VALUES
 ('min_lead_hours','24','2026-10-18 13:35:43'),
 ('opening_hours','{\"mon\":[\"08:00\",\"19:00\"],\"tue\":[\"08:00\",\"19:00\"],\"wed\":[\"08:00\",\"19:00\"],\"thu\":[\"08:00\",\"19:00\"],\"fri\":[\"08:00\",\"19:00\"],\"sat\":[\"09:00\",\"18:00\"],\"sun\":[\"09:00\",\"18:00\"]}','2026-10-18 13:35:43'),
 ('order_notification_email','continentalcakeshopcanberra@gmail.com','2026-10-18 13:35:43'),
+('ordering_paused','0','2026-10-21 10:26:07'),
+('ordering_paused_message','We are not taking online orders right now. Please call us and we will do our best to help.','2026-10-21 10:26:07'),
+('ordering_paused_until','','2026-10-21 10:26:07'),
 ('payid_account_name','The Continental Cake Shop','2026-10-18 13:35:43'),
 ('payid_identifier','','2026-10-18 13:35:43'),
 ('payment_bank_enabled','1','2026-10-18 13:35:43'),
@@ -740,9 +893,14 @@ INSERT INTO `settings` VALUES
 ('popup_text','Order your next cake online and save.','2026-10-18 13:35:43'),
 ('popup_title','Sweet deal for you','2026-10-18 13:35:43'),
 ('popup_version','1','2026-10-18 13:35:43'),
+('quote_default_deposit_percent','50','2026-10-21 10:26:08'),
+('reminder_email_enabled','1','2026-10-21 10:26:08'),
+('reminder_send_hour','10','2026-10-21 10:26:08'),
+('review_delay_hours','20','2026-10-21 10:26:08'),
+('review_email_enabled','1','2026-10-21 10:26:08'),
 ('send_customer_emails','1','2026-10-18 13:35:43'),
 ('seo_home_description','Order fresh tortes, mud cakes, velvet cakes and cheesecakes online from The Continental Cake Shop in Greenway, Canberra. 100% Halal ingredients, custom cakes and easy pickup.','2026-10-18 13:35:43'),
-('seo_home_title','The Continental Cake Shop Canberra | Halal Cakes in Greenway, ACT','2026-10-18 13:35:43'),
+('seo_home_title','Cake Shop Canberra | The Continental Cake Shop, Greenway','2026-10-21 10:26:08'),
 ('slot_interval_minutes','30','2026-10-18 13:35:43'),
 ('smtp_encryption','','2026-10-18 13:35:43'),
 ('smtp_host','','2026-10-18 13:35:43'),
@@ -765,7 +923,9 @@ INSERT INTO `settings` VALUES
 ('store_suburb','Greenway','2026-10-18 13:35:43'),
 ('stripe_publishable_key','','2026-10-18 13:35:43'),
 ('stripe_secret_key','','2026-10-18 13:35:43'),
-('stripe_webhook_secret','','2026-10-18 13:35:43');
+('stripe_webhook_secret','','2026-10-18 13:35:43'),
+('whatsapp_message','Hi, I have a question about a cake.','2026-10-21 10:26:07'),
+('whatsapp_number','','2026-10-21 10:26:07');
 /*!40000 ALTER TABLE `settings` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `thread_messages`;

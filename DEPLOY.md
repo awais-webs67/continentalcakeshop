@@ -96,6 +96,7 @@ In File Manager, right-click each folder > **Change Permissions** > `755`:
 - `public/uploads` (and its sub-folders)
 - `storage/uploads` (and its sub-folders)
 - `storage/logs`
+- `storage/backups`
 
 If photo uploads fail later, try `775` on the same folders.
 
@@ -124,9 +125,14 @@ In the admin panel, **Settings**:
 
 Then place a small test order on the website to see the full flow and the emails.
 
-## Step 9. The morning email (cron job)
+## Step 9. Scheduled jobs (cron job)
 
-Every open day, a plan for the day (pickups, deliveries, payments to check, messages) is emailed before the shop opens. It also shows straight away if email stops working.
+One cron job runs everything that happens by itself:
+
+- the **morning email** before the shop opens (pickups, deliveries, payments to check, messages), which also shows straight away if email stops working
+- **reminders** to customers the day before their pickup or delivery
+- **Google review requests** a while after an order is marked Completed
+- a **database backup** every night, kept for 14 days in `storage/backups`
 
 1. cPanel > **Cron Jobs** > **Add New Cron Job**.
 2. Common settings: **Once Per Fifteen Minutes** (`*/15 * * * *`).
@@ -136,7 +142,7 @@ Every open day, a plan for the day (pickups, deliveries, payments to check, mess
 /usr/local/bin/php /home/cpaneluser/public_html/cron/run.php >/dev/null 2>&1
 ```
 
-4. In **Admin > Settings > Emails** choose who receives it and how many minutes before opening. **Send today's morning email now** sends one straight away to try it.
+4. In **Admin > Settings > Emails** choose who receives the morning email and how many minutes before opening, and switch reminders and review requests on or off. **Send today's morning email now** sends one straight away to try it.
 
 **Admin > System check** shows whether the cron job is running.
 
@@ -152,22 +158,27 @@ Every open day, a plan for the day (pickups, deliveries, payments to check, mess
 
 To try it first without real money, use the `sk_test_...` key and the test card `4242 4242 4242 4242`, then swap in the live key.
 
-## Step 11. Google
+## Step 11. Google (keeping the old website's rankings)
+
+The old Wix site ranks well in Canberra, mostly because of the domain's age, links to it and the Google Business Profile. All three carry over as long as the new site uses **the same address** and the old pages redirect. Everything else is ready in **Admin > SEO**: a launch checklist, a check of every old address, and a list of addresses that were not found after launch with one-click redirects.
 
 1. In [Google Search Console](https://search.google.com/search-console) add the domain, choose **HTML tag**, and paste the code into **Admin > Settings > Social & SEO**. Then submit `https://www.yourdomain.com.au/sitemap.xml` under **Sitemaps**.
 2. Optional: create a Google Analytics 4 property and paste the `G-...` ID in the same place.
-3. Keep `app_url` as the same address the old site used (for example `https://www.continentalcakeshop.com.au`). The old pages such as `/allcakes`, `/mud-cakes`, `/about-us` and `/celebration-cakes` already redirect to the new pages, so existing Google rankings carry over.
-4. Update the website link in your **Google Business Profile** if it changes.
+3. Keep `app_url` as the same address the old site used (for example `https://www.continentalcakeshop.com.au`). All 16 pages of the old site redirect permanently (301) to their new page, for example `/allcakes` to the shop, `/mud-cakes` to Mud Cakes, `/gallery-06` to Birthday Cakes Canberra and `/about-us` to About.
+4. In your **Google Business Profile**, check the website link and add the **Order online** link to `/shop`.
+5. Publish the landing pages in **Admin > Pages** after reading them (birthday, wedding, baby shower and Halal cakes in Canberra).
+6. Open **Admin > SEO**, press **Suggest keywords**, then improve the cakes with the lowest SEO score first using **Fill in for me** in each cake.
+7. For the first weeks after launch, check **Admin > SEO > Addresses not found** once a week and redirect anything listed.
 
 ## Updating the site later
 
 1. Pull the update (Git Version Control > **Update from Remote**) or upload the new files over the old ones. Do not upload a different `config/config.php` or replace `public/uploads`.
-2. Log in to the admin as the owner and open **System check**. If it says **The database needs an update**, back up the database in phpMyAdmin (**Export**) and click **Update database**.
+2. Open the website once. Database changes that came with the update are applied by themselves on the first visit (a backup is made every night, and you can press **Back up now** in **Admin > System check** before updating). If **System check** still says **The database needs an update**, click **Update database**.
 
 With SSH access you can run the same update with `php database/migrate.php`.
 
 ## Backups
 
-- Database: phpMyAdmin > Export, or cPanel > **Backup**.
+- Database: backed up every night to `storage/backups` (kept 14 days). Download one from **Admin > System check > Backups** now and then and keep it on your computer. To restore, import the file in phpMyAdmin. phpMyAdmin > Export and cPanel > **Backup** also work.
 - Files that change on the live site: `public/uploads` (product, gallery and page photos) and `storage/uploads` (payment screenshots and custom cake photos).
 - `storage/app.key`: keep it with the database backup. Without it the saved email password has to be typed in again.

@@ -1,4 +1,4 @@
-<?php /** @var array $checks @var array $pending @var array $recentMail @var string $appUrl */
+<?php /** @var array $checks @var array $pending @var array $recentMail @var string $appUrl @var array $backups */
 $problems = 0;
 foreach ($checks as $rows) { foreach ($rows as $row) { $problems += $row[1] ? 0 : 1; } }
 ?>
@@ -7,7 +7,7 @@ foreach ($checks as $rows) { foreach ($rows as $row) { $problems += $row[1] ? 0 
 </div>
 <?php if ($pending): ?>
     <div class="alert alert--warning" style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between">
-        <span><strong>The database needs an update.</strong> <?= count($pending) ?> change<?= count($pending) === 1 ? '' : 's' ?> waiting: <?= e(implode(', ', $pending)) ?></span>
+        <span><strong>The database needs an update.</strong> It normally updates itself on the next visit. <?= count($pending) ?> change<?= count($pending) === 1 ? '' : 's' ?> waiting: <?= e(implode(', ', $pending)) ?></span>
         <form method="post" data-confirm="Update the database now? Make a backup in cPanel first if this is the live site."><?= csrf_field() ?><input type="hidden" name="action" value="migrate"><button class="btn btn--primary btn--sm" type="submit">Update database</button></form>
     </div>
 <?php endif; ?>
@@ -36,6 +36,22 @@ foreach ($checks as $rows) { foreach ($rows as $row) { $problems += $row[1] ? 0 
             <li><span>Sitemap for Google</span><a href="<?= e(url('sitemap.xml')) ?>" target="_blank">sitemap.xml</a></li>
             <li><span>Send a test email</span><a href="<?= e(admin_url('settings', ['tab' => 'emails'])) ?>">Settings, Emails</a></li>
         </ul></div>
+    </section>
+    <section class="card">
+        <div class="card__head"><h2>Backups</h2><span class="hint">Every night, kept <?= (int) setting('backup_keep_days', '14') ?> days</span></div>
+        <div class="card__body">
+            <form method="post" style="margin-bottom:12px"><?= csrf_field() ?><input type="hidden" name="action" value="backup"><button class="btn btn--secondary btn--sm" type="submit"><?= icon('upload', '', 16) ?> Back up now</button></form>
+            <?php if (!$backups): ?>
+                <p class="hint" style="margin:0">No backups yet.</p>
+            <?php else: ?>
+                <ul class="check-list">
+                    <?php foreach (array_slice($backups, 0, 10) as $b): ?>
+                        <li><span><?= e(date('D j M Y, g:ia', $b['time'])) ?><br><span class="muted"><?= e(number_format($b['size'] / 1024, 0)) ?> KB</span></span><a href="<?= e(admin_url('system', ['download' => $b['name']])) ?>">Download</a></li>
+                    <?php endforeach; ?>
+                </ul>
+                <p class="hint" style="margin:10px 0 0">To restore, import the file in cPanel &gt; phpMyAdmin &gt; your database &gt; Import. Keep a copy on your computer too.</p>
+            <?php endif; ?>
+        </div>
     </section>
     <?php if ($recentMail): ?>
     <section class="card">
