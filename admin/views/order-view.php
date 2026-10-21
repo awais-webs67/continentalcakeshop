@@ -9,6 +9,7 @@
         <a class="btn btn--secondary" href="<?= e(admin_url('orders/print', ['id' => $order['id']])) ?>" target="_blank"><?= icon('pen', '', 16) ?> Print ticket</a>
         <?php $orderThread = db_one('SELECT id, unread_admin FROM threads WHERE order_id = ? AND last_message_at IS NOT NULL', [$order['id']]); ?>
         <?php if (admin_can('messages')): ?><a class="btn btn--secondary" href="<?= e(admin_url('messages/view', ['order' => $order['id']])) ?>"><?= icon('mail', '', 16) ?> <?= $orderThread ? 'Conversation' . ($orderThread['unread_admin'] ? ' (new)' : '') : 'Message customer' ?></a><?php endif; ?>
+        <a class="btn btn--secondary" href="<?= e(invoice_url($order)) ?>" target="_blank"><?= icon('pen', '', 16) ?> Invoice</a>
         <a class="btn btn--ghost" href="<?= e(order_url($order)) ?>" target="_blank">Customer view</a>
     </div>
 </div>

@@ -326,6 +326,12 @@ function get_order_items(int $orderId): array
     return db_all('SELECT * FROM order_items WHERE order_id = ? ORDER BY id', [$orderId]);
 }
 
+/** Printable tax invoice (or receipt) for an order. */
+function invoice_url(array $order): string
+{
+    return url('order/' . rawurlencode($order['order_number']) . '/invoice') . '?t=' . $order['access_token'];
+}
+
 /** Private link the customer uses to view their order. */
 function order_url(array $order): string
 {

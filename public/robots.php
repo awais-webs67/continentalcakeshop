@@ -10,7 +10,7 @@ header('Content-Type: text/plain; charset=utf-8');
 header('Cache-Control: public, max-age=3600');
 
 $base = rtrim((string) parse_url(url(), PHP_URL_PATH), '/');
-$private = ['/admin/', '/api/', '/cart', '/checkout', '/order/', '/account', '/login', '/register', '/logout',
+$private = ['/admin/', '/api/', '/cart', '/checkout', '/order/', '/quote/', '/account', '/login', '/register', '/logout',
             '/forgot-password', '/reset-password', '/messages/', '/stripe-webhook'];
 
 echo "User-agent: *\n";

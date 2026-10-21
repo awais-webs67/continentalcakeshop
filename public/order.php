@@ -118,6 +118,7 @@ render('header', compact('page'));
                     <div><dt><strong>Balance to pay</strong></dt><dd><strong><?= e(money($balance)) ?></strong></dd></div>
                 </dl>
             <?php endif; ?>
+            <p class="field-help"><a href="<?= e(invoice_url($order)) ?>" target="_blank"><?= icon('pen', '', 14) ?> <?= setting_bool('gst_registered') && setting('store_abn') !== '' ? 'Tax invoice' : 'Receipt' ?> to print or save</a></p>
             <?php if (setting_bool('gst_registered')): ?><p class="field-help">Includes GST of <?= e(money(round((float) $order['total'] / 11, 2))) ?><?= setting('store_abn') !== '' ? ' &middot; ABN ' . e(setting('store_abn')) : '' ?></p><?php endif; ?>
         </div>
 
