@@ -41,7 +41,7 @@ $navLinks = [
 <meta name="twitter:image" content="<?= e($page['image']) ?>">
 <meta name="geo.region" content="AU-ACT">
 <meta name="geo.placename" content="<?= e(setting('store_suburb', 'Canberra')) ?>, Canberra">
-<meta name="theme-color" content="#1E9B82">
+<meta name="theme-color" content="#58DCBF">
 <link rel="icon" href="<?= e(asset('img/logo.svg')) ?>" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

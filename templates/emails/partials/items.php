@@ -10,7 +10,7 @@
         </tr>
     <?php endforeach; ?>
     <?php if ((float) ($order['discount'] ?? 0) > 0): ?>
-        <tr><td style="padding:8px 0;color:#1E9B82">Discount (<?= e((string) $order['coupon_code']) ?>)</td><td align="right" style="padding:8px 0;color:#1E9B82">-<?= e(money($order['discount'])) ?></td></tr>
+        <tr><td style="padding:8px 0;color:#58DCBF">Discount (<?= e((string) $order['coupon_code']) ?>)</td><td align="right" style="padding:8px 0;color:#58DCBF">-<?= e(money($order['discount'])) ?></td></tr>
     <?php endif; ?>
     <?php if ((float) $order['delivery_fee'] > 0): ?>
         <tr><td style="padding:8px 0;color:#66666E">Delivery</td><td align="right" style="padding:8px 0;color:#66666E"><?= e(money($order['delivery_fee'])) ?></td></tr>
