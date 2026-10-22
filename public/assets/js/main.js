@@ -404,8 +404,7 @@
 
         // Payment method
         var proofFields = $('[data-proof-fields]', checkout);
-        var submitLabel = $('[data-submit-label]', checkout);
-        var submitBtn = submitLabel && submitLabel.closest('button');
+        var submitBtns = $$('button[data-submit-label-default]', checkout);
 
         var updatePayment = function () {
             var checked = $('[data-payment-method]:checked', checkout);
@@ -414,11 +413,10 @@
                 el.hidden = el.getAttribute('data-payment-details') !== checked.value;
             });
             if (proofFields) proofFields.hidden = checked.getAttribute('data-needs-proof') !== '1';
-            if (submitLabel && submitBtn) {
-                submitLabel.textContent = checked.value === 'stripe'
-                    ? submitBtn.getAttribute('data-submit-label-card')
-                    : submitBtn.getAttribute('data-submit-label-default');
-            }
+            submitBtns.forEach(function (btn) {
+                var label = $('[data-submit-label]', btn);
+                if (label) label.textContent = btn.getAttribute(checked.value === 'stripe' ? 'data-submit-label-card' : 'data-submit-label-default');
+            });
         };
         $$('[data-payment-method]', checkout).forEach(function (r) { r.addEventListener('change', updatePayment); });
 
@@ -493,12 +491,218 @@
             });
         }
 
-        checkout.addEventListener('submit', function () {
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitLabel.textContent = 'Please wait...';
-            }
+        // ---- What is missing: checked before the form is sent, listed at the top and under each field ----
+        var errorBox = $('[data-form-errors]', checkout);
+        var errorList = $('[data-form-errors-list]', checkout);
+        var errorTitle = $('[data-form-errors-title]', checkout);
+        var field = function (id) { return document.getElementById(id); };
+        var value = function (id) { var el = field(id); return el ? el.value.trim() : ''; };
+        var isDelivery = function () {
+            var c = $('[data-fulfilment]:checked', checkout) || $('input[name="fulfilment"]', checkout);
+            return !!c && c.value === 'delivery';
+        };
+        var auPhone = function (v) {
+            var d = v.replace(/\D+/g, '');
+            if (d.indexOf('61') === 0) d = '0' + d.slice(2);
+            return /^0[2-478]\d{8}$/.test(d);
+        };
+        var method = function () { return $('[data-payment-method]:checked', checkout); };
+        // key = the server's error name, target = where the list link jumps to.
+        var rules = [
+            { key: 'name', target: 'name', label: 'Full name', msg: 'Please enter your name.', ok: function () { return value('name') !== ''; } },
+            { key: 'email', target: 'email', label: 'Email', ok: function () { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value('email')); },
+              msg: function () { return value('email') === '' ? 'Please enter your email address.' : 'This email does not look right, e.g. name@example.com.'; } },
+            { key: 'phone', target: 'phone', label: 'Mobile number', ok: function () { return auPhone(value('phone')); },
+              msg: function () { return value('phone') === '' ? 'Please enter your mobile number.' : 'Please enter an Australian number, e.g. 0412 345 678.'; } },
+            { key: 'account_password', target: 'account_password', label: 'Password',
+              when: function () { var c = $('[data-create-account]', checkout); return !!c && c.checked; },
+              ok: function () { var el = field('account_password'); return el.value.length >= (parseInt(el.getAttribute('minlength'), 10) || 8); },
+              msg: function () { return 'Please choose a password of at least ' + (field('account_password').getAttribute('minlength') || 8) + ' characters.'; } },
+            { key: 'fulfilment', target: 'fulfilment-options', label: 'Pickup or delivery', msg: 'Please choose pickup or delivery.',
+              when: function () { return !!$('[data-fulfilment]', checkout); }, ok: function () { return !!$('[data-fulfilment]:checked', checkout); } },
+            { key: 'pickup_time', target: 'pickup_time', label: 'Pickup date and time',
+              when: function () { return !!field('pickup_time') && !isDelivery(); },
+              ok: function () { return value('pickup_date') !== '' && value('pickup_time') !== ''; },
+              msg: function () { return value('pickup_date') === '' ? 'Please choose a pickup date.' : 'Please choose a pickup time. If no times are listed, try another date.'; } },
+            { key: 'delivery_date', target: 'delivery_date', label: 'Delivery date', msg: 'Please choose a delivery date.',
+              when: function () { return !!field('delivery_date') && isDelivery(); }, ok: function () { return value('delivery_date') !== ''; } },
+            { key: 'delivery_address', target: 'delivery_address', label: 'Street address', msg: 'Please enter the street address.',
+              when: function () { return !!field('delivery_address') && isDelivery(); }, ok: function () { return value('delivery_address') !== ''; } },
+            { key: 'delivery_suburb', target: 'delivery_suburb', label: 'Suburb', msg: 'Please enter the suburb.',
+              when: function () { return !!field('delivery_suburb') && isDelivery(); }, ok: function () { return value('delivery_suburb') !== ''; } },
+            { key: 'delivery_postcode', target: 'delivery_postcode', label: 'Postcode', msg: 'Please enter the 4 digit postcode.',
+              when: function () { return !!field('delivery_postcode') && isDelivery(); }, ok: function () { return /^\d{4}$/.test(value('delivery_postcode')); } },
+            { key: 'payment_method', target: 'payment-options', label: 'Payment method', msg: 'Please choose how you would like to pay.',
+              when: function () { return !!$('[data-payment-method]', checkout); }, ok: function () { return !!method(); } },
+            { key: 'payment_proof', target: 'payment_proof', label: 'Payment screenshot', msg: 'Please upload a screenshot of your payment.',
+              when: function () { var m = method(); return !!m && m.getAttribute('data-needs-proof') === '1' && !!field('payment_proof'); },
+              ok: function () { var t = $('input[name="payment_proof_token"]', checkout); var f = field('payment_proof'); return (t && t.value !== '') || (f.files && f.files.length > 0); } },
+            { key: 'agree', target: 'agree', label: 'Confirm your order', msg: 'Please tick the box to confirm your order details are correct.',
+              when: function () { return !!field('agree'); }, ok: function () { return field('agree').checked; } }
+        ];
+        var labels = {};
+        rules.forEach(function (r) { labels[r.key] = r; });
+
+        // Errors the server found that the browser cannot check (postcode outside the area, a date
+        // that just filled up...). Each one stays until its field is changed.
+        var serverErrors = {};
+        if (errorList) $$('li[data-key]', errorList).forEach(function (li) {
+            var a = $('a', li);
+            serverErrors[li.getAttribute('data-key')] = { target: a.getAttribute('data-target'), label: $('strong', a).textContent, msg: $('span', a).textContent };
         });
+        var attempted = Object.keys(serverErrors).length > 0;
+
+        var inlineError = function (key, target) {
+            var el = document.getElementById(key + '-error');
+            if (el) return el;
+            var anchor = field(target);
+            if (!anchor) return null;
+            el = document.createElement('p');
+            el.className = 'field-error';
+            el.id = key + '-error';
+            el.hidden = true;
+            var box = anchor.closest('.field') || anchor.closest('.check') || anchor;
+            if (anchor.id === 'pickup_time' && anchor.closest('.field-row')) box = anchor.closest('.field-row');
+            box.parentNode.insertBefore(el, box.nextSibling);
+            if (box.classList.contains('field')) box.appendChild(el);
+            return el;
+        };
+        var markField = function (target, key, bad) {
+            var el = field(target);
+            if (!el) return;
+            if (bad) { el.setAttribute('aria-invalid', 'true'); el.setAttribute('aria-describedby', key + '-error'); }
+            else if (el.getAttribute('aria-invalid')) { el.removeAttribute('aria-invalid'); }
+            var card = el.closest('.file-drop') || (el.classList.contains('option-cards') ? el : null);
+            if (card) card.classList.toggle('is-invalid', bad);
+        };
+
+        var collect = function () {
+            var found = {};
+            rules.forEach(function (r) {
+                if (r.when && !r.when()) return;
+                if (!r.ok()) found[r.key] = { target: r.target, label: r.label, msg: typeof r.msg === 'function' ? r.msg() : r.msg };
+            });
+            Object.keys(serverErrors).forEach(function (k) { if (!found[k]) found[k] = serverErrors[k]; });
+            return found;
+        };
+
+        var showErrors = function (found) {
+            var keys = Object.keys(found);
+            rules.concat(Object.keys(serverErrors).map(function (k) { return { key: k, target: serverErrors[k].target }; })).forEach(function (r) {
+                var bad = !!found[r.key];
+                var el = bad ? inlineError(r.key, r.target) : document.getElementById(r.key + '-error');
+                if (el && el.hasAttribute('data-upload-error')) el = null;
+                if (el) { el.hidden = !bad; if (bad) el.textContent = found[r.key].msg; }
+                markField(r.target, r.key, bad);
+            });
+            $$('[data-step]', checkout).forEach(function (step) {
+                step.classList.toggle('has-error', keys.some(function (k) { var t = field(found[k].target); return t && step.contains(t); }));
+            });
+            if (!errorBox) return;
+            // Only rebuild the list when it changed, so a tap on a link is never lost mid-click.
+            var signature = JSON.stringify(found);
+            if (signature === errorBox.getAttribute('data-signature')) return;
+            errorBox.setAttribute('data-signature', signature);
+            errorBox.hidden = keys.length === 0;
+            errorTitle.textContent = keys.length === 1 ? '1 thing needs your attention' : keys.length + ' things need your attention';
+            errorList.innerHTML = '';
+            keys.forEach(function (k) {
+                var li = document.createElement('li');
+                li.setAttribute('data-key', k);
+                var a = document.createElement('a');
+                a.href = '#' + found[k].target;
+                a.setAttribute('data-target', found[k].target);
+                var strong = document.createElement('strong');
+                strong.textContent = found[k].label;
+                var span = document.createElement('span');
+                span.textContent = found[k].msg;
+                a.appendChild(strong);
+                a.appendChild(span);
+                li.appendChild(a);
+                errorList.appendChild(li);
+            });
+        };
+
+        // A tick on each step once everything in it is filled in.
+        var markSteps = function () {
+            var found = {};
+            rules.forEach(function (r) { if ((!r.when || r.when()) && !r.ok()) found[r.target] = true; });
+            $$('[data-step]', checkout).forEach(function (step) {
+                var bad = rules.some(function (r) { var t = field(r.target); return found[r.target] && t && step.contains(t); });
+                var hasRule = rules.some(function (r) { var t = field(r.target); return (!r.when || r.when()) && t && step.contains(t); });
+                step.classList.toggle('is-done', hasRule && !bad);
+            });
+        };
+
+        var goTo = function (target) {
+            var el = field(target);
+            if (!el) return;
+            if (target === 'coupon_code') {
+                var form = $('[data-coupon-form]', checkout);
+                if (form) form.hidden = false;
+            }
+            var focusEl = el.matches('input, select, textarea') ? el : $('input:not([type=hidden]), select, textarea', el) || el;
+            var box = el.closest('.field') || el.closest('.check') || el;
+            box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(function () { try { focusEl.focus({ preventScroll: true }); } catch (e) { focusEl.focus(); } }, 350);
+        };
+        if (errorList) errorList.addEventListener('click', function (e) {
+            var a = e.target.closest('a[data-target]');
+            if (!a) return;
+            e.preventDefault();
+            goTo(a.getAttribute('data-target'));
+        });
+
+        var refresh = function (e) {
+            if (e && e.target && e.target.name) {
+                Object.keys(serverErrors).forEach(function (k) {
+                    var t = serverErrors[k].target;
+                    var el = field(t);
+                    if (k === e.target.name || t === e.target.id || (el && el.contains(e.target)) || (k === 'pickup_time' && e.target.id === 'pickup_date')) delete serverErrors[k];
+                });
+            }
+            markSteps();
+            if (attempted) showErrors(collect());
+        };
+        checkout.addEventListener('input', refresh);
+        checkout.addEventListener('change', refresh);
+        markSteps();
+        if (attempted) showErrors(collect());
+
+        checkout.addEventListener('submit', function (e) {
+            var submitter = e.submitter;
+            if (submitter && submitter.name === 'coupon_action') return;
+            var found = collect();
+            if (Object.keys(found).length) {
+                e.preventDefault();
+                attempted = true;
+                showErrors(found);
+                if (errorBox) {
+                    errorBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    try { errorBox.focus({ preventScroll: true }); } catch (err) { errorBox.focus(); }
+                    errorBox.classList.remove('is-shaking');
+                    void errorBox.offsetWidth;
+                    errorBox.classList.add('is-shaking');
+                }
+                return;
+            }
+            submitBtns.forEach(function (btn) {
+                btn.disabled = true;
+                var label = $('[data-submit-label]', btn);
+                if (label) label.textContent = 'Please wait...';
+            });
+        });
+
+        // Phones: a sticky bar with the total and the button, until the real button scrolls into view.
+        var bar = $('[data-checkout-bar]', checkout);
+        var mainBtn = $('[data-submit-main]', checkout);
+        if (bar && mainBtn && 'IntersectionObserver' in window) {
+            new IntersectionObserver(function (entries) {
+                var r = entries[0];
+                bar.hidden = r.isIntersecting || r.boundingClientRect.top < 0;
+                document.body.classList.toggle('has-checkout-bar', !bar.hidden);
+            }).observe(mainBtn);
+        }
     }
 })();
 

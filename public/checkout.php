@@ -43,6 +43,24 @@ if (!$coupon && applied_coupon_code() !== '') {
 $deliveryMin = (float) setting('delivery_min_order', '0');
 $user = current_user();
 
+// Each possible error: the name shown in the "please fix" list and the element it jumps to.
+$errorFields = [
+    'name'              => ['Full name', 'name'],
+    'email'             => ['Email', 'email'],
+    'phone'             => ['Mobile number', 'phone'],
+    'account_password'  => ['Password', 'account_password'],
+    'fulfilment'        => ['Pickup or delivery', 'fulfilment-options'],
+    'pickup_time'       => ['Pickup date and time', 'pickup_time'],
+    'delivery_date'     => ['Delivery date', 'delivery_date'],
+    'delivery_address'  => ['Street address', 'delivery_address'],
+    'delivery_suburb'   => ['Suburb', 'delivery_suburb'],
+    'delivery_postcode' => ['Postcode', 'delivery_postcode'],
+    'payment_method'    => ['Payment method', 'payment-options'],
+    'payment_proof'     => ['Payment screenshot', 'payment_proof'],
+    'coupon'            => ['Coupon', 'coupon_code'],
+    'agree'             => ['Confirm your order', 'agree'],
+];
+
 if (is_post()) {
     verify_csrf();
 
@@ -150,7 +168,8 @@ if (is_post()) {
     if ($errors) {
         remember_input(array_diff_key($data, ['payment_proof' => true, 'user_id' => true]) + ['create_account' => $createAccount ? '1' : '', 'agree' => input('agree'), 'delivery_date' => input('delivery_date'), 'pickup_date' => input('pickup_date'), 'payment_proof_token' => input('payment_proof_token')]);
         $_SESSION['form_errors'] = $errors;
-        flash('error', 'Please check the highlighted fields.');
+        $missing = array_map(static fn ($k) => $errorFields[$k][0] ?? ucfirst(str_replace('_', ' ', $k)), array_keys($errors));
+        flash('error', 'Please fix ' . (count($errors) === 1 ? 'this' : 'these') . ' before placing your order: ' . implode(', ', $missing) . '.');
         redirect('checkout');
     }
 
@@ -214,8 +233,13 @@ render('header', compact('page'));
 ?>
 
 <section class="page-hero page-hero--slim">
-    <div class="container">
+    <div class="container checkout-hero">
         <h1 class="page-title">Checkout</h1>
+        <ol class="checkout-progress" aria-label="Checkout progress">
+            <li class="is-done"><a href="<?= e(url('cart')) ?>"><span><?= icon('check', '', 14) ?></span> Cart</a></li>
+            <li class="is-current" aria-current="step"><span>2</span> Details &amp; payment</li>
+            <li><span>3</span> Confirmation</li>
+        </ol>
     </div>
 </section>
 
@@ -234,8 +258,39 @@ render('header', compact('page'));
             <button type="submit" class="sr-only" tabindex="-1" aria-hidden="true" <?= $methods ? '' : 'disabled' ?>>Place order</button>
             <div class="checkout-main">
 
-                <fieldset class="checkout-step">
-                    <legend class="checkout-step__title"><span>1</span> Your details</legend>
+                <div class="form-errors" id="form-errors" tabindex="-1" role="alert" data-form-errors <?= $errors ? '' : 'hidden' ?>>
+                    <div class="form-errors__head">
+                        <span class="form-errors__icon"><?= icon('alert', '', 22) ?></span>
+                        <div>
+                            <strong data-form-errors-title><?= count($errors) === 1 ? '1 thing needs your attention' : count($errors) . ' things need your attention' ?></strong>
+                            <span>Tap an item to go straight to it.</span>
+                        </div>
+                    </div>
+                    <ul class="form-errors__list" data-form-errors-list>
+                        <?php foreach ($errors as $key => $message):
+                            [$label, $target] = $errorFields[$key] ?? [ucfirst(str_replace('_', ' ', $key)), $key];
+                            if ($key === 'fulfilment' && count($fulfilmentOptions) < 2) { $target = 'step-fulfilment'; } ?>
+                            <li data-key="<?= e($key) ?>"><a href="#<?= e($target) ?>" data-target="<?= e($target) ?>"><strong><?= e($label) ?></strong><span><?= e($message) ?></span></a></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+
+                <details class="checkout-mini">
+                    <summary>
+                        <span class="checkout-mini__label"><?= icon('bag', '', 18) ?> <span>Order summary <small>(<?= array_sum(array_column($lines, 'qty')) ?> item<?= array_sum(array_column($lines, 'qty')) === 1 ? '' : 's' ?>)</small></span></span>
+                        <strong data-pay-amount><?= e(money($totals['total'])) ?></strong>
+                        <?= icon('down', 'checkout-mini__chevron', 18) ?>
+                    </summary>
+                    <ul class="checkout-mini__items">
+                        <?php foreach ($lines as $item): ?>
+                            <li><span><?= e($item['name']) ?> <small><?= e($item['addon_id'] ? 'Extra' : $item['size_label']) ?> &times; <?= (int) $item['qty'] ?></small></span><span><?= e(money($item['line_total'])) ?></span></li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <a class="link-arrow" href="<?= e(url('cart')) ?>">Edit cart</a>
+                </details>
+
+                <fieldset class="checkout-step" id="step-details" data-step>
+                    <legend class="checkout-step__title"><span class="checkout-step__num"><b>1</b><?= icon('check', '', 16) ?></span> Your details</legend>
                     <?php if ($user): ?>
                         <p class="account-note"><?= icon('user', '', 18) ?> <span>Logged in as <strong><?= e($user['email']) ?></strong>. This order will be saved to your account.</span></p>
                     <?php else: ?>
@@ -273,12 +328,12 @@ render('header', compact('page'));
                     <?php endif; ?>
                 </fieldset>
 
-                <fieldset class="checkout-step">
-                    <legend class="checkout-step__title"><span>2</span> <?= count($fulfilmentOptions) > 1 ? 'Pickup or delivery' : ($fulfilmentOptions === ['delivery'] ? 'Delivery' : 'Pickup date and time') ?></legend>
+                <fieldset class="checkout-step" id="step-fulfilment" data-step>
+                    <legend class="checkout-step__title"><span class="checkout-step__num"><b>2</b><?= icon('check', '', 16) ?></span> <?= count($fulfilmentOptions) > 1 ? 'Pickup or delivery' : ($fulfilmentOptions === ['delivery'] ? 'Delivery' : 'Pickup date and time') ?></legend>
                     <?= $fieldError('fulfilment') ?>
 
                     <?php if (count($fulfilmentOptions) > 1): ?>
-                        <div class="option-cards option-cards--2">
+                        <div class="option-cards option-cards--2" id="fulfilment-options" tabindex="-1">
                             <label class="option-card">
                                 <input type="radio" name="fulfilment" value="pickup" <?= $selectedFulfilment === 'pickup' ? 'checked' : '' ?> data-fulfilment>
                                 <span class="option-card__box"><?= icon('store', '', 22) ?><span><strong>Pickup from the shop</strong><span>Free. You choose the time</span></span></span>
@@ -362,10 +417,10 @@ render('header', compact('page'));
                     <p class="field-help"><?= icon('info', '', 16) ?> Please order at least <?= e(notice_label($leadHours)) ?> ahead. You can book up to <?= (int) setting('max_advance_days', '60') ?> days in advance.<?= $closedDays ? ' We are closed on ' . e(implode(', ', $closedDays)) . '.' : '' ?></p>
                 </fieldset>
 
-                <fieldset class="checkout-step">
-                    <legend class="checkout-step__title"><span>3</span> Payment</legend>
+                <fieldset class="checkout-step" id="step-payment" data-step>
+                    <legend class="checkout-step__title"><span class="checkout-step__num"><b>3</b><?= icon('check', '', 16) ?></span> Payment</legend>
                     <?= $fieldError('payment_method') ?>
-                    <div class="option-cards">
+                    <div class="option-cards" id="payment-options" tabindex="-1">
                         <?php foreach ($methods as $key => $method): ?>
                             <div class="payment-option">
                                 <label class="option-card">
@@ -406,14 +461,14 @@ render('header', compact('page'));
                     </div>
                 </fieldset>
 
-                <fieldset class="checkout-step">
-                    <legend class="checkout-step__title"><span>4</span> Anything else?</legend>
+                <fieldset class="checkout-step" id="step-confirm" data-step>
+                    <legend class="checkout-step__title"><span class="checkout-step__num"><b>4</b><?= icon('check', '', 16) ?></span> Anything else?</legend>
                     <div class="field">
                         <label class="field-label" for="notes">Order notes <span class="field-hint">Optional</span></label>
                         <textarea class="input" id="notes" name="notes" rows="3" maxlength="1000" placeholder="Allergies, candles, delivery instructions or anything we should know"><?= e(old('notes')) ?></textarea>
                     </div>
-                    <label class="check">
-                        <input type="checkbox" name="agree" value="1" <?= old('agree') === '1' ? 'checked' : '' ?> required <?= $invalid('agree') ?>>
+                    <label class="check check--confirm">
+                        <input type="checkbox" id="agree" name="agree" value="1" <?= old('agree') === '1' ? 'checked' : '' ?> required <?= $invalid('agree') ?>>
                         <span>I have checked my order, the date and my details are correct.</span>
                     </label>
                     <?= $fieldError('agree') ?>
@@ -421,7 +476,10 @@ render('header', compact('page'));
             </div>
 
             <aside class="summary-card checkout-summary">
-                <h2 class="summary-card__title">Your order</h2>
+                <div class="summary-card__head">
+                    <h2 class="summary-card__title">Your order</h2>
+                    <span class="summary-card__secure"><?= icon('lock', '', 14) ?> Secure</span>
+                </div>
                 <ul class="summary-items">
                     <?php foreach ($lines as $item): ?>
                         <li>
@@ -469,7 +527,7 @@ render('header', compact('page'));
                         <?= e(money($totals['total'])) ?>
                     </strong>
                 </div>
-                <button class="btn btn--primary btn--lg btn--block" type="submit" <?= $methods ? '' : 'disabled' ?> data-submit-label-card="Continue to Payment" data-submit-label-default="Place Order">
+                <button class="btn btn--primary btn--lg btn--block" type="submit" <?= $methods ? '' : 'disabled' ?> data-submit-main data-submit-label-card="Continue to Payment" data-submit-label-default="Place Order">
                     <?= icon('check', '', 20) ?> <span data-submit-label><?= $selectedMethod === PAYMENT_STRIPE ? 'Continue to Payment' : 'Place Order' ?></span>
                 </button>
                 <p class="summary-legal">By placing your order you agree to our <a href="<?= e(url('terms')) ?>">Terms</a> and <a href="<?= e(url('refund-policy')) ?>">Refund Policy</a>.</p>
@@ -480,6 +538,15 @@ render('header', compact('page'));
                 </ul>
                 <a class="link-arrow summary-card__back" href="<?= e(url('cart')) ?>">Edit cart</a>
             </aside>
+
+            <?php if ($methods): ?>
+            <div class="checkout-bar" data-checkout-bar hidden>
+                <div class="checkout-bar__total"><span>Total</span><strong data-pay-amount><?= e(money($totals['total'])) ?></strong></div>
+                <button class="btn btn--primary" type="submit" data-submit-label-card="Continue to Payment" data-submit-label-default="Place Order">
+                    <span data-submit-label><?= $selectedMethod === PAYMENT_STRIPE ? 'Continue to Payment' : 'Place Order' ?></span>
+                </button>
+            </div>
+            <?php endif; ?>
         </form>
     </div>
 </section>
