@@ -412,7 +412,7 @@ render('header', compact('page'));
                                 <?= $fieldError('delivery_postcode') ?>
                             </div>
                         </div>
-                        <p class="delivery-note"><?= icon('clock', '', 18) ?> <span>We plan our delivery runs each day and <strong>email you the delivery time</strong> before the day. Please add gate codes or other instructions in the order notes.</span></p>
+                        <p class="delivery-note"><?= icon('clock', '', 18) ?> <span>We plan our delivery runs each day and <strong>email you the delivery time</strong> as soon as it is planned. Please add gate codes or other instructions in the order notes.</span></p>
                     </div>
                     <?php endif; ?>
 

@@ -30,7 +30,7 @@ INSERT INTO settings (setting_key, setting_value) VALUES
 ('google_reviews_url',    'https://www.google.com/maps/search/?api=1&query=The+Continental+Cake+Shop+Canberra+Greenway'),
 
 -- Pickup and booking rules
-('min_lead_hours',        '24'),
+('min_lead_hours',        '1'),
 ('custom_lead_days',      '3'),
 ('max_advance_days',      '60'),
 ('slot_interval_minutes', '30'),
@@ -610,5 +610,7 @@ INSERT IGNORE INTO settings (setting_key, setting_value) VALUES
 INSERT IGNORE INTO settings (setting_key, setting_value) VALUES
 ('home_categories_style', 'tiles');
 
+-- Migration 020_same_day_orders.sql only lowers min_lead_hours, which is already 1 above.
+
 INSERT IGNORE INTO schema_migrations (migration) VALUES
-('001_customer_accounts.sql'), ('002_pages_and_faqs.sql'), ('003_hero_image_setting.sql'), ('004_teal_hero_cake.sql'), ('005_admin_panel.sql'), ('006_delivery_announcement.sql'), ('007_delivery_and_sizes.sql'), ('008_coupons_popup_delivery_windows.sql'), ('009_homepage_sections_and_mail.sql'), ('010_messages_reports_permissions.sql'), ('011_daily_email_settings.sql'), ('012_payments_addons_options.sql'), ('013_sold_out_pause_whatsapp.sql'), ('014_quote_payments.sql'), ('015_reminders_reviews.sql'), ('016_product_photos_seo.sql'), ('017_seo_landing_pages.sql'), ('018_backups.sql'), ('019_live_chat_category_style.sql');
+('001_customer_accounts.sql'), ('002_pages_and_faqs.sql'), ('003_hero_image_setting.sql'), ('004_teal_hero_cake.sql'), ('005_admin_panel.sql'), ('006_delivery_announcement.sql'), ('007_delivery_and_sizes.sql'), ('008_coupons_popup_delivery_windows.sql'), ('009_homepage_sections_and_mail.sql'), ('010_messages_reports_permissions.sql'), ('011_daily_email_settings.sql'), ('012_payments_addons_options.sql'), ('013_sold_out_pause_whatsapp.sql'), ('014_quote_payments.sql'), ('015_reminders_reviews.sql'), ('016_product_photos_seo.sql'), ('017_seo_landing_pages.sql'), ('018_backups.sql'), ('019_live_chat_category_style.sql'), ('020_same_day_orders.sql');

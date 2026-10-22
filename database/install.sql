@@ -788,7 +788,8 @@ INSERT INTO `schema_migrations` VALUES
 ('016_product_photos_seo.sql','2026-10-21 10:26:08'),
 ('017_seo_landing_pages.sql','2026-10-21 10:26:08'),
 ('018_backups.sql','2026-10-21 10:26:08'),
-('019_live_chat_category_style.sql','2026-10-22 04:37:24');
+('019_live_chat_category_style.sql','2026-10-22 04:37:24'),
+('020_same_day_orders.sql','2026-10-22 04:37:24');
 /*!40000 ALTER TABLE `schema_migrations` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `settings`;
@@ -866,7 +867,7 @@ INSERT INTO `settings` VALUES
 ('max_advance_days','60','2026-10-18 13:35:43'),
 ('max_deliveries_per_day','0','2026-10-18 13:35:43'),
 ('max_orders_per_slot','0','2026-10-18 13:35:43'),
-('min_lead_hours','24','2026-10-18 13:35:43'),
+('min_lead_hours','1','2026-10-18 13:35:43'),
 ('opening_hours','{\"mon\":[\"08:00\",\"19:00\"],\"tue\":[\"08:00\",\"19:00\"],\"wed\":[\"08:00\",\"19:00\"],\"thu\":[\"08:00\",\"19:00\"],\"fri\":[\"08:00\",\"19:00\"],\"sat\":[\"09:00\",\"18:00\"],\"sun\":[\"09:00\",\"18:00\"]}','2026-10-18 13:35:43'),
 ('order_notification_email','continentalcakeshopcanberra@gmail.com','2026-10-18 13:35:43'),
 ('ordering_paused','0','2026-10-21 10:26:07'),

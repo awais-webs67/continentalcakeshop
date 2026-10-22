@@ -14,7 +14,7 @@ $related = with_card_photos(get_related_products($product));
 $options = $enquiry ? [] : get_product_options((int) $product['id']);
 $soldOut = product_sold_out($product);
 $paused = ordering_paused();
-$leadHours = $product['lead_time_hours'] !== null ? (int) $product['lead_time_hours'] : (int) setting('min_lead_hours', '24');
+$leadHours = max((int) setting('min_lead_hours', '24'), (int) ($product['lead_time_hours'] ?? 0)); // same rule as cart_lead_hours()
 $selected = $sizes[0] ?? null;
 $deliveryOn = setting_bool('delivery_enabled');
 

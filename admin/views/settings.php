@@ -70,7 +70,7 @@ $mask = static function (string $key): string {
 
 <?php elseif ($tab === 'ordering'): ?>
     <div class="card__body form-grid">
-        <label class="field"><span>Notice needed for orders <small>hours</small></span><input class="input" type="number" min="0" name="min_lead_hours" value="<?= $v('min_lead_hours') ?>"></label>
+        <label class="field"><span>Notice needed for orders <small>hours</small></span><input class="input" type="number" min="1" max="720" name="min_lead_hours" value="<?= $v('min_lead_hours') ?>"><small class="hint">How long you need to get a cake ready. 1 or 2 lets customers order for today; 24 means from tomorrow. A cake can have its own notice in its product page.</small></label>
         <label class="field"><span>Notice for custom cakes <small>days</small></span><input class="input" type="number" min="0" name="custom_lead_days" value="<?= $v('custom_lead_days') ?>"></label>
         <label class="field"><span>Take orders up to <small>days ahead</small></span><input class="input" type="number" min="1" name="max_advance_days" value="<?= $v('max_advance_days') ?>"></label>
         <label class="field"><span>Pickup time steps <small>minutes</small></span>

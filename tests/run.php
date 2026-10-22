@@ -40,6 +40,7 @@ check('+61 number accepted', valid_au_phone('+61 2 6293 9578'));
 check('short number refused', !valid_au_phone('12345'));
 same('notice in days', '2 days', notice_label(48));
 same('notice in hours', '6 hours', notice_label(6));
+same('one hour of notice', '1 hour', notice_label(1));
 
 // --- Safe HTML -------------------------------------------------------------------------------
 $dirty = '<p onclick="x()">Hi<script>alert(1)</script></p><a href="javascript:alert(1)">x</a><img src="data:x" onerror="y"><p style="color:red;text-align:center">c</p>';

@@ -130,7 +130,7 @@ if (is_post()) {
     }
 
     if ($tab === 'ordering') {
-        foreach (['min_lead_hours' => [0, 720], 'custom_lead_days' => [0, 60], 'max_advance_days' => [1, 365], 'slot_interval_minutes' => [10, 120], 'last_slot_buffer_minutes' => [0, 240], 'max_orders_per_slot' => [0, 99], 'max_deliveries_per_day' => [0, 999]] as $key => [$min, $max]) {
+        foreach (['min_lead_hours' => [1, 720], 'custom_lead_days' => [0, 60], 'max_advance_days' => [1, 365], 'slot_interval_minutes' => [10, 120], 'last_slot_buffer_minutes' => [0, 240], 'max_orders_per_slot' => [0, 99], 'max_deliveries_per_day' => [0, 999]] as $key => [$min, $max]) {
             $values[$key] = (string) min($max, max($min, (int) $values[$key]));
         }
         $values['delivery_fee'] = number_format(max(0, (float) str_replace(['$', ','], '', $values['delivery_fee'])), 2, '.', '');

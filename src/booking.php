@@ -74,6 +74,9 @@ function delivery_date_error(string $date, int $leadHours): ?string
     }
     $earliest = earliest_pickup($leadHours);
     $hours = opening_hours()[day_key($day)] ?? null;
+    if ($day->format('Y-m-d') < date('Y-m-d')) {
+        return 'That date has passed. Please choose today or a later day.';
+    }
     if ($day->format('Y-m-d') < $earliest->format('Y-m-d')) {
         return 'That date is too soon. Please allow at least ' . notice_label($leadHours) . ' notice.';
     }
@@ -134,7 +137,7 @@ function notice_label(int $leadHours): string
         $days = (int) ceil($leadHours / 24);
         return $days . ' day' . ($days === 1 ? '' : 's');
     }
-    return $leadHours . ' hours';
+    return $leadHours === 1 ? '1 hour' : $leadHours . ' hours';
 }
 
 /** First date that still has at least one pickup slot, used to pre-fill the date picker. */

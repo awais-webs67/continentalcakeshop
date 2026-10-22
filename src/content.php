@@ -55,6 +55,8 @@ function render_content(string $html): string
         '{min_lead_hours}'   => e(setting('min_lead_hours', '24')),
         '{custom_lead_days}' => e(setting('custom_lead_days', '3')),
     ];
+    // "{min_lead_hours} hours" in page text becomes "1 hour", "3 hours" or "2 days".
+    $html = str_replace('{min_lead_hours} hours', e(notice_label((int) setting('min_lead_hours', '24'))), $html);
     $html = strtr($html, $tokens);
     return (string) preg_replace_callback('/\{url:([a-z0-9-]+)\}/', static fn ($m) => e(url($m[1])), $html);
 }
