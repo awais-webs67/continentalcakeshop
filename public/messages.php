@@ -65,27 +65,33 @@ render('header', compact('page'));
 
 <section class="section section--compact">
     <div class="container chat">
-        <div class="chat__list" data-chat data-chat-url="<?= e($self) ?>" data-last-id="<?= (int) ($messages ? end($messages)['id'] : 0) ?>" aria-live="polite">
-            <?php if (!$messages): ?>
-                <p class="chat__empty"><?= icon('mail', '', 22) ?> Ask us anything about <?= e(strtolower($thread['subject'])) ?>. We usually reply within one business day.</p>
-            <?php endif; ?>
-            <?php foreach ($messages as $m): ?>
-                <?= chat_bubble_html($m, $thread, 'customer') ?>
-            <?php endforeach; ?>
-        </div>
-
-        <form class="chat__form form-card" id="reply" method="post" action="<?= e($self) ?>" data-chat-form>
-            <?= csrf_field() ?>
-            <?= spam_trap_fields() ?>
-            <label class="field-label" for="body">Your message</label>
-            <textarea class="input" id="body" name="body" rows="4" maxlength="3000" required placeholder="Type your message"><?= e(old('body')) ?></textarea>
-            <p class="field-error" data-chat-error hidden></p>
-            <div class="chat__actions">
-                <button class="btn btn--primary" type="submit"><?= icon('mail', '', 18) ?> Send message</button>
+        <div class="chat-window">
+            <header class="chat-window__head">
+                <img class="chat-window__avatar" src="<?= e(asset('img/logo-email.png')) ?>" alt="" width="44" height="44">
+                <div class="chat-window__who">
+                    <strong><?= e(setting('store_short_name')) ?></strong>
+                    <span><?= e($thread['subject']) ?> &middot; We usually reply within a business day</span>
+                </div>
                 <span class="chat__live" title="New replies appear here automatically"><span></span> Live</span>
-                <span class="field-help">Or call us on <a href="tel:<?= e(setting('store_phone_e164')) ?>"><?= e(setting('store_phone')) ?></a></span>
+            </header>
+            <div class="chat__list" data-chat data-chat-url="<?= e($self) ?>" data-last-id="<?= (int) ($messages ? end($messages)['id'] : 0) ?>" aria-live="polite" tabindex="0">
+                <?php if (!$messages): ?>
+                    <p class="chat__empty"><?= icon('mail', '', 22) ?> Ask us anything about <?= e(strtolower($thread['subject'])) ?>. We usually reply within one business day.</p>
+                <?php endif; ?>
+                <?php foreach ($messages as $m): ?>
+                    <?= chat_bubble_html($m, $thread, 'customer') ?>
+                <?php endforeach; ?>
             </div>
-        </form>
+            <form class="chat__composer" id="reply" method="post" action="<?= e($self) ?>" data-chat-form>
+                <?= csrf_field() ?>
+                <?= spam_trap_fields() ?>
+                <label class="sr-only" for="body">Your message</label>
+                <textarea class="chat__input" id="body" name="body" rows="1" maxlength="3000" required placeholder="Type a message" data-autogrow><?= e(old('body')) ?></textarea>
+                <button class="chat__send" type="submit" aria-label="Send message"><?= icon('arrow', '', 22) ?></button>
+                <p class="field-error chat__error" data-chat-error hidden></p>
+            </form>
+        </div>
+        <p class="chat-window__foot">Prefer to talk? Call us on <a href="tel:<?= e(setting('store_phone_e164')) ?>"><?= e(setting('store_phone')) ?></a><span class="chat-window__keys"> &middot; Enter sends, Shift+Enter adds a new line</span></p>
     </div>
 </section>
 

@@ -789,6 +789,8 @@ document.addEventListener('input', function (e) {
     var url = list.getAttribute('data-chat-url');
     var lastId = parseInt(list.getAttribute('data-last-id'), 10) || 0;
     var timer, busy = false;
+    var card = list.closest('.chat-card');
+    if (card && window.innerWidth < 1024) card.scrollIntoView({ block: 'start' });
     var append = function (messages) {
         var added = false;
         messages.forEach(function (m) {
@@ -822,8 +824,15 @@ document.addEventListener('input', function (e) {
     var error = form.querySelector('[data-chat-error]');
     var note = form.querySelector('[data-chat-note]');
     var textarea = form.querySelector('textarea');
+    var grow = function () { textarea.style.height = 'auto'; textarea.style.height = Math.min(textarea.scrollHeight + 3, 180) + 'px'; };
+    textarea.addEventListener('input', grow);
+    var finePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
     textarea.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); form.requestSubmit ? form.requestSubmit() : form.submit(); }
+        // Enter sends (Shift+Enter for a new line) on a computer; Ctrl+Enter always sends.
+        if (e.key === 'Enter' && !e.isComposing && ((e.ctrlKey || e.metaKey) || (!e.shiftKey && finePointer))) {
+            e.preventDefault();
+            if (textarea.value.trim() !== '') form.requestSubmit ? form.requestSubmit() : form.submit();
+        }
     });
     form.addEventListener('submit', function (e) {
         var close = form.querySelector('input[name="close"]');
@@ -837,6 +846,7 @@ document.addEventListener('input', function (e) {
             .then(function (d) {
                 if (!d.ok) { error.textContent = d.error || 'The reply could not be sent.'; error.hidden = false; return; }
                 textarea.value = '';
+                grow();
                 if (window.CCSSound) window.CCSSound.play('sent');
                 if (note && d.note) { note.textContent = d.note; note.hidden = false; }
                 poll();

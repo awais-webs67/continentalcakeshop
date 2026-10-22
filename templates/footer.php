@@ -63,7 +63,7 @@ $socials = array_filter([
     </div>
 </footer>
 
-<?php $waLink = whatsapp_url(); if ($waLink !== '' && !in_array(current_path(), ['/checkout', '/cart'], true)): ?>
+<?php $waLink = whatsapp_url(); if ($waLink !== '' && !in_array(current_path(), ['/checkout', '/cart'], true) && !str_starts_with(current_path(), '/messages/')): ?>
     <a class="whatsapp-fab" href="<?= e($waLink) ?>" target="_blank" rel="noopener" aria-label="Chat with us on WhatsApp"><?= icon('whatsapp', '', 28) ?><span class="whatsapp-fab__label">Chat with us</span></a>
 <?php endif; ?>
 <?php render('partials/promo-popup'); ?>

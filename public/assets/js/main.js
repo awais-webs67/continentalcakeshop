@@ -823,8 +823,12 @@
             added = list.lastElementChild;
             if (m.html.indexOf('chat__msg--shop') !== -1 && window.CCSSound) window.CCSSound.play('message');
         });
-        if (added) added.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        if (added) list.scrollTo({ top: list.scrollHeight, behavior: 'smooth' });
     };
+    list.scrollTop = list.scrollHeight; // open at the newest message
+    // Phones: bring the whole chat window into view, like opening a chat app.
+    var win = list.closest('.chat-window');
+    if (win && window.innerWidth <= 640 && list.querySelector('[data-msg-id]')) win.scrollIntoView({ block: 'start' });
     var schedule = function () { clearTimeout(timer); timer = setTimeout(poll, document.hidden ? 30000 : 5000); };
     var poll = function () {
         if (busy) return schedule();
@@ -841,6 +845,16 @@
     if (!form) return;
     var error = form.querySelector('[data-chat-error]');
     var textarea = form.querySelector('textarea');
+    var grow = function () { textarea.style.height = 'auto'; textarea.style.height = Math.min(textarea.scrollHeight + 3, 160) + 'px'; };
+    textarea.addEventListener('input', grow);
+    // Like WhatsApp on a computer: Enter sends, Shift+Enter starts a new line. Phones keep Enter for new lines.
+    var finePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    textarea.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && finePointer) {
+            e.preventDefault();
+            if (textarea.value.trim() !== '') form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event('submit', { cancelable: true }));
+        }
+    });
     form.addEventListener('submit', function (e) {
         e.preventDefault();
         var button = form.querySelector('button[type="submit"]');
@@ -851,6 +865,7 @@
             .then(function (d) {
                 if (!d.ok) { error.textContent = d.error || 'Your message could not be sent.'; error.hidden = false; return; }
                 textarea.value = '';
+                grow();
                 if (window.CCSSound) window.CCSSound.play('sent');
                 poll();
             })
