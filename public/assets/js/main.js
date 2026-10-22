@@ -784,3 +784,52 @@
             .then(function () { button.disabled = false; });
     });
 })();
+
+/* Round categories: glide past like a news ticker. Hover, focus or a touch pauses it, and
+   people can still swipe or scroll it by hand. Without JavaScript it is a normal scroll row. */
+(function () {
+    document.querySelectorAll('[data-ticker]').forEach(function (ticker) {
+        var viewport = ticker.querySelector('[data-ticker-viewport]');
+        var track = ticker.querySelector('[data-ticker-track]');
+        var first = track && track.firstElementChild;
+        if (!viewport || !first) return;
+        var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var speed = parseFloat(getComputedStyle(ticker).getPropertyValue('--ticker-speed')) || 34; // pixels a second
+        var pos = 0, last = 0, paused = false, resumeTimer, running = false;
+        var loopWidth = function () { return first.offsetWidth; };
+        var fits = function () { return loopWidth() <= viewport.clientWidth; };
+        var setup = function () {
+            // Not enough categories to fill the row (or motion is off): just show them once.
+            var still = reduce || fits();
+            ticker.classList.toggle('is-static', still);
+            if (!still && !running) { running = true; last = 0; requestAnimationFrame(step); }
+        };
+        var step = function (t) {
+            if (ticker.classList.contains('is-static')) { running = false; return; }
+            if (!last) last = t;
+            var dt = Math.min(64, t - last);
+            last = t;
+            if (!paused && !document.hidden) {
+                pos += speed * dt / 1000;
+                var w = loopWidth();
+                if (pos >= w) pos -= w;
+                viewport.scrollLeft = pos;
+            }
+            requestAnimationFrame(step);
+        };
+        var pause = function () { paused = true; clearTimeout(resumeTimer); };
+        var resume = function (delay) {
+            clearTimeout(resumeTimer);
+            resumeTimer = setTimeout(function () { pos = viewport.scrollLeft % loopWidth(); paused = false; }, delay || 0);
+        };
+        ticker.addEventListener('mouseenter', pause);
+        ticker.addEventListener('mouseleave', function () { resume(150); });
+        ticker.addEventListener('focusin', pause);
+        ticker.addEventListener('focusout', function () { resume(300); });
+        viewport.addEventListener('touchstart', pause, { passive: true });
+        viewport.addEventListener('touchend', function () { resume(2500); }, { passive: true });
+        viewport.addEventListener('wheel', function () { pause(); resume(2500); }, { passive: true });
+        window.addEventListener('resize', setup);
+        if (document.readyState === 'complete') setup(); else window.addEventListener('load', setup);
+    });
+})();

@@ -906,3 +906,14 @@ select.input { appearance: none; padding-right: 36px; background-image: url("dat
 
 .order-filters__more:not([open]) .order-filters__grid { display: none; }
 .schedule-day__actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+
+/* Homepage > Categories layout picker */
+@media (min-width: 640px) { .choice-cards--2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
+.layout-choice .choice-card small { color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+.layout-preview { display: grid; gap: 4px; height: 74px; margin-bottom: 8px; padding: 8px; border-radius: 10px; background: var(--bg); }
+.layout-preview i, .layout-preview b { display: block; border-radius: 5px; background: #CFE9E1; }
+.layout-preview--tiles { grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(2, 1fr); }
+.layout-preview--tiles i:first-child { grid-column: span 2; grid-row: span 2; background: var(--brand-mint); }
+.layout-preview--circles { grid-template-columns: repeat(5, 1fr); align-items: center; }
+.layout-preview--circles i, .layout-preview--circles b { width: 100%; max-width: 44px; aspect-ratio: 1; margin: 0 auto; border-radius: 50%; border: 3px solid var(--brand); background: #CFE9E1; }
+.layout-preview--circles b { background: var(--brand); }

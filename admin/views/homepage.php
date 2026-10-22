@@ -64,7 +64,29 @@ $steps = array_pad(setting_list('home_custom_steps'), 3, ['', '']);
             <?php elseif ($key === 'categories'): ?>
                 <label class="field"><span>Heading</span><input class="input" name="home_categories_title" value="<?= $v('home_categories_title') ?>"></label>
                 <label class="field"><span>Text</span><input class="input" name="home_categories_text" value="<?= $v('home_categories_text') ?>"></label>
-                <p class="hint">The tiles come from <a href="<?= e(admin_url('categories')) ?>">Categories</a>.</p>
+                <div class="field">
+                    <span class="label">Layout</span>
+                    <div class="choice-cards choice-cards--2 layout-choice">
+                        <?php $catStyle = setting('home_categories_style', 'tiles') === 'circles' ? 'circles' : 'tiles'; ?>
+                        <label class="choice-card">
+                            <input type="radio" name="home_categories_style" value="tiles" <?= $catStyle === 'tiles' ? 'checked' : '' ?>>
+                            <span>
+                                <span class="layout-preview layout-preview--tiles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+                                <strong>Photo tiles</strong>
+                                <small>A grid of large photos. The first category is the big one; the rest always fill the rows neatly.</small>
+                            </span>
+                        </label>
+                        <label class="choice-card">
+                            <input type="radio" name="home_categories_style" value="circles" <?= $catStyle === 'circles' ? 'checked' : '' ?>>
+                            <span>
+                                <span class="layout-preview layout-preview--circles" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b></span>
+                                <strong>Round photos, scrolling</strong>
+                                <small>Round photos with a green ring glide across like a news ticker, with "View all categories" at the end.</small>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+                <p class="hint">The categories and their photos come from <a href="<?= e(admin_url('categories')) ?>">Categories</a>. A new category shows up here once it has at least one cake.</p>
             <?php elseif ($key === 'featured'): ?>
                 <label class="field"><span>Heading</span><input class="input" name="home_featured_title" value="<?= $v('home_featured_title') ?>"></label>
                 <label class="field"><span>Text</span><input class="input" name="home_featured_text" value="<?= $v('home_featured_text') ?>"></label>

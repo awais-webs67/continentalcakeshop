@@ -23,6 +23,7 @@ if (is_post()) {
     $values['hero_show_shop_card'] = input('hero_show_shop_card') === '1' ? '1' : '0';
     $values['home_featured_count'] = (string) min(24, max(1, (int) input('home_featured_count', '8')));
     $values['home_text_style'] = input('home_text_style') === 'plain' ? 'plain' : 'tint';
+    $values['home_categories_style'] = input('home_categories_style') === 'circles' ? 'circles' : 'tiles';
     $values['home_custom_text'] = clean_html(str_limit(input('home_custom_text'), 20000));
     $values['home_text_body'] = clean_html(str_limit(input('home_text_body'), 50000));
     $values['home_usp_items'] = json_encode(array_slice(array_map(static fn ($v) => str_limit(trim((string) $v), 80), (array) ($_POST['usp_items'] ?? [])), 0, 4));
