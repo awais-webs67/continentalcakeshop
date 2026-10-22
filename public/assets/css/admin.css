@@ -938,3 +938,4 @@ select.input { appearance: none; padding-right: 36px; background-image: url("dat
 .toast__sound-off { color: var(--amber) !important; font-weight: 700 !important; white-space: normal !important; }
 .sound-option__status { color: var(--brand-dark) !important; font-weight: 600 !important; }
 .sound-option__status:empty { display: none; }
+@media (min-width: 1024px) { .sound-unlock { left: auto; right: 24px; bottom: 24px; } }

@@ -1,14 +1,25 @@
 <?php /** @var array $customer @var array $orders @var float $paid @var array $requests */ ?>
-<a class="crumb" href="<?= e(admin_url('customers')) ?>"><?= icon('arrow', '', 14) ?> Customers</a>
+<a class="crumb" href="<?= e(admin_url('customers', $customer['guest'] ? ['type' => 'guests'] : [])) ?>"><?= icon('arrow', '', 14) ?> Customers</a>
 <div class="page-head">
-    <div><h1><?= e($customer['name']) ?></h1><p>Customer since <?= e(date('j F Y', strtotime($customer['created_at']))) ?></p></div>
-    <div class="page-head__actions"><a class="btn btn--secondary" href="mailto:<?= e($customer['email']) ?>"><?= icon('mail', '', 18) ?> Email</a></div>
+    <div>
+        <h1><?= e($customer['name']) ?> <?= $customer['guest'] ? status_badge('pending', 'Guest, no account') : status_badge('active', 'Account') ?></h1>
+        <p><?= $customer['guest'] ? 'First ordered' : 'Customer since' ?> <?= e(date('j F Y', strtotime($customer['created_at']))) ?></p>
+    </div>
+    <div class="page-head__actions">
+        <?php if ($customer['phone']): ?><a class="btn btn--secondary" href="tel:<?= e(preg_replace('/[^\d+]/', '', $customer['phone'])) ?>"><?= icon('phone', '', 18) ?> Call</a><?php endif; ?>
+        <?php if ($customer['email'] !== ''): ?><a class="btn btn--secondary" href="mailto:<?= e($customer['email']) ?>"><?= icon('mail', '', 18) ?> Email</a><?php endif; ?>
+        <?php if ($orders && admin_can('orders')): ?><a class="btn btn--primary" href="<?= e(admin_url('orders/new')) ?>"><?= icon('plus', '', 18) ?> New order</a><?php endif; ?>
+    </div>
 </div>
 <div class="stats">
     <div class="stat"><span class="stat__label"><?= icon('bag', '', 16) ?> Orders</span><span class="stat__value"><?= count($orders) ?></span></div>
     <div class="stat"><span class="stat__label"><?= icon('card', '', 16) ?> Paid total</span><span class="stat__value"><?= e(money($paid)) ?></span></div>
     <div class="stat"><span class="stat__label"><?= icon('gift', '', 16) ?> Custom requests</span><span class="stat__value"><?= count($requests) ?></span></div>
-    <div class="stat"><span class="stat__label"><?= icon('clock', '', 16) ?> Last login</span><span class="stat__value" style="font-size:18px"><?= $customer['last_login_at'] ? e(time_ago($customer['last_login_at'])) : 'Never' ?></span></div>
+    <?php if ($customer['guest']): ?>
+        <div class="stat"><span class="stat__label"><?= icon('clock', '', 16) ?> Last order</span><span class="stat__value" style="font-size:18px"><?= $orders ? e(time_ago($orders[0]['created_at'])) : '-' ?></span></div>
+    <?php else: ?>
+        <div class="stat"><span class="stat__label"><?= icon('clock', '', 16) ?> Last login</span><span class="stat__value" style="font-size:18px"><?= $customer['last_login_at'] ? e(time_ago($customer['last_login_at'])) : 'Never' ?></span></div>
+    <?php endif; ?>
 </div>
 <div class="grid-main">
     <section class="card">
@@ -36,9 +47,11 @@
         <section class="card">
             <div class="card__head"><h2>Contact</h2></div>
             <div class="card__body"><dl class="dl">
-                <dt>Email</dt><dd><a href="mailto:<?= e($customer['email']) ?>"><?= e($customer['email']) ?></a></dd>
+                <dt>Email</dt><dd><?= $customer['email'] !== '' ? '<a href="mailto:' . e($customer['email']) . '">' . e($customer['email']) . '</a>' : 'Not given' ?></dd>
                 <dt>Phone</dt><dd><?= $customer['phone'] ? '<a href="tel:' . e(preg_replace('/[^\d+]/', '', $customer['phone'])) . '">' . e($customer['phone']) . '</a>' : 'Not given' ?></dd>
-            </dl></div>
+            </dl>
+            <?php if ($customer['guest']): ?><p class="hint" style="margin-top:12px">This customer ordered without creating an account<?= $customer['email'] !== '' ? '. If they register with ' . e($customer['email']) . ', these orders will show under their account' : ' (a phone or shop order without an email)' ?>.</p><?php endif; ?>
+            </div>
         </section>
         <?php if ($requests): ?>
         <section class="card">
