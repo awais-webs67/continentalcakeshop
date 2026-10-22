@@ -47,19 +47,18 @@ $hour = (int) date('G');
         <?php if ($toSchedule): ?>
         <section class="card card--attention">
             <div class="card__head"><h2>Deliveries to schedule</h2><span class="hint">Set a time and the customer is emailed</span></div>
-            <div class="table-wrap"><table class="table">
-                <thead><tr><th>Order</th><th>Date</th><th>Suburb</th><th class="num"></th></tr></thead>
-                <tbody>
+            <ul class="schedule-list">
                 <?php foreach ($toSchedule as $o): ?>
-                    <tr>
-                        <td><a class="row-link" href="<?= e(admin_url('orders/view', ['id' => $o['id']]) . '#when') ?>"><?= e($o['order_number']) ?></a><div class="muted"><?= e($o['customer_name']) ?></div></td>
-                        <td><strong><?= e(date('D j M', strtotime($o['pickup_date']))) ?></strong><div class="muted"><?= e(delivery_window_label($o['delivery_window'] ?? null)) ?></div></td>
-                        <td><?= e((string) $o['delivery_suburb']) ?> <?= e((string) $o['delivery_postcode']) ?></td>
-                        <td class="num"><a class="btn btn--primary btn--sm" href="<?= e(admin_url('orders/view', ['id' => $o['id']]) . '#when') ?>">Set time</a></td>
-                    </tr>
+                    <li>
+                        <span class="schedule-list__date"><strong><?= e(date('D j', strtotime($o['pickup_date']))) ?></strong><span><?= e(date('M', strtotime($o['pickup_date']))) ?></span></span>
+                        <span class="schedule-list__main">
+                            <a href="<?= e(admin_url('orders/view', ['id' => $o['id']]) . '#when') ?>"><?= e($o['customer_name']) ?></a>
+                            <span><?= e($o['order_number']) ?> &middot; <?= e(trim((string) $o['delivery_suburb'] . ' ' . (string) $o['delivery_postcode'])) ?> &middot; <?= e(delivery_window_label($o['delivery_window'] ?? null)) ?></span>
+                        </span>
+                        <a class="btn btn--primary btn--sm" href="<?= e(admin_url('orders/view', ['id' => $o['id']]) . '#when') ?>"><?= icon('clock', '', 15) ?> Set time</a>
+                    </li>
                 <?php endforeach; ?>
-                </tbody>
-            </table></div>
+            </ul>
         </section>
         <?php endif; ?>
 

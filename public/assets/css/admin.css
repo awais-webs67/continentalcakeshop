@@ -788,12 +788,18 @@ select.input { appearance: none; padding-right: 36px; background-image: url("dat
 .tag--delivery { background: #EEF0FE; color: #3A3F9E; }
 .tag--pickup { background: var(--brand-softer); color: var(--brand-dark); }
 .tag--warn { background: var(--red-bg); color: var(--red); }
-/* Narrow lists (phones, the dashboard column): money under the name, buttons across the bottom */
+/* Medium lists (the dashboard column, tablets): name and money on one line, small buttons underneath.
+   Narrow lists (phones): money under the name and the buttons across the bottom. */
 .order-list { container: orderlist / inline-size; }
 @container orderlist (max-width: 640px) {
-    .order-row { grid-template-columns: 70px minmax(0, 1fr); grid-template-areas: "when main" "when money" "actions actions"; padding: 14px; gap: 8px 12px; }
-    .order-row__when { padding: 6px; }
+    .order-row { grid-template-columns: 66px minmax(0, 1fr) auto; grid-template-areas: "when main money" "when actions actions"; padding: 14px 16px; gap: 8px 14px; }
+    .order-row__when { padding: 7px 4px; }
     .order-row__when strong { font-size: 14px; }
+    .order-row__actions { justify-content: flex-start; }
+}
+@container orderlist (max-width: 440px) {
+    .order-row { grid-template-columns: 62px minmax(0, 1fr); grid-template-areas: "when main" "when money" "actions actions"; padding: 14px; gap: 8px 12px; }
+    .order-row__when { padding: 6px; }
     .order-row__money { flex-direction: row; align-items: baseline; justify-content: flex-start; gap: 10px; text-align: left; }
     .order-row__actions { justify-content: stretch; }
     .order-row__actions > * { flex: 1; }
@@ -949,3 +955,16 @@ select.input { appearance: none; padding-right: 36px; background-image: url("dat
 .chat-admin__bubble { box-shadow: 0 1px 1px rgba(16, 24, 22, .06); }
 /* Phones and tablets: the chat fills the space between the top bar and the bottom menu (the page scrolls to it). */
 @media (max-width: 1023px) { .chat-card { height: calc(100vh - 160px); height: calc(100dvh - 160px); min-height: 360px; scroll-margin-top: 72px; } .chat-admin__keys { display: none; } }
+
+/* Dashboard: deliveries that still need a time */
+.schedule-list { margin: 0; padding: 0; list-style: none; }
+.schedule-list li { display: flex; align-items: center; gap: 14px; padding: 12px 18px; border-top: 1px solid var(--line); }
+.schedule-list li:first-child { border-top: 0; }
+.schedule-list__date { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; width: 54px; padding: 6px 0; border-radius: 10px; background: var(--amber-bg); color: var(--amber); line-height: 1.15; }
+.schedule-list__date strong { font-family: var(--font-head); font-size: 16px; }
+.schedule-list__date span { font-size: 11.5px; font-weight: 700; text-transform: uppercase; }
+.schedule-list__main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.schedule-list__main a { color: var(--ink); font-weight: 700; text-decoration: none; }
+.schedule-list__main a:hover { color: var(--brand-dark); text-decoration: underline; }
+.schedule-list__main span { overflow: hidden; color: var(--muted); font-size: 13px; white-space: nowrap; text-overflow: ellipsis; }
+.schedule-list .btn { flex: 0 0 auto; }
