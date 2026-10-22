@@ -89,4 +89,5 @@ render('header', compact('page'));
     </div>
 </section>
 
+<script src="<?= e(asset('js/sounds.js')) ?>" defer></script>
 <?php forget_input(); render('footer'); ?>

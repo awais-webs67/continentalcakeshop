@@ -147,6 +147,19 @@ $alertCount = array_sum(array_map(static fn ($a) => (int) $a[2], $alerts));
                     <?php endforeach; ?>
                 </div>
             </details>
+            <details class="dropdown sound-menu" data-sound-menu>
+                <summary class="icon-button" aria-label="Alert sounds" title="Alert sounds"><span data-sound-icon="on"><?= icon('volume', '', 20) ?></span><span data-sound-icon="off" hidden><?= icon('mute', '', 20) ?></span></summary>
+                <div class="dropdown__panel dropdown__panel--wide">
+                    <p class="dropdown__title">Alert sounds<small>Saved on this device</small></p>
+                    <label class="sound-option"><input type="checkbox" data-sound-pref="on"> <span><strong>Play sounds</strong><small>A bell for new orders, a pop for messages.</small></span></label>
+                    <label class="sound-option"><input type="checkbox" data-sound-pref="ring"> <span><strong>Keep ringing for new orders</strong><small>Rings every 15 seconds until someone taps the screen. Good for a kitchen tablet.</small></span></label>
+                    <div class="sound-tests">
+                        <button type="button" class="btn btn--secondary btn--sm" data-sound-test="order"><?= icon('bag', '', 15) ?> Test order</button>
+                        <button type="button" class="btn btn--secondary btn--sm" data-sound-test="message"><?= icon('mail', '', 15) ?> Test message</button>
+                    </div>
+                    <p class="hint sound-menu__hint">Keep any admin page open to hear new orders. Phones and tablets also vibrate.</p>
+                </div>
+            </details>
             <a class="icon-button topbar__site" href="<?= e(url()) ?>" target="_blank" rel="noopener" title="View website" aria-label="View website"><?= icon('store', '', 20) ?></a>
             <details class="dropdown">
                 <summary class="topbar__avatar" style="background:<?= e(avatar_colour($admin['name'])) ?>" aria-label="Account menu"><?= e(mb_strtoupper(mb_substr($admin['name'], 0, 1))) ?></summary>
@@ -186,6 +199,8 @@ $alertCount = array_sum(array_map(static fn ($a) => (int) $a[2], $alerts));
     'csrf'      => csrf_token(),
     'live'      => ['url' => admin_url('live')] + admin_live_state($admin),
 ], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?>;</script>
+<button type="button" class="sound-unlock" data-sound-unlock hidden><?= icon('volume', '', 18) ?> Tap to turn on order sounds</button>
+<script src="<?= e(asset('js/sounds.js')) ?>" defer></script>
 <script src="<?= e(asset('js/admin.js')) ?>" defer></script>
 </body>
 </html>

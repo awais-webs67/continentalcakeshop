@@ -821,6 +821,7 @@
             list.insertAdjacentHTML('beforeend', m.html);
             lastId = Math.max(lastId, m.id);
             added = list.lastElementChild;
+            if (m.html.indexOf('chat__msg--shop') !== -1 && window.CCSSound) window.CCSSound.play('message');
         });
         if (added) added.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     };
@@ -850,6 +851,7 @@
             .then(function (d) {
                 if (!d.ok) { error.textContent = d.error || 'Your message could not be sent.'; error.hidden = false; return; }
                 textarea.value = '';
+                if (window.CCSSound) window.CCSSound.play('sent');
                 poll();
             })
             .catch(function () { error.textContent = 'Could not send. Please check your connection and try again.'; error.hidden = false; })

@@ -597,25 +597,23 @@ document.addEventListener('input', function (e) {
         });
     };
 
-    var audio;
-    var chime = function () {
-        try {
-            audio = audio || new (window.AudioContext || window.webkitAudioContext)();
-            [[880, 0], [1320, 0.16]].forEach(function (n) {
-                var o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime + n[1];
-                o.type = 'sine'; o.frequency.value = n[0];
-                g.gain.setValueAtTime(0.0001, t);
-                g.gain.exponentialRampToValueAtTime(0.25, t + 0.02);
-                g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
-                o.connect(g); g.connect(audio.destination);
-                o.start(t); o.stop(t + 0.4);
-            });
-        } catch (e) {}
-    };
-    // Browsers only allow sound after the first click on the page.
-    document.addEventListener('click', function () { try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); if (audio.state === 'suspended') audio.resume(); } catch (e) {} }, { once: true });
+    var sound = window.CCSSound || { play: function () { return false; }, prefs: function () { return {}; } };
 
-    var notify = function (title, text, link, linkLabel) {
+    // "Keep ringing": a new order rings every 15 seconds until someone touches the screen (max 5 minutes).
+    var ringTimer = null, ringStop = 0;
+    var stopRinging = function () { if (ringTimer) { clearInterval(ringTimer); ringTimer = null; } };
+    var startRinging = function () {
+        if (!sound.prefs().ring) return;
+        ringStop = Date.now() + 5 * 60000;
+        if (ringTimer) return;
+        ringTimer = setInterval(function () {
+            if (Date.now() > ringStop || !sound.prefs().ring) return stopRinging();
+            sound.play('order');
+        }, 15000);
+    };
+    ['pointerdown', 'keydown'].forEach(function (ev) { document.addEventListener(ev, stopRinging, { passive: true }); });
+
+    var notify = function (kind, title, text, link, linkLabel) {
         var stack = document.querySelector('.toast-stack');
         if (!stack) {
             stack = document.createElement('div');
@@ -652,7 +650,8 @@ document.addEventListener('input', function (e) {
         setTimeout(function () { t.style.opacity = '0'; setTimeout(function () { t.remove(); }, 300); }, 15000);
         unseen++;
         document.title = '(' + unseen + ') ' + baseTitle;
-        chime();
+        sound.play(kind);
+        if (kind === 'order') startRinging();
     };
     window.addEventListener('focus', function () { unseen = 0; document.title = baseTitle; });
 
@@ -695,7 +694,7 @@ document.addEventListener('input', function (e) {
     };
 
     var timer;
-    var schedule = function () { clearTimeout(timer); timer = setTimeout(check, document.hidden ? 60000 : 10000); };
+    var schedule = function () { clearTimeout(timer); timer = setTimeout(check, document.hidden ? 20000 : 10000); };
     var check = function () {
         fetch(cfg.url, { credentials: 'same-origin', cache: 'no-store', headers: { 'X-Requested-With': 'fetch' } })
             .then(function (r) { return r.ok && !r.redirected ? r.json() : null; })
@@ -703,14 +702,14 @@ document.addEventListener('input', function (e) {
                 if (!d) return;
                 setBadges(d.counts);
                 if (d.order && !seen('order', parseInt(d.order.id, 10))) {
-                    notify('New order ' + d.order.order_number, d.order.customer_name + ' · ' + money(d.order.total), adminUrl('orders/view', d.order.id), 'Open order');
+                    notify('order', 'New order ' + d.order.order_number, d.order.customer_name + ' · ' + money(d.order.total), adminUrl('orders/view', d.order.id), 'Open order');
                 }
                 if (d.message && !seen('message', parseInt(d.message.id, 10))) {
                     var onThread = document.querySelector('[data-chat][data-chat-url*="id=' + d.message.thread_id + '"]');
-                    if (!onThread) notify('Message from ' + d.message.customer_name, d.message.body, adminUrl('messages/view', d.message.thread_id), 'Reply');
+                    if (!onThread) notify('message', 'Message from ' + d.message.customer_name, d.message.body, adminUrl('messages/view', d.message.thread_id), 'Reply');
                 }
                 if (d.request && !seen('request', parseInt(d.request.id, 10))) {
-                    notify('New custom cake request', d.request.name + ' · ' + d.request.occasion, adminUrl('custom-requests/view', d.request.id), 'Open');
+                    notify('request', 'New custom cake request', d.request.name + ' · ' + d.request.occasion, adminUrl('custom-requests/view', d.request.id), 'Open');
                 }
                 if (d.stamp !== stamp || pending) {
                     stamp = d.stamp;
@@ -741,6 +740,7 @@ document.addEventListener('input', function (e) {
             list.insertAdjacentHTML('beforeend', m.html);
             lastId = Math.max(lastId, m.id);
             added = true;
+            if (m.html.indexOf('chat-admin__msg--customer') !== -1 && window.CCSSound) window.CCSSound.play('message');
         });
         if (added) list.scrollTo({ top: list.scrollHeight, behavior: 'smooth' });
     };
@@ -776,10 +776,37 @@ document.addEventListener('input', function (e) {
             .then(function (d) {
                 if (!d.ok) { error.textContent = d.error || 'The reply could not be sent.'; error.hidden = false; return; }
                 textarea.value = '';
+                if (window.CCSSound) window.CCSSound.play('sent');
                 if (note && d.note) { note.textContent = d.note; note.hidden = false; }
                 poll();
             })
             .catch(function () { error.textContent = 'Could not send. Check your connection and try again.'; error.hidden = false; })
             .then(function () { button.disabled = false; textarea.focus(); });
     });
+})();
+
+/* Alert sound settings in the top bar, and the "Tap to turn on order sounds" button. */
+(function () {
+    var sound = window.CCSSound;
+    var menu = document.querySelector('[data-sound-menu]');
+    var pill = document.querySelector('[data-sound-unlock]');
+    if (!sound) { if (menu) menu.hidden = true; return; }
+    var sync = function () {
+        var prefs = sound.prefs();
+        document.querySelectorAll('[data-sound-pref]').forEach(function (box) { box.checked = !!prefs[box.getAttribute('data-sound-pref')]; });
+        document.querySelectorAll('[data-sound-icon]').forEach(function (el) { el.hidden = (el.getAttribute('data-sound-icon') === 'on') !== prefs.on; });
+        if (pill) pill.hidden = !prefs.on || sound.ready();
+    };
+    document.querySelectorAll('[data-sound-pref]').forEach(function (box) {
+        box.addEventListener('change', function () {
+            sound.set(box.getAttribute('data-sound-pref'), box.checked);
+            if (box.checked) sound.play(box.getAttribute('data-sound-pref') === 'ring' ? 'order' : 'message', true);
+        });
+    });
+    document.querySelectorAll('[data-sound-test]').forEach(function (btn) {
+        btn.addEventListener('click', function () { sound.unlock(); sound.play(btn.getAttribute('data-sound-test'), true); });
+    });
+    if (pill) pill.addEventListener('click', function () { sound.unlock(); setTimeout(function () { sound.play('message', true); sync(); }, 60); });
+    sound.onChange(sync);
+    sync();
 })();
