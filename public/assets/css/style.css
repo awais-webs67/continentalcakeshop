@@ -1001,7 +1001,14 @@ fieldset.field { margin: 0 0 18px; padding: 0; border: 0; min-width: 0; }
 .checkout-progress .is-done span { background: var(--brand); border-color: var(--brand); color: var(--white); }
 .checkout-progress .is-current { color: var(--ink); }
 .checkout-progress .is-current span { border-color: var(--brand); color: var(--brand); }
-@media (max-width: 479px) { .checkout-progress { font-size: 13px; gap: 6px; } .checkout-progress li + li::before { width: 12px; } }
+@media (max-width: 479px) {
+    .checkout-progress { flex-wrap: wrap; font-size: 13px; gap: 6px; }
+    .checkout-progress li + li::before { width: 12px; }
+    /* Only the current step keeps its name on small phones. */
+    .checkout-progress li:not(.is-current), .checkout-progress li:not(.is-current) a { font-size: 0; gap: 0; }
+    .checkout-progress li:not(.is-current) span { font-size: 12px; }
+    .checkout-progress li:not(.is-current) + li::before, .checkout-progress li + li:not(.is-current)::before { margin-right: 6px; }
+}
 
 .form-errors { margin: 0 0 18px; padding: 18px; border: 1.5px solid #F2B8B8; border-left-width: 5px; border-radius: var(--radius-lg); background: #FFF8F8; box-shadow: 0 10px 28px rgba(164, 35, 35, .08); outline: none; scroll-margin-top: 16px; }
 .form-errors[hidden] { display: none; }

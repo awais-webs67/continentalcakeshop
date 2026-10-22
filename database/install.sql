@@ -787,7 +787,8 @@ INSERT INTO `schema_migrations` VALUES
 ('015_reminders_reviews.sql','2026-10-21 10:26:08'),
 ('016_product_photos_seo.sql','2026-10-21 10:26:08'),
 ('017_seo_landing_pages.sql','2026-10-21 10:26:08'),
-('018_backups.sql','2026-10-21 10:26:08');
+('018_backups.sql','2026-10-21 10:26:08'),
+('019_live_chat_category_style.sql','2026-10-22 04:37:24');
 /*!40000 ALTER TABLE `schema_migrations` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `settings`;
@@ -840,6 +841,7 @@ INSERT INTO `settings` VALUES
 ('hero_show_shop_card','1','2026-10-18 13:35:43'),
 ('hero_subtitle','Tortes, mud cakes, velvet cakes and cheesecakes made in our shop with 100% Halal ingredients. Order online, choose your pickup time, and we will have it ready.','2026-10-18 13:35:43'),
 ('hero_title','Fresh cakes for every celebration','2026-10-18 13:35:43'),
+('home_categories_style','tiles','2026-10-22 04:37:24'),
 ('home_categories_text','Every cake is made in our Greenway shop.','2026-10-18 13:35:43'),
 ('home_categories_title','Shop by category','2026-10-18 13:35:43'),
 ('home_custom_btn_text','Get a Quote','2026-10-18 13:35:43'),
@@ -967,6 +969,8 @@ CREATE TABLE `threads` (
   `unread_admin` tinyint(1) NOT NULL DEFAULT 0,
   `unread_customer` tinyint(1) NOT NULL DEFAULT 0,
   `last_message_at` datetime DEFAULT NULL,
+  `admin_seen_at` datetime DEFAULT NULL,
+  `customer_seen_at` datetime DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `token` (`token`),

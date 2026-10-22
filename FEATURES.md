@@ -412,3 +412,23 @@ Before pushing:
 ## 27. Tax invoices
 
 **What it does.** Every order has a printable page at `/order/<number>/invoice` (`public/invoice.php`): a **tax invoice** with the shop's ABN, the date of issue, the items with their options, discount, delivery, the GST included (total / 11) and every payment and refund with the balance due. When the shop is not registered for GST or has no ABN, the same page is a **receipt**. Customers open it from their order page (the private link, `invoice_url()`), staff from the admin order page. It prints cleanly or saves as a PDF from the browser.
+
+## 28. Live updates
+
+**What it does.** Every open admin page checks in every 10 seconds (once a minute when the tab is in the background) at `admin/live` (`admin/controllers/live.php`, `admin_live_state()` in `admin/bootstrap.php`). New orders, customer messages and custom requests pop up with a short chime and an Open button, the badges in the menu and the bell update, and parts of pages marked `data-live="name"` refresh themselves (dashboard, orders, pickups, messages, custom requests). A refresh waits while someone is typing in that part of the page. Notices are shared between tabs through `localStorage`, so each one pops up once.
+
+**Chat.** The customer's conversation page (`public/messages.php`) and the admin conversation (`admin/controllers/message-view.php`) check for new messages every few seconds and send without reloading (`?poll=1&after=<id>` returns new bubbles as JSON, built by `chat_bubble_html()`). `threads.admin_seen_at` and `threads.customer_seen_at` record who has the chat open; no email is sent for a message the other side is reading live (`thread_seen_live()`, `CHAT_LIVE_SECONDS`).
+
+## 29. Orders, pickups and kitchen tickets
+
+**Orders** (`admin/controllers/orders.php`): quick views with counts (Needs action, Today, Tomorrow, Coming up, Money owing, Completed, Cancelled, All), search and a Filters panel. Every order is a card (`admin/views/partials/order-row.php`): the whole card opens the order and the next step (Confirm, Mark ready, Collected or Delivered) is one tap; the `back` field returns staff to the same list.
+
+**Pickups & deliveries** (`admin/controllers/pickups.php`): **Today** (with totals), **Advance orders** (every later day, grouped by date, or one day with the date picker) and **Past** (last 30 days, "Only not done" shows orders never marked collected). **Add advance order** opens the phone order form with the date filled in (`orders/new?date=`).
+
+**Kitchen ticket** (`admin/controllers/order-print.php`): the slip the baker works from and tapes to the box. Big date and time, what to write on each cake, options such as Eggless, extras to pack, notes, tick boxes and how much to collect. `?id=` prints one order, `?date=` prints every order that day (one per page); `&size=80` formats it for an 80 mm receipt printer.
+
+## 30. Homepage categories and product photos
+
+**Categories layout** (Admin > Homepage > Categories, setting `home_categories_style`): **Photo tiles** (the first category large; `templates/home/categories.php` works out the spans so every row is full for any number of categories) or **Round photos, scrolling** (round photos with a theme-coloured ring that glide past like a news ticker, pause on hover or touch, can be swiped, and end with "View all categories").
+
+**Product photos.** Cards show up to four photos (`with_card_photos()` loads them in one query): moving the mouse across the photo shows the next ones, phones swipe, and dots show which one is on screen. The product page has a swipe gallery with arrows, thumbnails and a large view, the Google rating, badges, and on phones an Add to Cart bar while the real button is off screen.

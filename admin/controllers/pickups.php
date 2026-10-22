@@ -6,6 +6,11 @@ $tab = in_array($_GET['tab'] ?? '', ['today', 'advance', 'past'], true) ? $_GET[
 $type = in_array($_GET['type'] ?? '', ['pickup', 'delivery'], true) ? $_GET['type'] : '';
 $on = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($_GET['on'] ?? '')) ? $_GET['on'] : '';
 $openOnly = ($_GET['open'] ?? '') === '1';
+// Older links used ?date=: show that day in the right tab.
+if (!isset($_GET['tab']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($_GET['date'] ?? ''))) {
+    $tab = $_GET['date'] === $today ? 'today' : ($_GET['date'] > $today ? 'advance' : 'past');
+    $on = $tab === 'advance' ? $_GET['date'] : '';
+}
 
 $typeSql = match ($type) {
     'delivery' => " AND o.fulfilment = 'delivery'",

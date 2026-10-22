@@ -96,7 +96,7 @@ $title = $date !== '' ? 'Tickets for ' . date('D j M', strtotime($date)) : 'Tick
     body.is-receipt .t-message p:not(.t-label) { font-size: 18px; }
     body.is-receipt .t-pay strong { font-size: 18px; }
 
-    @media (max-width: 600px) { .ticket { margin: 12px; padding: 18px; } .t-grid { grid-template-columns: 1fr; } .t-when__time { font-size: 24px; } }
+    @media (max-width: 600px) { .ticket { width: auto; margin: 12px; padding: 18px; } .t-grid { grid-template-columns: 1fr; } .t-when__time { font-size: 24px; } }
     @page { margin: 10mm; }
     @media print {
         body { background: #fff; }
