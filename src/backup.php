@@ -162,3 +162,34 @@ function clear_shop_data(array $groups): array
     }
     return $removed;
 }
+
+/**
+ * Which version of the code is running: the short git commit and its date, read straight from
+ * .git (no git command needed). Shown in Admin > System check so the owner can see whether an
+ * update has arrived. Null when the site was uploaded without the .git folder.
+ */
+function code_version(): ?array
+{
+    $git = BASE_PATH . '/.git';
+    $head = is_file($git . '/HEAD') ? trim((string) file_get_contents($git . '/HEAD')) : '';
+    if ($head === '') {
+        return null;
+    }
+    $hash = $head;
+    if (str_starts_with($head, 'ref: ')) {
+        $ref = substr($head, 5);
+        $hash = is_file($git . '/' . $ref) ? trim((string) file_get_contents($git . '/' . $ref)) : '';
+        if ($hash === '' && is_file($git . '/packed-refs')) {
+            foreach (file($git . '/packed-refs', FILE_IGNORE_NEW_LINES) ?: [] as $line) {
+                if (str_ends_with($line, ' ' . $ref)) {
+                    $hash = strtok($line, ' ');
+                }
+            }
+        }
+    }
+    if (!preg_match('/^[0-9a-f]{40}$/', (string) $hash)) {
+        return null;
+    }
+    $file = $git . '/' . (str_starts_with($head, 'ref: ') ? substr($head, 5) : 'HEAD');
+    return ['commit' => substr($hash, 0, 7), 'time' => is_file($file) ? filemtime($file) : null];
+}
