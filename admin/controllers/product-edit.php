@@ -175,7 +175,7 @@ if (is_post()) {
 } else {
     $extraPhotos = $product ? get_product_images((int) $product['id']) : [];
     $optionRows = $product ? db_all('SELECT * FROM product_options WHERE product_id = ? ORDER BY sort_order, id', [$product['id']]) : [];
-    $sizeRows = $product ? db_all('SELECT * FROM product_sizes WHERE product_id = ? ORDER BY sort_order, price', [$product['id']]) : [['id' => 0, 'label' => 'Midi', 'servings' => 'Serves 8', 'price' => ''], ['id' => 0, 'label' => 'Large', 'servings' => 'Serves 14', 'price' => '']];
+    $sizeRows = $product ? db_all('SELECT * FROM product_sizes WHERE product_id = ? ORDER BY sort_order, price', [$product['id']]) : [['id' => 0, 'label' => 'Midi', 'servings' => 'Serves 8', 'price' => ''], ['id' => 0, 'label' => 'Full', 'servings' => 'Serves 14', 'price' => '']];
 }
 
 $product ??= ['name' => '', 'slug' => '', 'category_id' => 0, 'short_description' => '', 'description' => '', 'badge' => '', 'is_featured' => 0, 'is_active' => 1, 'allow_message' => 1, 'is_enquiry' => 0, 'lead_time_hours' => null, 'sold_out_until' => null, 'sort_order' => 0, 'meta_title' => '', 'meta_description' => '', 'image' => null, 'image_alt' => '', 'focus_keyword' => ''];

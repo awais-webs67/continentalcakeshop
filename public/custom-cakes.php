@@ -5,8 +5,8 @@ require dirname(__DIR__) . '/src/bootstrap.php';
 
 const OCCASIONS = CAKE_OCCASIONS;
 
-// Quick picks for the number of people. Midi and Large match the standard cake sizes.
-const SERVING_SUGGESTIONS = [8 => 'Midi', 14 => 'Large', 20 => '', 30 => '', 50 => '', 100 => ''];
+// Quick picks for the number of people. Midi and Full match the standard cake sizes.
+const SERVING_SUGGESTIONS = [8 => 'Midi', 14 => 'Full', 20 => '', 30 => '', 50 => '', 100 => ''];
 
 $leadDays = (int) setting('custom_lead_days', '3');
 $minDate = (new DateTimeImmutable('today'))->modify("+{$leadDays} days")->format('Y-m-d');

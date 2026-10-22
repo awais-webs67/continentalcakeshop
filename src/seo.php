@@ -259,12 +259,22 @@ function product_default_description(array $product, array $sizes): string
     if (!empty($product['is_enquiry']) || !$sizes) {
         return sprintf('%s made to order in Greenway, Canberra. 100%% Halal. Send us your details for a quote.', $product['name']);
     }
-    $sizeText = implode(', ', array_map(static fn ($s) => $s['label'] . (!empty($s['servings']) ? ' (' . strtolower((string) $s['servings']) . ')' : ''), $sizes));
-    return sprintf(
-        '%s in %s from %s. 100%% Halal. Order online for pickup in Greenway%s.',
+    $labels = array_map(static fn ($s) => (string) $s['label'], $sizes);
+    // "20 pieces, 25 pieces or 30 pieces" reads better as "20, 25 or 30 pieces".
+    $unit = preg_match('/^\d+ (\D+)$/', $labels[0], $m) ? $m[1] : null;
+    if ($unit !== null && count($labels) > 1 && count(array_filter($labels, static fn ($l) => preg_match('/^\d+ ' . preg_quote($unit, '/') . '$/', $l))) === count($labels)) {
+        $labels = array_map('intval', $labels);
+        $labels[count($labels) - 1] .= ' ' . $unit;
+    }
+    $sizeText = count($sizes) === 1
+        ? strtolower((string) ($sizes[0]['servings'] ?: $sizes[0]['label']))
+        : implode(', ', array_slice($labels, 0, -1)) . ' or ' . end($labels);
+    $text = sprintf(
+        '%s, %s, from %s. 100%% Halal, made fresh in Greenway. Order online for pickup%s.',
         $product['name'], $sizeText, money(min(array_map(static fn ($s) => (float) $s['price'], $sizes))),
-        setting_bool('delivery_enabled') ? ' or delivery across Canberra' : ''
+        setting_bool('delivery_enabled') ? ' or delivery across Canberra' : ' in Canberra'
     );
+    return mb_strlen($text) > 160 ? rtrim(mb_substr($text, 0, 157), ' ,.') . '...' : $text;
 }
 
 /** Alt text of a cake's main photo: what the shop typed, or the name and shop. */
