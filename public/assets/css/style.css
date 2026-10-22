@@ -1621,3 +1621,9 @@ body.has-buy-bar .whatsapp-fab { bottom: 88px; }
 .verify-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 18px; margin: 20px 0 0; padding: 14px 18px; border: 1px solid #F3D9A4; border-radius: var(--radius); background: #FFF8E8; color: #6B4A00; font-size: 15px; }
 .verify-banner > span { display: flex; gap: 10px; align-items: flex-start; flex: 1 1 320px; }
 .verify-banner .icon { flex: 0 0 auto; margin-top: 2px; }
+
+/* Long words and addresses break instead of spilling out of their box */
+.prose, .faq-item, .product-info, .footer, .order-card, .chat__bubble { overflow-wrap: anywhere; }
+/* Category tile names fit narrow tiles (tablets): slightly smaller and allowed to wrap */
+.tile__name { overflow-wrap: anywhere; hyphens: auto; }
+@media (min-width: 768px) and (max-width: 1099px) { .tile__name { font-size: 19px; } .tile--feature .tile__name { font-size: 28px; } .tile__body { left: 16px; right: 16px; bottom: 16px; } }

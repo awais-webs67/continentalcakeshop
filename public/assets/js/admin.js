@@ -868,7 +868,11 @@ document.addEventListener('input', function (e) {
         var prefs = sound.prefs();
         document.querySelectorAll('[data-sound-pref]').forEach(function (box) { box.checked = !!prefs[box.getAttribute('data-sound-pref')]; });
         document.querySelectorAll('[data-sound-icon]').forEach(function (el) { el.hidden = (el.getAttribute('data-sound-icon') === 'on') !== prefs.on; });
-        if (pill) pill.hidden = !prefs.on || sound.ready();
+        var blocked = prefs.on && !sound.ready();
+        if (pill) pill.hidden = !blocked;
+        // Phones show the same hint as a red dot on the speaker button instead of a floating button.
+        var summary = document.querySelector('[data-sound-menu] > summary');
+        if (summary) { summary.classList.toggle('is-blocked', blocked); summary.title = blocked ? 'Sounds are off until you tap the page' : 'Alert sounds'; }
     };
     var desktopNote = document.querySelector('[data-desktop-status]');
     var showDesktop = function () {

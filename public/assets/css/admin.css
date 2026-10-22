@@ -968,3 +968,24 @@ select.input { appearance: none; padding-right: 36px; background-image: url("dat
 .schedule-list__main a:hover { color: var(--brand-dark); text-decoration: underline; }
 .schedule-list__main span { overflow: hidden; color: var(--muted); font-size: 13px; white-space: nowrap; text-overflow: ellipsis; }
 .schedule-list .btn { flex: 0 0 auto; }
+
+/* ---------- Text always fits its box ---------- */
+/* Phones: the top bar keeps the logo; the page name is the big heading just below. */
+@media (max-width: 599px) { .topbar__brand span { display: none; } }
+/* Sound hint on phones: a red dot on the speaker button (the floating button would cover the page). */
+@media (max-width: 1023px) { .sound-unlock { display: none !important; } }
+.sound-menu > summary { position: relative; }
+.sound-menu > summary.is-blocked::after { content: ""; position: absolute; top: 6px; right: 6px; width: 9px; height: 9px; border: 2px solid #fff; border-radius: 50%; background: #E5484D; animation: live-pulse 2s infinite; }
+/* Order cards: the time box grows with its text ("10:30am", "Sat 7 Nov"). */
+.order-row { grid-template-columns: minmax(92px, max-content) minmax(0, 1fr) auto; }
+@container orderlist (max-width: 640px) { .order-row { grid-template-columns: minmax(66px, max-content) minmax(0, 1fr) auto; } }
+@container orderlist (max-width: 440px) { .order-row { grid-template-columns: minmax(62px, max-content) minmax(0, 1fr); } }
+.order-row__when strong { white-space: nowrap; }
+/* Buttons may use two lines on a narrow phone rather than spill out. */
+@media (max-width: 640px) { .page-head__actions .btn, .order-row__actions .btn, .schedule-list .btn { white-space: normal; line-height: 1.25; text-align: center; } }
+/* Lists show the whole line instead of cutting it with "...". */
+.schedule-list__main span { white-space: normal; overflow: visible; text-overflow: clip; }
+.inbox__preview { white-space: normal !important; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* The shop name in the sidebar wraps to two lines instead of being cut. */
+.sidebar__brand strong { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.ql-editor, .prose { overflow-wrap: anywhere; }
