@@ -12,13 +12,12 @@ $stats = $canOrders ? [
 ] : [];
 
 $todayOrders = $canOrders ? db_all(
-    "SELECT o.*, (SELECT GROUP_CONCAT(CONCAT(i.quantity, ' x ', i.product_name) SEPARATOR ', ') FROM order_items i WHERE i.order_id = o.id) AS summary
-     FROM orders o WHERE o.pickup_date = ? AND o.order_status <> 'cancelled' ORDER BY o.pickup_time IS NULL, o.pickup_time",
+    'SELECT o.*, ' . ORDER_SUMMARY_SQL . " AS summary FROM orders o WHERE o.pickup_date = ? AND o.order_status <> 'cancelled' ORDER BY o.pickup_time IS NOT NULL, o.pickup_time",
     [$today]
 ) : [];
 $toSchedule = $canOrders ? db_all("SELECT * FROM orders WHERE fulfilment = 'delivery' AND pickup_time IS NULL AND order_status NOT IN ('cancelled', 'completed') ORDER BY pickup_date LIMIT 8") : [];
 $toVerify = $canOrders ? db_all("SELECT * FROM orders WHERE payment_status = 'awaiting_verification' ORDER BY created_at LIMIT 6") : [];
-$recent = $canOrders ? db_all('SELECT * FROM orders ORDER BY created_at DESC, id DESC LIMIT 6') : [];
+$recent = $canOrders ? db_all('SELECT o.*, ' . ORDER_SUMMARY_SQL . ' AS summary FROM orders o ORDER BY o.created_at DESC, o.id DESC LIMIT 6') : [];
 $requests = admin_can('custom', $admin) ? db_all("SELECT * FROM custom_requests WHERE status = 'new' ORDER BY event_date LIMIT 5") : null;
 $threads = admin_can('messages', $admin) ? db_all(
     'SELECT t.*, (SELECT body FROM thread_messages m WHERE m.thread_id = t.id ORDER BY m.id DESC LIMIT 1) AS last_body

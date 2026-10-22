@@ -59,7 +59,7 @@ if ($admin['role'] === 'owner') {
 <?php
 // Things waiting for attention, for the bell and the badges.
 $alerts = array_values(array_filter([
-    admin_can('orders', $admin) && $badges['orders'] ? [admin_url('orders', ['status' => 'new']), 'bag', $badges['orders'] . ' new order' . ($badges['orders'] === 1 ? '' : 's') . ' or deliveries to schedule'] : null,
+    admin_can('orders', $admin) && $badges['orders'] ? [admin_url('orders', ['view' => 'action']), 'bag', $badges['orders'] . ' new order' . ($badges['orders'] === 1 ? '' : 's') . ' or deliveries to schedule'] : null,
     admin_can('orders', $admin) && $badges['payments'] ? [admin_url('orders', ['payment' => 'awaiting_verification']), 'card', $badges['payments'] . ' payment' . ($badges['payments'] === 1 ? '' : 's') . ' to check'] : null,
     admin_can('messages', $admin) && $badges['messages'] ? [admin_url('messages', ['filter' => 'unread']), 'mail', $badges['messages'] . ' unread message' . ($badges['messages'] === 1 ? '' : 's')] : null,
     admin_can('custom', $admin) && $badges['custom'] ? [admin_url('custom-requests', ['status' => 'new']), 'gift', $badges['custom'] . ' new custom request' . ($badges['custom'] === 1 ? '' : 's')] : null,

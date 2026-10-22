@@ -69,20 +69,11 @@ $hour = (int) date('G');
             <?php if (!$todayOrders): ?>
                 <div class="empty"><?= icon('calendar', '', 32) ?><p>No pickups or deliveries today.</p></div>
             <?php else: ?>
-                <div class="table-wrap"><table class="table">
-                    <thead><tr><th>Time</th><th>Customer</th><th>Cakes</th><th>Payment</th><th>Status</th></tr></thead>
-                    <tbody>
+                <div class="order-list">
                     <?php foreach ($todayOrders as $o): ?>
-                        <tr>
-                            <td><strong><?= e(order_time_label($o)) ?></strong><div class="muted"><?= is_delivery($o) ? 'Delivery' : 'Pickup' ?></div></td>
-                            <td><a class="row-link" href="<?= e(admin_url('orders/view', ['id' => $o['id']])) ?>"><?= e($o['customer_name']) ?></a><div class="muted"><?= e($o['order_number']) ?></div></td>
-                            <td class="muted"><?= e((string) $o['summary']) ?></td>
-                            <td><?= status_badge($o['payment_status'], PAYMENT_STATUSES[$o['payment_status']]) ?></td>
-                            <td><?= status_badge($o['order_status'], order_status_label($o)) ?></td>
-                        </tr>
+                        <?php render_admin_partial('order-row', ['o' => $o, 'show' => 'time']); ?>
                     <?php endforeach; ?>
-                    </tbody>
-                </table></div>
+                </div>
             <?php endif; ?>
         </section>
         <?php endif; ?>
@@ -110,20 +101,11 @@ $hour = (int) date('G');
             <?php if (!$recent): ?>
                 <div class="empty"><?= icon('bag', '', 32) ?><p>Orders will appear here as soon as customers start ordering.</p></div>
             <?php else: ?>
-                <div class="table-wrap"><table class="table">
-                    <thead><tr><th>Order</th><th>Customer</th><th>When</th><th>Status</th><th class="num">Total</th></tr></thead>
-                    <tbody>
+                <div class="order-list">
                     <?php foreach ($recent as $o): ?>
-                        <tr>
-                            <td><a class="row-link" href="<?= e(admin_url('orders/view', ['id' => $o['id']])) ?>"><?= e($o['order_number']) ?></a><div class="muted"><?= e(time_ago($o['created_at'])) ?></div></td>
-                            <td><?= e($o['customer_name']) ?></td>
-                            <td><?= e(date('D j M', strtotime($o['pickup_date']))) ?>, <?= e(order_time_label($o)) ?></td>
-                            <td><?= status_badge($o['order_status'], order_status_label($o)) ?></td>
-                            <td class="num"><strong><?= e(money($o['total'])) ?></strong></td>
-                        </tr>
+                        <?php render_admin_partial('order-row', ['o' => $o, 'show' => 'date']); ?>
                     <?php endforeach; ?>
-                    </tbody>
-                </table></div>
+                </div>
             <?php endif; ?>
         </section>
         <?php endif; ?>
