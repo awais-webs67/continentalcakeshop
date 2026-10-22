@@ -83,7 +83,10 @@ $dayLabel = static function (string $day) use ($today): string {
                 <h2><?= e(date('l j F', strtotime($day))) ?></h2>
                 <span><?= e($dayLabel($day)) ?> &middot; <?= count($list) ?> order<?= count($list) === 1 ? '' : 's' ?></span>
             </div>
-            <?php if ($day >= $today): ?><a class="btn btn--ghost btn--sm" href="<?= e(admin_url('orders/new', ['date' => $day])) ?>"><?= icon('plus', '', 15) ?> Add</a><?php endif; ?>
+            <div class="schedule-day__actions">
+                <a class="btn btn--ghost btn--sm" href="<?= e(admin_url('orders/print', ['date' => $day])) ?>" target="_blank" rel="noopener" title="Kitchen tickets for every order this day"><?= icon('download', '', 15) ?> Tickets</a>
+                <?php if ($day >= $today): ?><a class="btn btn--ghost btn--sm" href="<?= e(admin_url('orders/new', ['date' => $day])) ?>"><?= icon('plus', '', 15) ?> Add</a><?php endif; ?>
+            </div>
         </div>
         <div class="order-list">
             <?php foreach ($list as $o): ?>

@@ -340,24 +340,38 @@
     // Conversations open at the newest message
     $$('.chat-admin').forEach(function (box) { box.scrollTop = box.scrollHeight; });
 
-    // Phone layout: give every table cell its column name so tables can stack as cards.
-    $$('table.table').forEach(function (table) {
-        var heads = $$('thead th', table).map(function (th) { return th.textContent.trim(); });
-        if (!heads.length) return;
-        $$('tbody tr', table).forEach(function (row) {
-            $$('td', row).forEach(function (td, i) {
-                if (!td.hasAttribute('data-label')) td.setAttribute('data-label', heads[i] || '');
-            });
-        });
-        table.classList.add('is-stacked');
-        if (heads.length >= 6) table.classList.add('is-wide');
+    // Table rows with a main link open when tapped anywhere on the row.
+    document.addEventListener('click', function (e) {
+        var row = e.target.closest && e.target.closest('.table tbody tr');
+        if (!row || e.target.closest('a, button, input, select, textarea, label, summary, details, form')) return;
+        if (window.getSelection && String(window.getSelection()).length) return; // Selecting text, not opening.
+        var link = row.querySelector('a.row-link');
+        if (!link) return;
+        if (e.ctrlKey || e.metaKey) window.open(link.href, '_blank');
+        else window.location.href = link.href;
     });
+    var markRows = function () {
+        $$('.table tbody tr').forEach(function (row) { if (row.querySelector('a.row-link')) row.classList.add('is-clickable'); });
+    };
+    markRows();
+    document.addEventListener('admin:refreshed', markRows);
 
     // Top bar menus: only one open at a time, closed by a click outside or Esc
     var dropdowns = function () { return $$('details.dropdown, details.row-menu'); };
     document.addEventListener('toggle', function (e) {
         var d = e.target;
-        if (d.open && d.matches && d.matches('details.dropdown, details.row-menu')) dropdowns().forEach(function (o) { if (o !== d) o.open = false; });
+        if (d.open && d.matches && d.matches('details.dropdown, details.row-menu')) {
+            dropdowns().forEach(function (o) { if (o !== d) o.open = false; });
+            // Keep the menu on screen: slide it back in if it would open past an edge.
+            var panel = d.querySelector('.dropdown__panel, .row-menu__panel');
+            if (panel) {
+                panel.style.transform = '';
+                var r = panel.getBoundingClientRect(), shift = 0;
+                if (r.left < 8) shift = 8 - r.left;
+                else if (r.right > window.innerWidth - 8) shift = window.innerWidth - 8 - r.right;
+                if (shift) panel.style.transform = 'translateX(' + Math.round(shift) + 'px)';
+            }
+        }
     }, true);
     document.addEventListener('click', function (e) {
         dropdowns().forEach(function (d) { if (d.open && !d.contains(e.target)) d.open = false; });
