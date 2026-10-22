@@ -1,4 +1,4 @@
-<?php /** @var array $checks @var array $pending @var array $recentMail @var string $appUrl @var array $backups */
+<?php /** @var array $checks @var array $pending @var array $recentMail @var string $appUrl @var array $backups @var array $clearCounts */
 $problems = 0;
 foreach ($checks as $rows) { foreach ($rows as $row) { $problems += $row[1] ? 0 : 1; } }
 ?>
@@ -64,3 +64,23 @@ foreach ($checks as $rows) { foreach ($rows as $row) { $problems += $row[1] ? 0 
     </section>
     <?php endif; ?>
 </div>
+<section class="card card--danger" id="clear-data">
+    <div class="card__head"><h2>Clear test data</h2><span class="hint">Before going live</span></div>
+    <div class="card__body">
+        <p class="hint" style="margin-top:0">Removes the orders, accounts and messages made while testing. Your menu, prices, photos, pages, settings and staff logins stay. A backup is saved first, so you can undo it by importing that backup.</p>
+        <form method="post" data-confirm="Delete the ticked data for good? A backup is made first."><?= csrf_field() ?>
+            <input type="hidden" name="action" value="clear-data">
+            <ul class="check-list clear-list">
+                <?php foreach (CLEARABLE_DATA as $key => [$label, $about]): ?>
+                    <li>
+                        <label class="clear-check"><input type="checkbox" name="groups[]" value="<?= e($key) ?>" <?= $clearCounts[$key] ? '' : 'disabled' ?>>
+                            <span><strong><?= e($label) ?></strong><br><span class="hint"><?= e($about) ?></span></span></label>
+                        <span class="muted"><?= (int) $clearCounts[$key] ?></span>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+            <label class="field" style="margin-top:14px"><span>Type DELETE to confirm</span><input class="input" name="confirm" autocomplete="off" spellcheck="false" placeholder="DELETE" style="max-width:220px"></label>
+            <button class="btn btn--danger" type="submit" style="margin-top:10px"><?= icon('trash', '', 16) ?> Clear ticked data</button>
+        </form>
+    </div>
+</section>

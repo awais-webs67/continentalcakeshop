@@ -32,6 +32,10 @@ Read it before changing anything. For putting the site live, see [DEPLOY.md](DEP
 25. [How to add things](#25-how-to-add-things)
 26. [Testing a change](#26-testing-a-change)
 27. [Tax invoices](#27-tax-invoices)
+28. [Live updates](#28-live-updates)
+29. [Orders, pickups and kitchen tickets](#29-orders-pickups-and-kitchen-tickets)
+30. [Homepage categories and product photos](#30-homepage-categories-and-product-photos)
+31. [Going live: clear test data, search engine checks](#31-going-live-clear-test-data-search-engine-checks)
 
 ## 1. How the code is organised
 
@@ -81,7 +85,7 @@ config/        config.php (not in git), copied from config.example.php.
 
 **What it does.** The shop page lists cakes with category filters, search and sorting. Each cake has its own page with photo, sizes, price, description, a cake message box and related cakes.
 
-**Sizes.** Standard cakes come in **Midi (serves 8)** and **Large (serves 14)**. Sizes live in the `product_sizes` table (label, serves, price). A product with no sizes uses its own price.
+**Sizes.** Sizes and prices follow the shop's menu (migration `022_catalogue_refresh.sql`): most cakes come in **Midi (serves 8)** and **Full (serves 14)**, some tortes in Full only, cheesecakes in **Half (serves 6)** and **Full (serves 12)**, the rainbow torte in Large and XL, the profiterole tower by the number of pieces and the pavlova in one size. Sizes are listed from smallest to largest. Sizes live in the `product_sizes` table (label, serves, price). A product with no sizes uses its own price.
 
 **Specials ("price on request").** When a product's enquiry flag is on, the page shows an **Enquire** button that opens the custom cake form with the cake name filled in, instead of Add to Cart.
 
@@ -313,7 +317,7 @@ New scheduled jobs: add a function `something_task(DateTimeImmutable $now): stri
 | `seo` | Launch checklist, old addresses, addresses not found, redirects |
 | `settings` | Every shop setting (section 21) |
 | `admins` (owner only) | Staff accounts and their access |
-| `system` (owner only) | Server checks, cron status, database updates, backups to make and download |
+| `system` (owner only) | Server checks, cron status, database updates, backups to make and download, clear test data |
 | `account` | Own name, email and password |
 
 First visit to `/admin` with no accounts opens `setup`, which creates the owner.
@@ -332,7 +336,7 @@ For any date range (presets: today, yesterday, this week, this month, last month
 
 ## 20. Product import from Excel or CSV
 
-**What it does.** Staff download a template (or the current products), edit it in Excel, save as CSV and upload it. A preview shows what will be added, updated or skipped, then they confirm. Existing products are matched by their web address (the `slug` column, or the name turned into a slug when it is empty), so the same file can update prices in bulk. Sizes are matched by label (Midi, Large). A photo can be given as a URL and is downloaded.
+**What it does.** Staff download a template (or the current products), edit it in Excel, save as CSV and upload it. A preview shows what will be added, updated or skipped, then they confirm. Existing products are matched by their web address (the `slug` column, or the name turned into a slug when it is empty), so the same file can update prices in bulk. Sizes are matched by label (Midi, Full). A photo can be given as a URL and is downloaded.
 
 **Code:** `admin/product-import.php` (`IMPORT_COLUMNS`, `read_import_csv`, `plan_import_row`, `apply_import_row`, `download_import_image`), admin `products/import`. `download_import_image()` refuses private network addresses so it cannot be used to reach the server's own network.
 
@@ -442,3 +446,14 @@ Before pushing:
 **Categories layout** (Admin > Homepage > Categories, setting `home_categories_style`): **Photo tiles** (the first category large; `templates/home/categories.php` works out the spans so every row is full for any number of categories) or **Round photos, scrolling** (round photos with a theme-coloured ring that glide past like a news ticker, pause on hover or touch, can be swiped, and end with "View all categories").
 
 **Product photos.** Cards show up to four photos (`with_card_photos()` loads them in one query): moving the mouse across the photo shows the next ones, phones swipe, and dots show which one is on screen. The product page has a swipe gallery with arrows, thumbnails and a large view, the Google rating, badges, and on phones an Add to Cart bar while the real button is off screen.
+
+## 31. Going live: clear test data, search engine checks
+
+**Clear test data** (Admin > System check, owner only; `CLEARABLE_DATA` and `clear_shop_data()` in `src/backup.php`). Tick what to remove (orders, customer accounts, custom cake requests, messages, logs), type `DELETE` and confirm. A full backup is saved first and nothing is deleted if it fails; the menu, pages, settings, photos and staff logins are never touched. Tables that end up empty start their numbering again from 1, coupon use counts go back to 0, and payment screenshots and reference photos no longer used are removed. To undo, import the backup in phpMyAdmin.
+
+**One address per page.** Near-misses that reach the 404 page are sent to the usual address with a 301 (`tidy_path_redirect()` in `src/seo.php`): `/about/` to `/about`, `/SHOP` to `/shop`, `/index.php` to `/`. Old website addresses still go through `legacy_redirect_target()` first. Gallery pages on Custom Cakes (`?page=2`) have their own title and canonical address; search and sort versions of the shop are `noindex, follow`.
+
+**Search text.** Every cake has a description of a few paragraphs (what it is, sizes, occasions, how to order), a focus keyword and photo alt text. When a cake has no meta description of its own, `product_default_description()` writes one under 160 characters ("Black Forest Torte, Midi or Full, from $44.95..."). Structured data: the shop (`Bakery`) on every page, `Product` with one offer per size, `BreadcrumbList`, `ItemList` on shop pages and `FAQPage`. Landing pages show gallery photos that fit their occasion first (`gallery_for_occasion()`).
+
+**Before launch.** Set `app_url` to the `https://` address (every page then moves to HTTPS and one host), add the Search Console code in Admin > Settings > Social & SEO and submit `/sitemap.xml` in Google Search Console.
+

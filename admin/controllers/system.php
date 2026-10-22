@@ -24,6 +24,27 @@ if (is_post() && input('action') === 'backup') {
     redirect(admin_url('system'));
 }
 
+// Clear test data before going live: typed confirmation, and a backup is made first.
+if (is_post() && input('action') === 'clear-data') {
+    $groups = array_map('strval', (array) ($_POST['groups'] ?? []));
+    if (!$groups) {
+        flash('error', 'Tick what you want to clear first.');
+    } elseif (trim((string) input('confirm')) !== 'DELETE') {
+        flash('error', 'Nothing was deleted. Type DELETE in capitals to confirm.');
+    } else {
+        try {
+            $removed = clear_shop_data($groups);
+            $backup = $removed['backup'] ?? '';
+            unset($removed['backup']);
+            $parts = array_map(static fn ($k, $n) => $n . ' ' . strtolower(CLEARABLE_DATA[$k][0]), array_keys($removed), $removed);
+            flash('success', 'Cleared: ' . implode(', ', $parts) . '. A backup from just before is saved as ' . $backup . ', so this can be undone by importing it.');
+        } catch (Throwable $e) {
+            flash('error', 'Nothing was deleted: ' . $e->getMessage());
+        }
+    }
+    redirect(admin_url('system') . '#clear-data');
+}
+
 if (is_post() && input('action') === 'migrate') {
     try {
         $ran = run_migrations();
@@ -65,4 +86,5 @@ $pending = pending_migrations();
 $mailDir = STORAGE_PATH . '/logs/mail';
 $recentMail = is_dir($mailDir) ? array_slice(array_reverse(glob($mailDir . '/*.html') ?: []), 0, 5) : [];
 $backups = list_backups();
-admin_view('system', compact('checks', 'pending', 'recentMail', 'appUrl', 'backups') + ['title' => 'System check']);
+$clearCounts = clearable_counts();
+admin_view('system', compact('checks', 'pending', 'recentMail', 'appUrl', 'backups', 'clearCounts') + ['title' => 'System check']);

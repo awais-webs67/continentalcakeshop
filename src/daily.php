@@ -229,13 +229,13 @@ function cleanup_task(DateTimeImmutable $now): string
  * Payment screenshots and cake photos are saved as soon as they are chosen, before the form is
  * sent. Files that never became part of an order or a request are deleted after two days.
  */
-function remove_unused_uploads(DateTimeImmutable $now): int
+function remove_unused_uploads(DateTimeImmutable $now, int $minAgeSeconds = 2 * 86400): int
 {
     $used = array_flip(array_merge(
         array_column(db_all("SELECT payment_proof AS p FROM orders WHERE payment_proof IS NOT NULL AND payment_proof <> ''"), 'p'),
         array_column(db_all("SELECT reference_image AS p FROM custom_requests WHERE reference_image IS NOT NULL AND reference_image <> ''"), 'p')
     ));
-    $cutoff = $now->modify('-2 days')->getTimestamp();
+    $cutoff = $now->getTimestamp() - $minAgeSeconds;
     $deleted = 0;
     foreach (array_keys(ASYNC_UPLOADS) as $purpose) {
         $base = STORAGE_PATH . '/uploads/' . ASYNC_UPLOADS[$purpose]['folder'];
