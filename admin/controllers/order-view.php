@@ -223,7 +223,9 @@ if (is_post()) {
         flash('success', 'Notes saved.');
     }
 
-    redirect($self);
+    // Quick buttons on the order lists send staff back to the list they were on.
+    $back = (string) input('back');
+    redirect(preg_match('#^[a-z/-]*(\?[\w=&%.-]*)?$#', $back) ? admin_url($back) : $self);
 }
 
 $items = get_order_items($id);

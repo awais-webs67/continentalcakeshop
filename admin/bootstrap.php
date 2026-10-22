@@ -162,6 +162,34 @@ function selected(bool $value): string
     return $value ? 'selected' : '';
 }
 
+/** SQL for a one-line list of the cakes in an order, e.g. "1 x Red Velvet (Midi, Eggless)". */
+const ORDER_SUMMARY_SQL = "(SELECT GROUP_CONCAT(CONCAT(quantity, ' x ', product_name, IF(CONCAT_WS(', ', NULLIF(size_label, ''), NULLIF(options, '')) = '', '', CONCAT(' (', CONCAT_WS(', ', NULLIF(size_label, ''), NULLIF(options, '')), ')'))) ORDER BY id SEPARATOR ', ') FROM order_items WHERE order_id = o.id)";
+
+/** The next step for an order from a list: [new status, button label], or null when it is finished. */
+function order_next_step(array $order): ?array
+{
+    return match ($order['order_status']) {
+        'new'                      => ['confirmed', 'Confirm'],
+        'confirmed', 'in_progress' => ['ready', is_delivery($order) ? 'Out for delivery' : 'Mark ready'],
+        'ready'                    => ['completed', is_delivery($order) ? 'Delivered' : 'Collected'],
+        default                    => null,
+    };
+}
+
+/** Prints admin/views/partials/{name}.php with its own variables. */
+function render_admin_partial(string $name, array $vars = []): void
+{
+    extract($vars, EXTR_SKIP);
+    require BASE_PATH . '/admin/views/partials/' . $name . '.php';
+}
+
+/** The current admin page (route and query), so a quick action can come back to it. */
+function admin_back_path(): string
+{
+    $query = array_diff_key($_GET, ['route' => true]);
+    return trim((string) ($_GET['route'] ?? ''), '/') . ($query ? '?' . http_build_query($query) : '');
+}
+
 function status_badge(string $status, string $label): string
 {
     return '<span class="badge badge--' . e($status) . '">' . e($label) . '</span>';

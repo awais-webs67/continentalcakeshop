@@ -48,7 +48,7 @@ $fulfilment = old('fulfilment', 'pickup');
                         <label><input type="radio" name="fulfilment" value="pickup" <?= checked($fulfilment === 'pickup') ?> data-fulfilment><span>Pickup</span></label>
                         <label><input type="radio" name="fulfilment" value="delivery" <?= checked($fulfilment === 'delivery') ?> data-fulfilment><span>Delivery</span></label>
                     </div>
-                    <label class="field"><span>Date</span><input class="input" type="date" name="pickup_date" value="<?= e(old('pickup_date', date('Y-m-d', strtotime('+1 day')))) ?>" required <?= invalid_attr($errors, 'pickup_date') ?>></label>
+                    <label class="field"><span>Date</span><input class="input" type="date" name="pickup_date" value="<?= e(old('pickup_date', preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($_GET['date'] ?? '')) && $_GET['date'] >= date('Y-m-d') ? $_GET['date'] : date('Y-m-d', strtotime('+1 day')))) ?>" required <?= invalid_attr($errors, 'pickup_date') ?>></label>
                     <div class="form-grid">
                         <label class="field"><span data-time-label><?= $fulfilment === 'delivery' ? 'From' : 'Time' ?></span><input class="input" type="time" name="pickup_time" step="300" value="<?= e(old('pickup_time')) ?>" <?= invalid_attr($errors, 'pickup_time') ?>></label>
                         <label class="field" data-show-delivery <?= $fulfilment === 'delivery' ? '' : 'hidden' ?>><span>To <small>optional</small></span><input class="input" type="time" name="delivery_time_to" step="300" value="<?= e(old('delivery_time_to')) ?>"></label>

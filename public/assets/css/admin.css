@@ -774,3 +774,98 @@ select.input { appearance: none; padding-right: 36px; background-image: url("dat
 .chat-admin__msg { animation: msg-in .3s ease; }
 @keyframes msg-in { from { opacity: 0; transform: translateY(6px); } }
 @media (prefers-reduced-motion: reduce) { .toast__pulse, .live-dot span, .chat-admin__msg, [data-live].is-refreshed { animation: none; } }
+
+/* ---------- Order cards (pickups, orders, dashboard) ----------
+   The whole card opens the order (its name link stretches over it); buttons sit on top. */
+.order-list { display: flex; flex-direction: column; }
+.order-row { position: relative; display: grid; grid-template-columns: 92px minmax(0, 1fr) auto; grid-template-areas: "when main money" "when main actions"; gap: 6px 18px; align-items: center; padding: 14px 18px; border-top: 1px solid var(--line); transition: background-color .15s; }
+.order-row:first-child { border-top: 0; }
+.order-row:hover { background: var(--brand-softer); }
+.order-row::before { content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 4px; border-radius: 0 4px 4px 0; background: var(--line-strong); }
+.order-row--new::before { background: #F5B83D; }
+.order-row--confirmed::before, .order-row--in_progress::before { background: #5B8DEF; }
+.order-row--ready::before { background: var(--brand-mint); }
+.order-row--completed::before { background: var(--brand); }
+.order-row--completed { opacity: .72; }
+.order-row--completed:hover { opacity: 1; }
+.order-row.is-overdue::before { background: #E5484D; }
+.order-row__when { grid-area: when; display: flex; flex-direction: column; align-self: start; padding: 8px 10px; border-radius: 12px; background: var(--bg); text-align: center; }
+.order-row__when strong { font-family: var(--font-head); font-size: 16px; color: var(--ink); white-space: nowrap; }
+.order-row__when span { font-size: 12px; color: var(--muted); font-weight: 600; }
+.order-row__main { grid-area: main; min-width: 0; }
+.order-row__link { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; color: var(--ink); text-decoration: none; }
+.order-row__link::after { content: ""; position: absolute; inset: 0; z-index: 0; border-radius: inherit; }
+.order-row__link strong { font-size: 15.5px; }
+.order-row__link:hover strong, .order-row:hover .order-row__link strong { color: var(--brand-dark); text-decoration: underline; text-underline-offset: 3px; }
+.order-row__number { color: var(--muted); font-size: 13px; font-weight: 600; }
+.order-row__items { margin: 3px 0 7px; color: var(--text); font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.order-row__tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.order-row__money { grid-area: money; display: flex; flex-direction: column; align-items: flex-end; text-align: right; }
+.order-row__money strong { font-family: var(--font-head); font-size: 16px; color: var(--ink); }
+.order-row__money span { font-size: 12.5px; font-weight: 700; }
+.order-row__money .is-due { color: var(--amber); }
+.order-row__money .is-paid { color: var(--green); }
+.order-row__actions { grid-area: actions; position: relative; z-index: 1; display: flex; justify-content: flex-end; gap: 8px; }
+.order-row__actions form { margin: 0; }
+.order-row__actions .btn { white-space: nowrap; }
+.tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; background: var(--grey-bg); color: var(--grey); font-size: 12px; font-weight: 600; line-height: 1.4; }
+.tag--delivery { background: #EEF0FE; color: #3A3F9E; }
+.tag--pickup { background: var(--brand-softer); color: var(--brand-dark); }
+.tag--warn { background: var(--red-bg); color: var(--red); }
+@media (max-width: 720px) {
+    .order-row { grid-template-columns: 70px minmax(0, 1fr); grid-template-areas: "when main" "when money" "actions actions"; padding: 14px; gap: 8px 12px; }
+    .order-row__when { padding: 6px; }
+    .order-row__when strong { font-size: 14px; }
+    .order-row__money { flex-direction: row; align-items: baseline; justify-content: flex-start; gap: 10px; text-align: left; }
+    .order-row__actions { justify-content: stretch; }
+    .order-row__actions > * { flex: 1; }
+    .order-row__actions .btn { width: 100%; justify-content: center; }
+}
+
+/* Segmented tabs, pill filters and the small numbers above a schedule */
+.seg-tabs { display: flex; gap: 6px; margin-bottom: 14px; padding: 5px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); overflow-x: auto; scrollbar-width: none; }
+.seg-tabs::-webkit-scrollbar { display: none; }
+.seg-tabs a { flex: 1 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; border-radius: 10px; color: var(--muted); font-weight: 700; font-size: 14.5px; text-decoration: none; white-space: nowrap; }
+.seg-tabs a:hover { background: var(--bg); color: var(--ink); }
+.seg-tabs a.is-active { background: var(--brand); color: #fff; box-shadow: 0 6px 16px rgba(30, 155, 130, .25); }
+.seg-tabs a span { min-width: 24px; padding: 1px 8px; border-radius: 999px; background: var(--bg); color: var(--ink); font-size: 12px; text-align: center; }
+.seg-tabs a.is-active span { background: rgba(255, 255, 255, .22); color: #fff; }
+.seg-tabs a span.is-warn { background: var(--red-bg); color: var(--red); }
+.schedule-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.schedule-tools__date { display: flex; align-items: center; gap: 8px; margin: 0; }
+.pill-filter { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--grey-bg); }
+.pill-filter a { padding: 6px 14px; border-radius: 999px; color: var(--grey); font-size: 13px; font-weight: 700; text-decoration: none; }
+.pill-filter a.is-active { background: #fff; color: var(--ink); box-shadow: 0 1px 4px rgba(16, 24, 22, .12); }
+.check-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--muted); font-size: 13px; font-weight: 700; text-decoration: none; }
+.check-pill .icon { opacity: .35; }
+.check-pill.is-active { border-color: var(--brand); color: var(--brand-dark); background: var(--brand-softer); }
+.check-pill.is-active .icon { opacity: 1; }
+.mini-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+.mini-stats div { display: flex; flex-direction: column; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+.mini-stats strong { font-family: var(--font-head); font-size: 22px; color: var(--ink); line-height: 1.2; }
+.mini-stats span { color: var(--muted); font-size: 12.5px; font-weight: 600; }
+.mini-stats .is-warn { border-color: #F3D9A4; background: var(--amber-bg); }
+/* Phones: the numbers slide sideways in one row instead of stacking */
+@media (max-width: 720px) {
+    .mini-stats { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin-right: -16px; padding-right: 16px; }
+    .mini-stats::-webkit-scrollbar { display: none; }
+    .mini-stats div { flex: 0 0 auto; min-width: 118px; scroll-snap-align: start; }
+}
+@media (max-width: 560px) {
+    .seg-tabs { gap: 4px; padding: 4px; }
+    .seg-tabs a { flex: 1 1 0; min-width: 0; gap: 6px; padding: 9px 6px; font-size: 13px; }
+    .seg-tabs a .icon { display: none; }
+}
+.alert--link { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+.alert--link strong { margin-left: auto; text-decoration: underline; white-space: nowrap; }
+.schedule-day { overflow: hidden; }
+.schedule-day__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--line); background: #fff; }
+.schedule-day__head h2 { margin: 0; font-size: 16.5px; }
+.schedule-day__head span { color: var(--muted); font-size: 13px; font-weight: 600; }
+@media print {
+    .seg-tabs, .schedule-tools, .page-head__actions, .order-row__actions, .alert--link { display: none !important; }
+    .order-row { break-inside: avoid; grid-template-areas: "when main money"; }
+    .schedule-day { box-shadow: none; break-inside: auto; }
+}
+.seg-tabs a span.hide-sm { min-width: 0; padding: 0; margin-left: -8px; background: none; color: inherit; font-size: inherit; }
+@media (max-width: 560px) { .hide-sm { display: none !important; } }
