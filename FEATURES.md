@@ -48,7 +48,7 @@ public/api/    Small JSON endpoints: slots, upload, coupon.
 src/           Shared functions, grouped by topic. Loaded by src/bootstrap.php.
 templates/     Website header, footer, partials, homepage sections and email templates.
 admin/         Admin controllers (logic) and views (HTML). Not web accessible.
-database/      schema.sql + seed.sql, install.sql (one-file import), migrations/.
+database/      database.sql: the whole database (tables, menu, settings, pages) in one file for phpMyAdmin.
 cron/run.php   Scheduled tasks, run every 15 minutes by cPanel cron.
 storage/       Private uploads, logs, backups and the encryption key. Never web accessible.
 tests/         run.php: automatic checks (php tests/run.php).
@@ -85,7 +85,7 @@ config/        config.php (not in git), copied from config.example.php.
 
 **What it does.** The shop page lists cakes with category filters, search and sorting. Each cake has its own page with photo, sizes, price, description, a cake message box and related cakes.
 
-**Sizes.** Sizes and prices follow the shop's menu (migration `022_catalogue_refresh.sql`): most cakes come in **Midi (serves 8)** and **Full (serves 14)**, some tortes in Full only, cheesecakes in **Half (serves 6)** and **Full (serves 12)**, the rainbow torte in Large and XL, the profiterole tower by the number of pieces and the pavlova in one size. Sizes are listed from smallest to largest. Sizes live in the `product_sizes` table (label, serves, price). A product with no sizes uses its own price.
+**Sizes.** Sizes and prices follow the shop's menu (continentalcakeshop.com.au/allcakes); only cakes with a real photo on that site are listed: most cakes come in **Midi (serves 8)** and **Full (serves 14)**, some tortes in Full only, cheesecakes in **Half (serves 6)** and **Full (serves 12)**, the rainbow torte in Large and XL, the profiterole tower by the number of pieces and the pavlova in one size. Sizes are listed from smallest to largest. Sizes live in the `product_sizes` table (label, serves, price). A product with no sizes uses its own price.
 
 **Specials ("price on request").** When a product's enquiry flag is on, the page shows an **Enquire** button that opens the custom cake form with the cake name filled in, instead of Add to Cart.
 
@@ -367,17 +367,12 @@ Settings tabs in the admin: shop details (including the WhatsApp number for the 
 - Security headers in `public/.htaccess`, which also refuses hidden files such as `.user.ini`. HSTS is sent on HTTPS. Product import only downloads photos from public internet addresses, checking every redirect.
 - With `debug => false`, errors are hidden from visitors, saved to `storage/logs/php-errors.log`, and a friendly error page is shown.
 
-## 23. Database and migrations
+## 23. Database
 
-- `database/schema.sql` + `database/seed.sql` are the source. `database/install.sql` is the one-file import for a new site.
-- Changes to an existing database go in a new numbered file in `database/migrations/` (next number after the last one, for example `012_something.sql`). Never edit a migration that has already shipped.
-- They run by themselves on the first visit after new code arrives (`auto_migrate()` in `src/migrations.php`, called from `src/bootstrap.php`): the newest migration name is kept in the `schema_version` setting, and a database lock stops two visitors running them at once. Set `'auto_migrate' => false` in `config.php` to run them only by hand with `php database/migrate.php` or **Admin > System check > Update database**. Applied files are stored in `schema_migrations`. A migration must be safe to run twice.
-- Settings and other default data go between `-- @data-start` and `-- @data-end` in the migration, using `INSERT IGNORE` so existing values are never overwritten.
-- After adding a migration, also update `schema.sql`/`seed.sql` and rebuild `install.sql`: import the old `install.sql` into an empty database, run the migrations, export with `mysqldump --skip-comments --skip-dump-date` and keep the four comment lines at the top. Check that a database built from `schema.sql` + `seed.sql` has the same columns, indexes and rows.
-
-**Tables:** `settings`, `categories`, `products`, `product_sizes`, `product_options`, `product_images`, `addons`, `gallery_images`, `reviews`, `orders`, `order_items`, `order_events`, `payments`, `coupons`, `blocked_dates`, `custom_requests`, `threads`, `thread_messages`, `pages`, `faqs`, `users`, `password_resets`, `admins`, `admin_password_resets`, `not_found_log`, `schema_migrations`. `contact_messages` is no longer used: migration 010 copied its messages into `threads`, and it is kept only so older databases keep their history.
-
-**Backups.** `src/backup.php` writes every table to `storage/backups/db-YYYY-MM-DD-HHMMSS.sql.gz` (dates in UTC), every night through the cron job and on demand from Admin > System check. Old backups are removed after `backup_keep_days` (at least 3 stay). Restore by importing the file in phpMyAdmin.
+- `database/database.sql` is the one file for the database: every table plus the menu, settings, pages, FAQs and gallery. Import it in phpMyAdmin for a new site. It starts with `DROP TABLE IF EXISTS`, so importing it again replaces everything (orders included).
+- To change the tables or the default data: import it into an empty database, make the change, export with `mysqldump --skip-comments --skip-dump-date` and keep the four comment lines at the top.
+- Once the site is live with real orders, a change to the live database goes in a numbered SQL file in `database/migrations/` (create the folder, e.g. `025_something.sql`). It runs by itself on the first visit after the new code arrives (`auto_migrate()` in `src/migrations.php`), or from **Admin > System check > Update database**; default data goes between `-- @data-start` and `-- @data-end` using `INSERT IGNORE`. Make the same change in `database.sql`.
+- **Backups.** `src/backup.php` writes every table to `storage/backups/db-YYYY-MM-DD-HHMMSS.sql.gz` (dates in UTC), every night through the cron job and on demand from Admin > System check. Old backups are removed after `backup_keep_days` (at least 3 stay). Restore by importing the file in phpMyAdmin.
 
 ## 24. Design and front-end assets
 

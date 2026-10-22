@@ -2,7 +2,8 @@
 declare(strict_types=1);
 
 // Database migrations: SQL files in database/migrations/ that bring an older database up to date.
-// Run them with `php database/migrate.php`, or from Admin > System check on hosting without SSH.
+// They run by themselves on the first visit, or from Admin > System check. A new site imports
+// database/database.sql instead, which already includes everything.
 
 // Errors that only mean "this change is already in place".
 const MIGRATION_ALREADY_APPLIED = [1050, 1060, 1061, 1062, 1022, 1826];

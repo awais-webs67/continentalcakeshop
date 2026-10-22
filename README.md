@@ -68,7 +68,7 @@ All emails (order confirmation, new order alert, order updates, custom quote, pa
 ```
 admin/        admin panel controllers and views (not web accessible)
 config/       config.example.php (copy to config.php, which git ignores)
-database/     install.sql (one-file import), schema.sql + seed.sql (source), migrations/ and migrate.php
+database/     database.sql: the whole database in one file, import it in phpMyAdmin
 public/       web root: pages, admin/index.php, assets, .htaccess, uploads/ for photos
 src/          shared PHP functions (catalog, cart, booking, payments, orders, mail, settings, SEO)
 templates/    header, footer, partials and emails/
@@ -82,8 +82,8 @@ storage/      private uploads (payment screenshots, custom cake photos) and logs
 Short version:
 
 1. Create a MySQL database and user.
-2. Import `database/install.sql` (phpMyAdmin > Import, or `mysql -u USER -p DATABASE < database/install.sql`).
-   Already imported an older version? The database updates itself on the first visit after you pull new code. You can also run `php database/migrate.php` (XAMPP: `C:\xampp\php\php.exe database\migrate.php`) or use **Update database** in Admin > System check. It is safe to run again.
+2. Import `database/database.sql` (phpMyAdmin > Import, or `mysql -u USER -p DATABASE < database/database.sql`).
+   On your own computer, import it again after pulling a new version to get the latest menu and settings (it replaces the tables, so test orders go too).
 3. Copy `config/config.example.php` to `config/config.php` and enter the site URL, database and email details.
 4. Make `public/uploads`, `storage/uploads`, `storage/logs` and `storage/backups` writable by PHP.
 5. Open `/admin` and create the owner account.
@@ -122,4 +122,4 @@ Fill these in from **Admin > Settings**:
 
 Then open **Admin > System check** and fix anything it marks.
 
-`database/install.sql` is generated from `schema.sql` + `seed.sql`. After changing either, rebuild it by importing both into an empty database and exporting with `mysqldump --skip-comments`.
+`database/database.sql` is the only database file. After changing the tables or the default data, import it into an empty database, make the change, export with `mysqldump --skip-comments --skip-dump-date` and keep the four comment lines at the top.

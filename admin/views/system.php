@@ -13,7 +13,7 @@ foreach ($checks as $rows) { foreach ($rows as $row) { $problems += $row[1] ? 0 
 <?php endif; ?>
 <div class="stats">
     <div class="stat <?= $problems ? 'stat--alert' : '' ?>"><span class="stat__label"><?= icon($problems ? 'info' : 'check', '', 16) ?> Checks</span><span class="stat__value"><?= $problems ? $problems . ' to fix' : 'All good' ?></span></div>
-    <div class="stat"><span class="stat__label"><?= icon('store', '', 16) ?> Database</span><span class="stat__value" style="font-size:18px"><?= $pending ? 'Update needed' : 'Up to date' ?></span><span class="stat__note"><?= count(migration_files()) ?> migrations</span></div>
+    <div class="stat"><span class="stat__label"><?= icon('store', '', 16) ?> Database</span><span class="stat__value" style="font-size:18px"><?= $pending ? 'Update needed' : 'Up to date' ?></span></div>
     <div class="stat"><span class="stat__label"><?= icon('mail', '', 16) ?> Mail driver</span><span class="stat__value" style="font-size:18px"><?= e(strtoupper((string) mail_config('driver', 'mail'))) ?></span></div>
     <div class="stat"><span class="stat__label"><?= icon('card', '', 16) ?> Payment methods</span><span class="stat__value" style="font-size:18px"><?= count(available_payment_methods()) ?> live</span></div>
 </div>

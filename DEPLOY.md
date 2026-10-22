@@ -44,11 +44,11 @@ The `.htaccess` in that folder sends every visitor into `public/`, so nobody can
 ## Step 3. Import the data
 
 1. cPanel > **phpMyAdmin**, click your new database on the left.
-2. Click **Import** > **Choose File** > select `database/install.sql` from the project (download it from GitHub or File Manager first).
-3. Click **Import** at the bottom. You should see about 20 tables, including 41 products.
+2. Click **Import** > **Choose File** > select `database/database.sql` from the project (download it from GitHub or File Manager first).
+3. Click **Import** at the bottom. You should see about 28 tables, including 34 cakes.
 
 Moving a database you already filled in on your computer instead?
-In phpMyAdmin on your computer select the database > **Export** > **Quick** > **SQL** > **Export**, then import that file on the server instead of `install.sql`.
+In phpMyAdmin on your computer select the database > **Export** > **Quick** > **SQL** > **Export**, then import that file on the server instead of `database.sql`.
 
 ## Step 4. Fill in config.php
 
@@ -174,8 +174,6 @@ The old Wix site ranks well in Canberra, mostly because of the domain's age, lin
 
 1. Pull the update (Git Version Control > **Update from Remote**) or upload the new files over the old ones. Do not upload a different `config/config.php` or replace `public/uploads`.
 2. Open the website once. Database changes that came with the update are applied by themselves on the first visit (a backup is made every night, and you can press **Back up now** in **Admin > System check** before updating). If **System check** still says **The database needs an update**, click **Update database**.
-
-With SSH access you can run the same update with `php database/migrate.php`.
 
 ## Backups
 
