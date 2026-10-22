@@ -552,9 +552,9 @@ function admin_live_state(array $admin): array
     return [
         'counts'  => $counts,
         'stamp'   => $stamp,
-        'order'   => $can('orders') ? db_one('SELECT id, order_number, customer_name, total, channel FROM orders ORDER BY id DESC LIMIT 1') : null,
-        'message' => $can('messages') ? db_one("SELECT m.id, m.thread_id, t.customer_name, LEFT(m.body, 140) AS body FROM thread_messages m JOIN threads t ON t.id = m.thread_id WHERE m.sender = 'customer' ORDER BY m.id DESC LIMIT 1") : null,
-        'request' => $can('custom') ? db_one('SELECT id, name, occasion FROM custom_requests ORDER BY id DESC LIMIT 1') : null,
+        'order'   => $can('orders') ? db_one('SELECT id, order_number, customer_name, total, channel, TIMESTAMPDIFF(SECOND, created_at, NOW()) AS age FROM orders ORDER BY id DESC LIMIT 1') : null,
+        'message' => $can('messages') ? db_one("SELECT m.id, m.thread_id, t.customer_name, LEFT(m.body, 140) AS body, TIMESTAMPDIFF(SECOND, m.created_at, NOW()) AS age FROM thread_messages m JOIN threads t ON t.id = m.thread_id WHERE m.sender = 'customer' ORDER BY m.id DESC LIMIT 1") : null,
+        'request' => $can('custom') ? db_one('SELECT id, name, occasion, TIMESTAMPDIFF(SECOND, created_at, NOW()) AS age FROM custom_requests ORDER BY id DESC LIMIT 1') : null,
     ];
 }
 

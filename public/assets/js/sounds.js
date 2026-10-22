@@ -9,8 +9,8 @@
     var Ctx = window.AudioContext || window.webkitAudioContext;
     var ctx = null;
     var KEY = 'ccsSound';
-    var prefs = { on: true, ring: false };
-    try { var saved = JSON.parse(window.localStorage.getItem(KEY) || '{}'); if (saved && typeof saved === 'object') { prefs.on = saved.on !== false; prefs.ring = saved.ring === true; } } catch (e) {}
+    var prefs = { on: true, ring: false, desktop: false };
+    try { var saved = JSON.parse(window.localStorage.getItem(KEY) || '{}'); if (saved && typeof saved === 'object') { prefs.on = saved.on !== false; prefs.ring = saved.ring === true; prefs.desktop = saved.desktop === true; } } catch (e) {}
     var save = function () { try { window.localStorage.setItem(KEY, JSON.stringify(prefs)); } catch (e) {} };
     var listeners = [];
     var changed = function () { listeners.forEach(function (fn) { try { fn(); } catch (e) {} }); };
@@ -98,7 +98,7 @@
         play: play,
         ready: ready,
         unlock: unlock,
-        prefs: function () { return { on: prefs.on, ring: prefs.ring }; },
+        prefs: function () { return { on: prefs.on, ring: prefs.ring, desktop: prefs.desktop }; },
         set: function (key, value) { prefs[key] = !!value; save(); changed(); },
         onChange: function (fn) { listeners.push(fn); }
     };

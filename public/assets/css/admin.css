@@ -935,3 +935,6 @@ select.input { appearance: none; padding-right: 36px; background-image: url("dat
 @media (max-width: 1023px) { .sound-unlock { bottom: 84px; left: 50%; transform: translateX(-50%); white-space: nowrap; } }
 @media (prefers-reduced-motion: reduce) { .sound-unlock { animation: none; } }
 @media print { .sound-unlock { display: none !important; } }
+.toast__sound-off { color: var(--amber) !important; font-weight: 700 !important; white-space: normal !important; }
+.sound-option__status { color: var(--brand-dark) !important; font-weight: 600 !important; }
+.sound-option__status:empty { display: none; }

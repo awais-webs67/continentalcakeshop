@@ -577,15 +577,31 @@ document.addEventListener('input', function (e) {
     var baseTitle = document.title;
     var unseen = 0;
     var store = function () { try { return window.localStorage; } catch (e) { return null; } };
-    var seen = function (kind, id) {
-        // Shared by all open tabs, so a new order pops up once and not in every tab.
-        var s = store(); var key = 'ccsLive.' + kind;
+    // Each tab shows its own pop-up notice; the sound (or desktop alert) is claimed by one tab only,
+    // and only by a tab that can actually make it, so two open tabs never ring twice or not at all.
+    var known = {};
+    var claim = function (kind, id) {
+        var s = store(); var key = 'ccsRang.' + kind;
         var last = s ? parseInt(s.getItem(key) || '0', 10) : 0;
-        if (id <= last) return true;
+        if (id <= last) return false;
         if (s) s.setItem(key, String(id));
-        return false;
+        return true;
     };
-    ['order', 'message', 'request'].forEach(function (k) { if (cfg[k]) seen(k, parseInt(cfg[k].id, 10)); });
+    // Anything that arrived since this device last rang (for example an order placed before this
+    // page was opened) is announced once the page has loaded. On a first visit nothing old rings.
+    ['order', 'message', 'request'].forEach(function (k) {
+        var id = cfg[k] ? parseInt(cfg[k].id, 10) : 0;
+        var s = store(); var key = 'ccsRang.' + k;
+        var stored = s ? s.getItem(key) : null;
+        var recent = cfg[k] && parseInt(cfg[k].age, 10) < 1800; // only things from the last 30 minutes
+        if (stored === null || !recent) { known[k] = id; if (s && id > (parseInt(stored, 10) || 0)) s.setItem(key, String(id)); }
+        else known[k] = Math.min(id, parseInt(stored, 10) || 0);
+    });
+    var isNew = function (kind, id) {
+        if (id <= (known[kind] || 0)) return false;
+        known[kind] = id;
+        return true;
+    };
 
     var setBadges = function (counts) {
         Object.keys(counts).forEach(function (k) {
@@ -613,7 +629,29 @@ document.addEventListener('input', function (e) {
     };
     ['pointerdown', 'keydown'].forEach(function (ev) { document.addEventListener(ev, stopRinging, { passive: true }); });
 
-    var notify = function (kind, title, text, link, linkLabel) {
+    var desktopReady = function () {
+        return !!sound.prefs().desktop && 'Notification' in window && Notification.permission === 'granted';
+    };
+    var desktopAlert = function (kind, id, title, text, link) {
+        try {
+            var n = new Notification(title, { body: text || '', tag: kind + '-' + id, icon: cfg.icon, requireInteraction: kind === 'order' });
+            n.onclick = function () { window.focus(); if (link) window.location.href = link; n.close(); };
+            return true;
+        } catch (e) { return false; }
+    };
+    // Sound and/or desktop alert for something new, from at most one tab.
+    var alertFor = function (kind, id, title, text, link) {
+        var canPlay = sound.prefs().on && sound.ready && sound.ready();
+        var canDesktop = desktopReady();
+        if (!canPlay && !canDesktop) return false;
+        if (!claim(kind, id)) return true;
+        if (canDesktop && (document.hidden || !canPlay)) desktopAlert(kind, id, title, text, link);
+        else sound.play(kind);
+        if (kind === 'order' && canPlay) startRinging();
+        return true;
+    };
+
+    var notify = function (kind, id, title, text, link, linkLabel) {
         var stack = document.querySelector('.toast-stack');
         if (!stack) {
             stack = document.createElement('div');
@@ -650,9 +688,27 @@ document.addEventListener('input', function (e) {
         setTimeout(function () { t.style.opacity = '0'; setTimeout(function () { t.remove(); }, 300); }, 15000);
         unseen++;
         document.title = '(' + unseen + ') ' + baseTitle;
-        sound.play(kind);
-        if (kind === 'order') startRinging();
+        if (!alertFor(kind, id, title, text, link) && sound.prefs().on) {
+            // This page cannot make a sound yet: say so on the notice itself.
+            var hint = document.createElement('small');
+            hint.className = 'toast__sound-off';
+            hint.textContent = 'Sound is off on this page. Tap anywhere to turn it on.';
+            body.appendChild(hint);
+            // Another open tab that can play may still take it in the next few seconds.
+            waiting.push([kind, id]);
+        }
     };
+    // Alerts that could not sound yet ring as soon as someone taps the page.
+    var waiting = [];
+    var flushWaiting = function () {
+        if (!waiting.length || !(sound.ready && sound.ready())) return;
+        var list = waiting; waiting = [];
+        var played = false;
+        list.forEach(function (w) { if (claim(w[0], w[1]) && !played) { sound.play(w[0]); played = true; if (w[0] === 'order') startRinging(); } });
+        document.querySelectorAll('.toast__sound-off').forEach(function (el) { el.remove(); });
+    };
+    if (sound.onChange) sound.onChange(function () { setTimeout(flushWaiting, 50); });
+    setInterval(flushWaiting, 1500);
     window.addEventListener('focus', function () { unseen = 0; document.title = baseTitle; });
 
     var money = function (n) { return '$' + Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); };
@@ -698,27 +754,29 @@ document.addEventListener('input', function (e) {
     var check = function () {
         fetch(cfg.url, { credentials: 'same-origin', cache: 'no-store', headers: { 'X-Requested-With': 'fetch' } })
             .then(function (r) { return r.ok && !r.redirected ? r.json() : null; })
-            .then(function (d) {
-                if (!d) return;
+            .then(function (d) { if (d) handle(d); })
+            .catch(function () {})
+            .then(schedule);
+    };
+    var handle = function (d) {
                 setBadges(d.counts);
-                if (d.order && !seen('order', parseInt(d.order.id, 10))) {
-                    notify('order', 'New order ' + d.order.order_number, d.order.customer_name + ' · ' + money(d.order.total), adminUrl('orders/view', d.order.id), 'Open order');
+                if (d.order && isNew('order', parseInt(d.order.id, 10))) {
+                    notify('order', parseInt(d.order.id, 10), 'New order ' + d.order.order_number, d.order.customer_name + ' · ' + money(d.order.total), adminUrl('orders/view', d.order.id), 'Open order');
                 }
-                if (d.message && !seen('message', parseInt(d.message.id, 10))) {
+                if (d.message && isNew('message', parseInt(d.message.id, 10))) {
                     var onThread = document.querySelector('[data-chat][data-chat-url*="id=' + d.message.thread_id + '"]');
-                    if (!onThread) notify('message', 'Message from ' + d.message.customer_name, d.message.body, adminUrl('messages/view', d.message.thread_id), 'Reply');
+                    if (onThread) claim('message', parseInt(d.message.id, 10));
+                    else notify('message', parseInt(d.message.id, 10), 'Message from ' + d.message.customer_name, d.message.body, adminUrl('messages/view', d.message.thread_id), 'Reply');
                 }
-                if (d.request && !seen('request', parseInt(d.request.id, 10))) {
-                    notify('request', 'New custom cake request', d.request.name + ' · ' + d.request.occasion, adminUrl('custom-requests/view', d.request.id), 'Open');
+                if (d.request && isNew('request', parseInt(d.request.id, 10))) {
+                    notify('request', parseInt(d.request.id, 10), 'New custom cake request', d.request.name + ' · ' + d.request.occasion, adminUrl('custom-requests/view', d.request.id), 'Open');
                 }
                 if (d.stamp !== stamp || pending) {
                     stamp = d.stamp;
                     refreshRegions();
                 }
-            })
-            .catch(function () {})
-            .then(schedule);
     };
+    handle(cfg);
     document.addEventListener('visibilitychange', function () { if (!document.hidden) check(); });
     schedule();
 })();
@@ -740,7 +798,10 @@ document.addEventListener('input', function (e) {
             list.insertAdjacentHTML('beforeend', m.html);
             lastId = Math.max(lastId, m.id);
             added = true;
-            if (m.html.indexOf('chat-admin__msg--customer') !== -1 && window.CCSSound) window.CCSSound.play('message');
+            if (m.html.indexOf('chat-admin__msg--customer') !== -1 && window.CCSSound) {
+                try { window.localStorage.setItem('ccsRang.message', String(Math.max(m.id, parseInt(window.localStorage.getItem('ccsRang.message') || '0', 10)))); } catch (e) {}
+                window.CCSSound.play('message');
+            }
         });
         if (added) list.scrollTo({ top: list.scrollHeight, behavior: 'smooth' });
     };
@@ -797,12 +858,31 @@ document.addEventListener('input', function (e) {
         document.querySelectorAll('[data-sound-icon]').forEach(function (el) { el.hidden = (el.getAttribute('data-sound-icon') === 'on') !== prefs.on; });
         if (pill) pill.hidden = !prefs.on || sound.ready();
     };
+    var desktopNote = document.querySelector('[data-desktop-status]');
+    var showDesktop = function () {
+        if (!desktopNote) return;
+        if (!('Notification' in window)) { desktopNote.textContent = 'This browser cannot show desktop alerts.'; return; }
+        desktopNote.textContent = Notification.permission === 'granted' ? (sound.prefs().desktop ? 'On. Alerts show even when this tab is in the background.' : 'Allowed by the browser.')
+            : Notification.permission === 'denied' ? 'Blocked by the browser. Click the lock icon next to the web address and allow Notifications.' : 'You will be asked to allow notifications.';
+    };
     document.querySelectorAll('[data-sound-pref]').forEach(function (box) {
         box.addEventListener('change', function () {
-            sound.set(box.getAttribute('data-sound-pref'), box.checked);
-            if (box.checked) sound.play(box.getAttribute('data-sound-pref') === 'ring' ? 'order' : 'message', true);
+            var key = box.getAttribute('data-sound-pref');
+            if (key === 'desktop' && box.checked) {
+                if (!('Notification' in window)) { box.checked = false; showDesktop(); return; }
+                Notification.requestPermission().then(function (p) {
+                    sound.set('desktop', p === 'granted');
+                    if (p === 'granted') { try { new Notification('Desktop alerts are on', { body: 'New orders and messages will show here, with your computer\'s alert sound.', icon: (window.CCS_ADMIN.live || {}).icon }); } catch (e) {} }
+                    showDesktop();
+                });
+                return;
+            }
+            sound.set(key, box.checked);
+            showDesktop();
+            if (box.checked && key !== 'desktop') sound.play(key === 'ring' ? 'order' : 'message', true);
         });
     });
+    showDesktop();
     document.querySelectorAll('[data-sound-test]').forEach(function (btn) {
         btn.addEventListener('click', function () { sound.unlock(); sound.play(btn.getAttribute('data-sound-test'), true); });
     });

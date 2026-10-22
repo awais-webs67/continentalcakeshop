@@ -152,6 +152,7 @@ $alertCount = array_sum(array_map(static fn ($a) => (int) $a[2], $alerts));
                 <div class="dropdown__panel dropdown__panel--wide">
                     <p class="dropdown__title">Alert sounds<small>Saved on this device</small></p>
                     <label class="sound-option"><input type="checkbox" data-sound-pref="on"> <span><strong>Play sounds</strong><small>A bell for new orders, a pop for messages.</small></span></label>
+                    <label class="sound-option"><input type="checkbox" data-sound-pref="desktop"> <span><strong>Desktop alerts</strong><small>Like WhatsApp Web: a pop-up with your computer's alert sound, even when this tab is in the background or you are on another page.</small><small class="sound-option__status" data-desktop-status></small></span></label>
                     <label class="sound-option"><input type="checkbox" data-sound-pref="ring"> <span><strong>Keep ringing for new orders</strong><small>Rings every 15 seconds until someone taps the screen. Good for a kitchen tablet.</small></span></label>
                     <div class="sound-tests">
                         <button type="button" class="btn btn--secondary btn--sm" data-sound-test="order"><?= icon('bag', '', 15) ?> Test order</button>
@@ -197,7 +198,7 @@ $alertCount = array_sum(array_map(static fn ($a) => (int) $a[2], $alerts));
     'quillCss'  => asset('vendor/quill/quill.snow.css'),
     'uploadUrl' => admin_url('upload-image'),
     'csrf'      => csrf_token(),
-    'live'      => ['url' => admin_url('live')] + admin_live_state($admin),
+    'live'      => ['url' => admin_url('live'), 'icon' => asset('img/logo-email.png')] + admin_live_state($admin),
 ], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?>;</script>
 <button type="button" class="sound-unlock" data-sound-unlock hidden><?= icon('volume', '', 18) ?> Tap to turn on order sounds</button>
 <script src="<?= e(asset('js/sounds.js')) ?>" defer></script>
