@@ -17,6 +17,8 @@ if (is_post()) {
         $errors['email'] = 'Please enter a valid email.';
     } elseif (db_value('SELECT 1 FROM admins WHERE email = ? AND id <> ?', [$email, $admin['id']])) {
         $errors['email'] = 'Another account already uses that email.';
+    } elseif ($email !== strtolower((string) $admin['email']) && email_used_by_customer($email)) {
+        $errors['email'] = CUSTOMER_EMAIL_TAKEN;
     }
     if ($password !== '' && mb_strlen($password) < 10) {
         $errors['new_password'] = 'Use at least 10 characters.';

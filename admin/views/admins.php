@@ -2,6 +2,15 @@
 <div class="page-head">
     <div><h1>Staff accounts</h1><p>People who can log in to this admin panel. Choose what each staff member can open. Only owners can change staff accounts and run the system check.</p></div>
 </div>
+<?php if (!empty($sharedEmails)): ?>
+    <div class="alert alert--warning">
+        <strong>Same email used twice.</strong>
+        <?php foreach ($sharedEmails as $row): ?>
+            <?= e($row['email']) ?> is a staff login and also a <a href="<?= e(admin_url('customers/view', ['id' => $row['user_id']])) ?>">customer account</a>.
+        <?php endforeach; ?>
+        Staff and customers now need different emails. Give the staff login a different email in My account (or ask the customer to use another email) so it is always clear which account is which.
+    </div>
+<?php endif; ?>
 <div class="grid-main">
     <section class="card">
         <div class="table-wrap"><table class="table">

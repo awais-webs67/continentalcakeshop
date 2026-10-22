@@ -13,6 +13,8 @@ if (is_post()) {
     }
     if (!valid_email($email)) {
         $errors['email'] = 'Please enter a valid email.';
+    } elseif (email_used_by_customer($email)) {
+        $errors['email'] = CUSTOMER_EMAIL_TAKEN;
     }
     if (mb_strlen($password) < 10) {
         $errors['password'] = 'Use at least 10 characters for the owner password.';

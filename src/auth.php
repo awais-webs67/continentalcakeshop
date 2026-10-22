@@ -65,6 +65,23 @@ function find_user_by_email(string $email): ?array
 }
 
 /**
+ * Staff logins and customer accounts never share an email, so it is always clear which
+ * account a login, a reset link or an order belongs to.
+ */
+function email_used_by_staff(string $email): bool
+{
+    return (bool) db_value('SELECT 1 FROM admins WHERE email = ?', [strtolower(trim($email))]);
+}
+
+function email_used_by_customer(string $email): bool
+{
+    return (bool) db_value('SELECT 1 FROM users WHERE email = ?', [strtolower(trim($email))]);
+}
+
+const STAFF_EMAIL_TAKEN = 'This email is used for a shop staff login. Please use a different email for a customer account.';
+const CUSTOMER_EMAIL_TAKEN = 'A customer account already uses this email. Please use a different email for the staff login.';
+
+/**
  * Validates and creates an account. Returns [user id, errors].
  *
  * @return array{0:?int,1:array<string,string>}
@@ -80,6 +97,8 @@ function register_user(string $name, string $email, string $phone, string $passw
         $errors['email'] = 'Please enter a valid email address.';
     } elseif (find_user_by_email($email)) {
         $errors['email'] = 'An account with this email already exists. Please log in instead.';
+    } elseif (email_used_by_staff($email)) {
+        $errors['email'] = STAFF_EMAIL_TAKEN;
     }
     if ($phone !== '' && !valid_au_phone($phone)) {
         $errors['phone'] = 'Please enter an Australian phone number.';

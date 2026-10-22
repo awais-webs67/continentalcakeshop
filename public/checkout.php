@@ -144,6 +144,8 @@ if (is_post()) {
             $errors['account_password'] = 'Please use at least ' . PASSWORD_MIN_LENGTH . ' characters for your password.';
         } elseif (!isset($errors['email']) && find_user_by_email($data['email'])) {
             $errors['email'] = 'This email already has an account. Please log in to save this order to it.';
+        } elseif (!isset($errors['email']) && email_used_by_staff($data['email'])) {
+            $errors['email'] = STAFF_EMAIL_TAKEN . ' Or untick "Create an account" to order as a guest.';
         }
     }
     if (!empty($couponNotice)) {

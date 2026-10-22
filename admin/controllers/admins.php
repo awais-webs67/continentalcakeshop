@@ -20,6 +20,8 @@ if (is_post()) {
             flash('error', 'Use at least 10 characters for the password.');
         } elseif (db_value('SELECT 1 FROM admins WHERE email = ?', [$email])) {
             flash('error', 'There is already an account with that email.');
+        } elseif (email_used_by_customer($email)) {
+            flash('error', CUSTOMER_EMAIL_TAKEN);
         } else {
             db_run('INSERT INTO admins (name, email, password_hash, role, permissions) VALUES (?, ?, ?, ?, ?)', [$name, $email, password_hash($password, PASSWORD_DEFAULT), $role, $role === 'staff' ? $postedPermissions() : null]);
             flash('success', $name . ' can now log in at ' . admin_url('login') . '. Share the password with them in person.');
@@ -56,4 +58,6 @@ if (is_post()) {
 }
 
 $admins = db_all('SELECT id, name, email, role, permissions, is_active, last_login_at, created_at FROM admins ORDER BY role, name');
-admin_view('admins', compact('admins') + ['title' => 'Staff accounts']);
+// Accounts made before staff and customer emails were kept apart.
+$sharedEmails = db_all('SELECT a.email, u.id AS user_id FROM admins a JOIN users u ON u.email = a.email');
+admin_view('admins', compact('admins', 'sharedEmails') + ['title' => 'Staff accounts']);
