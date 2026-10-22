@@ -244,7 +244,7 @@ function remove_unused_uploads(DateTimeImmutable $now, int $minAgeSeconds = 2 * 
         }
         $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($base, FilesystemIterator::SKIP_DOTS));
         foreach ($files as $file) {
-            if (!$file->isFile() || $file->getFilename() === '.htaccess' || $file->getMTime() > $cutoff) {
+            if (!$file->isFile() || str_starts_with($file->getFilename(), '.') || $file->getMTime() > $cutoff) {
                 continue;
             }
             $relative = ASYNC_UPLOADS[$purpose]['folder'] . substr($file->getPathname(), strlen($base));
