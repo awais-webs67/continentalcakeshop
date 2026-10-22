@@ -144,6 +144,7 @@
             var total = parseFloat(size.getAttribute('data-amount') || '0');
             $$('input[name="options[]"]:checked', productForm).forEach(function (o) { total += parseFloat(o.getAttribute('data-extra') || '0'); });
             priceEl.textContent = '$' + total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            $$('[data-price-mirror]').forEach(function (el) { el.textContent = priceEl.textContent; });
         };
         $$('input[name="size_id"], input[name="options[]"]', productForm).forEach(function (input) {
             input.addEventListener('change', showPrice);
@@ -718,17 +719,88 @@
     choices.forEach(function (c) { c.addEventListener('change', update); });
 })();
 
-/* Product photo gallery: thumbnails swap the big photo. */
+/* Product photo gallery: swipe or use the arrows and thumbnails; the magnifier opens a large view. */
 (function () {
     var gallery = document.querySelector('[data-gallery]');
     if (!gallery) return;
-    var main = gallery.querySelector('[data-gallery-main]');
-    gallery.addEventListener('click', function (e) {
-        var thumb = e.target.closest('[data-gallery-thumb]');
-        if (!thumb || !main) return;
-        main.src = thumb.getAttribute('data-src');
-        main.alt = thumb.getAttribute('data-alt');
-        gallery.querySelectorAll('[data-gallery-thumb]').forEach(function (t) { t.classList.toggle('is-active', t === thumb); });
+    var slides = gallery.querySelector('[data-gallery-slides]');
+    if (!slides) return;
+    var images = Array.prototype.slice.call(slides.querySelectorAll('img'));
+    var thumbs = Array.prototype.slice.call(gallery.querySelectorAll('[data-gallery-thumb]'));
+    var indexEl = gallery.querySelector('[data-gallery-index]');
+    var current = 0;
+    var mark = function (i) {
+        current = i;
+        thumbs.forEach(function (t, k) { t.classList.toggle('is-active', k === i); });
+        if (thumbs[i] && thumbs[i].scrollIntoView && thumbs.length > 4) thumbs[i].scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+        if (indexEl) indexEl.textContent = i + 1;
+    };
+    var go = function (i) {
+        i = (i + images.length) % images.length;
+        slides.scrollTo({ left: i * slides.clientWidth, behavior: 'smooth' });
+        mark(i);
+    };
+    slides.addEventListener('scroll', function () {
+        var i = Math.round(slides.scrollLeft / Math.max(1, slides.clientWidth));
+        if (i !== current) mark(i);
+    }, { passive: true });
+    thumbs.forEach(function (t, k) { t.addEventListener('click', function () { go(k); }); });
+    var prev = gallery.querySelector('[data-gallery-prev]');
+    var next = gallery.querySelector('[data-gallery-next]');
+    if (prev) prev.addEventListener('click', function () { go(current - 1); });
+    if (next) next.addEventListener('click', function () { go(current + 1); });
+
+    // Large view
+    var box = gallery.querySelector('[data-lightbox]');
+    var zoom = gallery.querySelector('[data-gallery-zoom]');
+    if (!box || !zoom || typeof box.showModal !== 'function') { if (zoom) zoom.hidden = true; return; }
+    var big = box.querySelector('[data-lightbox-img]');
+    var shown = 0;
+    var showBig = function (i) {
+        shown = (i + images.length) % images.length;
+        big.src = images[shown].currentSrc || images[shown].src;
+        big.alt = images[shown].alt;
+    };
+    var open = function () { showBig(current); box.showModal(); document.documentElement.style.overflow = 'hidden'; };
+    zoom.addEventListener('click', open);
+    images.forEach(function (img) { img.addEventListener('dblclick', open); });
+    box.addEventListener('close', function () { document.documentElement.style.overflow = ''; go(shown); });
+    box.querySelector('[data-lightbox-close]').addEventListener('click', function () { box.close(); });
+    box.addEventListener('click', function (e) { if (e.target === box) box.close(); });
+    var lp = box.querySelector('[data-lightbox-prev]'), ln = box.querySelector('[data-lightbox-next]');
+    if (lp) lp.addEventListener('click', function () { showBig(shown - 1); });
+    if (ln) ln.addEventListener('click', function () { showBig(shown + 1); });
+    box.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowLeft') showBig(shown - 1);
+        if (e.key === 'ArrowRight') showBig(shown + 1);
+    });
+    // Swipe in the large view
+    var startX = null;
+    box.addEventListener('touchstart', function (e) { startX = e.touches[0].clientX; }, { passive: true });
+    box.addEventListener('touchend', function (e) {
+        if (startX === null) return;
+        var dx = e.changedTouches[0].clientX - startX;
+        if (Math.abs(dx) > 40) showBig(shown + (dx < 0 ? 1 : -1));
+        startX = null;
+    }, { passive: true });
+})();
+
+/* Phones: a bar with the price and "Add to Cart" while the real button is off screen. */
+(function () {
+    var bar = document.querySelector('[data-buy-bar]');
+    var main = document.querySelector('[data-buy-main]');
+    var form = document.querySelector('[data-product-form]');
+    if (!bar || !main || !form || !('IntersectionObserver' in window)) return;
+    var mq = window.matchMedia('(max-width: 899px)');
+    var visible = true;
+    var update = function () {
+        bar.hidden = !mq.matches || visible;
+        document.body.classList.toggle('has-buy-bar', !bar.hidden);
+    };
+    new IntersectionObserver(function (entries) { visible = entries[0].isIntersecting; update(); }).observe(main);
+    mq.addEventListener('change', update);
+    bar.querySelector('[data-buy-bar-btn]').addEventListener('click', function () {
+        if (form.requestSubmit) form.requestSubmit(main); else main.click();
     });
 })();
 
@@ -831,5 +903,33 @@
         viewport.addEventListener('wheel', function () { pause(); resume(2500); }, { passive: true });
         window.addEventListener('resize', setup);
         if (document.readyState === 'complete') setup(); else window.addEventListener('load', setup);
+    });
+})();
+
+/* Product cards with more than one photo: moving the mouse across the photo shows the others
+   (left to right), and on phones the photos swipe. The dots follow along. */
+(function () {
+    document.querySelectorAll('[data-card-photos]').forEach(function (media) {
+        var slides = media.querySelector('.product-card__slides');
+        var dots = media.querySelectorAll('.product-card__dots i');
+        var count = slides ? slides.children.length : 0;
+        if (count < 2) return;
+        var current = 0;
+        var show = function (i) {
+            if (i === current) return;
+            current = i;
+            slides.scrollTo({ left: i * slides.clientWidth, behavior: 'auto' });
+            dots.forEach(function (d, k) { d.classList.toggle('is-on', k === i); });
+        };
+        media.addEventListener('pointermove', function (e) {
+            if (e.pointerType !== 'mouse') return;
+            var r = media.getBoundingClientRect();
+            show(Math.min(count - 1, Math.max(0, Math.floor((e.clientX - r.left) / r.width * count))));
+        });
+        media.addEventListener('mouseleave', function () { show(0); });
+        slides.addEventListener('scroll', function () {
+            var i = Math.round(slides.scrollLeft / Math.max(1, slides.clientWidth));
+            if (i !== current) { current = i; dots.forEach(function (d, k) { d.classList.toggle('is-on', k === i); }); }
+        }, { passive: true });
     });
 })();

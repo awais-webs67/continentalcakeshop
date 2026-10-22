@@ -11,7 +11,7 @@ if ($categorySlug !== '' && !$category) {
 
 $sort = array_key_exists(input('sort'), PRODUCT_SORTS) ? input('sort') : 'featured';
 $search = str_limit(input('q'), 60);
-$products = get_products($category ? (int) $category['id'] : null, $sort, $search);
+$products = with_card_photos(get_products($category ? (int) $category['id'] : null, $sort, $search));
 $categories = get_categories();
 
 $baseUrl = $category ? category_url($category) : url('shop');

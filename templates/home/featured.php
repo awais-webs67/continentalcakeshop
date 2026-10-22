@@ -1,4 +1,4 @@
-<?php $featured = get_featured_products(max(1, min(24, (int) setting('home_featured_count', '8')))); ?>
+<?php $featured = with_card_photos(get_featured_products(max(1, min(24, (int) setting('home_featured_count', '8'))))); ?>
 <?php if ($featured): ?>
 <section class="section section--tint">
     <div class="container">

@@ -10,7 +10,7 @@ if (!$product || (!$sizes && !$enquiry)) {
     not_found();
 }
 
-$related = get_related_products($product);
+$related = with_card_photos(get_related_products($product));
 $options = $enquiry ? [] : get_product_options((int) $product['id']);
 $soldOut = product_sold_out($product);
 $paused = ordering_paused();
@@ -49,28 +49,64 @@ render('header', compact('page'));
         <div class="product-layout">
             <div class="product-gallery" data-gallery>
                 <div class="product-gallery__main">
-                    <img src="<?= e(product_image_url($photos[0]['image'])) ?>" alt="<?= e($photos[0]['alt']) ?>" width="900" height="900" fetchpriority="high" data-gallery-main>
+                    <div class="product-gallery__slides" data-gallery-slides>
+                        <?php foreach ($photos as $i => $photo): ?>
+                            <img src="<?= e(product_image_url($photo['image'])) ?>" alt="<?= e($photo['alt']) ?>" width="900" height="900" <?= $i === 0 ? 'fetchpriority="high"' : 'loading="lazy" decoding="async"' ?>>
+                        <?php endforeach; ?>
+                    </div>
                     <?php if ($soldOut): ?>
                         <span class="product-card__badge product-card__badge--soldout">Sold out</span>
                     <?php elseif ($product['badge']): ?>
                         <span class="product-card__badge"><?= e($product['badge']) ?></span>
                     <?php endif; ?>
+                    <?php if (count($photos) > 1): ?>
+                        <button type="button" class="gallery-arrow gallery-arrow--prev" data-gallery-prev aria-label="Previous photo"><?= icon('chevron', '', 22) ?></button>
+                        <button type="button" class="gallery-arrow gallery-arrow--next" data-gallery-next aria-label="Next photo"><?= icon('chevron', '', 22) ?></button>
+                        <span class="gallery-count" aria-live="polite"><span data-gallery-index>1</span> / <?= count($photos) ?></span>
+                    <?php endif; ?>
+                    <?php if ($photos[0]['image']): ?>
+                        <button type="button" class="gallery-zoom" data-gallery-zoom aria-label="See the photo larger"><?= icon('search', '', 20) ?></button>
+                    <?php endif; ?>
                 </div>
                 <?php if (count($photos) > 1): ?>
                     <div class="product-gallery__thumbs" role="list">
                         <?php foreach ($photos as $i => $photo): ?>
-                            <button type="button" class="product-gallery__thumb<?= $i === 0 ? ' is-active' : '' ?>" role="listitem" data-gallery-thumb data-src="<?= e(product_image_url($photo['image'])) ?>" data-alt="<?= e($photo['alt']) ?>" aria-label="Show photo <?= $i + 1 ?> of <?= count($photos) ?>">
+                            <button type="button" class="product-gallery__thumb<?= $i === 0 ? ' is-active' : '' ?>" role="listitem" data-gallery-thumb="<?= $i ?>" aria-label="Show photo <?= $i + 1 ?> of <?= count($photos) ?>">
                                 <img src="<?= e(product_image_url($photo['image'])) ?>" alt="" width="120" height="120" loading="lazy" decoding="async">
                             </button>
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
+                <dialog class="lightbox" data-lightbox aria-label="<?= e($product['name']) ?> photos">
+                    <button type="button" class="lightbox__close" data-lightbox-close aria-label="Close"><?= icon('close', '', 24) ?></button>
+                    <img src="" alt="" data-lightbox-img>
+                    <?php if (count($photos) > 1): ?>
+                        <button type="button" class="gallery-arrow gallery-arrow--prev" data-lightbox-prev aria-label="Previous photo"><?= icon('chevron', '', 24) ?></button>
+                        <button type="button" class="gallery-arrow gallery-arrow--next" data-lightbox-next aria-label="Next photo"><?= icon('chevron', '', 24) ?></button>
+                    <?php endif; ?>
+                </dialog>
             </div>
 
             <div class="product-info">
                 <a class="product-info__category" href="<?= e(url('shop/' . $product['category_slug'])) ?>"><?= e($product['category_name']) ?></a>
                 <h1 class="product-info__title"><?= e($product['name']) ?></h1>
-                <p class="product-info__price" data-price><?= $enquiry ? 'Price on request' : e(money($selected['price'])) ?></p>
+                <div class="product-info__price-row">
+                    <p class="product-info__price" data-price><?= $enquiry ? 'Price on request' : e(money($selected['price'])) ?></p>
+                    <?php if (!$enquiry && count($sizes) > 1): ?><span class="product-info__sizes"><?= count($sizes) ?> sizes from <?= e(money(min(array_column($sizes, 'price')))) ?></span><?php endif; ?>
+                </div>
+                <?php if (setting('google_rating') !== ''): $stars = (float) setting('google_rating'); ?>
+                    <a class="product-rating" href="<?= e(setting('google_reviews_url') ?: url('about')) ?>"<?= setting('google_reviews_url') !== '' ? ' target="_blank" rel="noopener"' : '' ?>>
+                        <span class="product-rating__stars" style="--rating:<?= e((string) $stars) ?>" aria-hidden="true">★★★★★</span>
+                        <strong><?= e(setting('google_rating')) ?></strong>
+                        <span><?= setting('google_review_count') !== '' ? e(setting('google_review_count')) . ' ' : '' ?>Google reviews</span>
+                    </a>
+                <?php endif; ?>
+                <ul class="product-badges">
+                    <li><?= icon('halal', '', 16) ?> 100% Halal</li>
+                    <li><?= icon('cake', '', 16) ?> Baked fresh in Greenway</li>
+                    <?php if ((int) $product['allow_message'] === 1): ?><li><?= icon('pen', '', 16) ?> Free writing</li><?php endif; ?>
+                    <?php if (array_filter($options, static fn ($o) => stripos($o['name'], 'egg') !== false)): ?><li><?= icon('leaf', '', 16) ?> Eggless option</li><?php endif; ?>
+                </ul>
                 <?php if ($product['short_description']): ?>
                     <p class="product-info__lead"><?= e($product['short_description']) ?></p>
                 <?php endif; ?>
@@ -145,9 +181,13 @@ render('header', compact('page'));
                             <input class="qty__input" type="number" name="qty" value="1" min="1" max="<?= CART_MAX_QTY ?>" inputmode="numeric" aria-label="Quantity">
                             <button type="button" class="qty__btn" data-qty-step="1" aria-label="Increase quantity"><?= icon('plus', '', 18) ?></button>
                         </div>
-                        <button class="btn btn--primary btn--lg product-form__submit" type="submit"><?= icon('bag', '', 20) ?> Add to Cart</button>
+                        <button class="btn btn--primary btn--lg product-form__submit" type="submit" data-buy-main><?= icon('bag', '', 20) ?> Add to Cart</button>
                     </div>
                 </form>
+                <div class="buy-bar" data-buy-bar hidden>
+                    <span class="buy-bar__info"><strong><?= e($product['name']) ?></strong><span data-price-mirror><?= e(money($selected['price'])) ?></span></span>
+                    <button class="btn btn--primary" type="button" data-buy-bar-btn><?= icon('bag', '', 18) ?> Add to Cart</button>
+                </div>
                 <?php endif; ?>
 
                 <ul class="product-facts">

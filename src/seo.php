@@ -275,6 +275,28 @@ function product_image_alt(array $product): string
 }
 
 /** Extra photos of a cake (the main photo is products.image). */
+/**
+ * Adds 'photos' (main photo first, then up to three extra) to each product for the product
+ * cards, using one query for the whole list.
+ */
+function with_card_photos(array $products): array
+{
+    $ids = array_values(array_filter(array_map(static fn ($p) => (int) ($p['id'] ?? 0), $products)));
+    $extra = [];
+    if ($ids) {
+        try {
+            foreach (db_all('SELECT product_id, image FROM product_images WHERE product_id IN (' . implode(',', $ids) . ') ORDER BY product_id, sort_order, id') as $row) {
+                $extra[(int) $row['product_id']][] = $row['image'];
+            }
+        } catch (PDOException) {
+        }
+    }
+    foreach ($products as &$p) {
+        $p['photos'] = array_slice(array_values(array_filter(array_merge([$p['image'] ?? null], $extra[(int) ($p['id'] ?? 0)] ?? []))), 0, 4);
+    }
+    return $products;
+}
+
 function get_product_images(int $productId): array
 {
     try {
