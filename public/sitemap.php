@@ -23,7 +23,7 @@ $entries = [
 ];
 foreach (db_all('SELECT slug, title, type, updated_at FROM pages WHERE is_active = 1') as $content) {
     $entries[] = $content['type'] === 'landing'
-        ? [url($content['slug']), $content['updated_at'], 'weekly', '0.8', array_slice($galleryPhotos, 0, 8)]
+        ? [url($content['slug']), $content['updated_at'], 'weekly', '0.8', array_map(static fn ($g) => [product_image_url($g['image']), $g['caption']], gallery_for_occasion($content['occasion'] ?? null, 8))]
         : [url($content['slug']), $content['updated_at'], 'yearly', '0.3', []];
 }
 foreach (get_categories() as $cat) {

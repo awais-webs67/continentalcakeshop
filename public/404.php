@@ -8,6 +8,9 @@ if (!defined('BASE_PATH')) {
 if ($target = legacy_redirect_target(current_path())) {
     redirect($target, 301);
 }
+if ($target = tidy_path_redirect()) {
+    redirect($target, 301);
+}
 http_response_code(404);
 log_not_found(current_path());
 

@@ -202,10 +202,11 @@ function rich_text(?string $text): string
     return '<p>' . nl2br(e($text)) . '</p>';
 }
 
-/** Plain-text version of stored content, used for FAQ structured data. */
+/** Plain-text version of stored content, used for structured data (paragraphs and list items keep a space between them). */
 function content_text(string $html): string
 {
-    return trim(preg_replace('/\s+/', ' ', html_entity_decode(strip_tags(render_content($html)), ENT_QUOTES, 'UTF-8')));
+    $html = preg_replace('#<(/?(?:p|h[1-6]|li|ul|ol|br|div|blockquote|tr|td|th)\b)#i', ' <$1', render_content($html));
+    return trim(preg_replace('/\s+/', ' ', html_entity_decode(strip_tags((string) $html), ENT_QUOTES, 'UTF-8')));
 }
 
 // ---------------------------------------------------------------------------

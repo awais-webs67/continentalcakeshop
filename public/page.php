@@ -21,7 +21,7 @@ $page = [
     'canonical'   => url($slug),
     'schema'      => [breadcrumb_schema($crumbs)],
 ];
-$photos = $landing && !empty($content['show_gallery']) ? get_gallery(8) : [];
+$photos = $landing && !empty($content['show_gallery']) ? gallery_for_occasion($content['occasion'] ?? null, 8) : [];
 if ($photos) {
     $page['image'] = product_image_url($photos[0]['image']);
 }

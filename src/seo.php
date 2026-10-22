@@ -193,6 +193,25 @@ function legacy_redirect_target(string $path): ?string
     return url($target);
 }
 
+/**
+ * The usual address for a near-miss that reached the 404 page: "/about/" -> "/about",
+ * "/About" -> "/about", "/index.php" -> "/". Search engines then see one address per page.
+ */
+function tidy_path_redirect(): ?string
+{
+    $raw = (string) (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/');
+    $path = current_path();
+    $tidy = strtolower($path) === '/index.php' ? '/' : strtolower($path);
+    if ($tidy === $path && !(strlen($raw) > 1 && str_ends_with($raw, '/'))) {
+        return null;
+    }
+    if (!preg_match('#^/[a-z0-9/-]*$#', $tidy)) {
+        return null;
+    }
+    $query = (string) ($_SERVER['QUERY_STRING'] ?? '');
+    return url(ltrim($tidy, '/')) . ($query !== '' ? '?' . $query : '');
+}
+
 /** Remembers an address that was not found, for Admin > SEO (skips files like .png and .js). */
 function log_not_found(string $path): void
 {

@@ -79,7 +79,7 @@ render('header', compact('page'));
                 <?php endif; ?>
                 <dialog class="lightbox" data-lightbox aria-label="<?= e($product['name']) ?> photos">
                     <button type="button" class="lightbox__close" data-lightbox-close aria-label="Close"><?= icon('close', '', 24) ?></button>
-                    <img src="" alt="" data-lightbox-img>
+                    <img alt="" data-lightbox-img>
                     <?php if (count($photos) > 1): ?>
                         <button type="button" class="gallery-arrow gallery-arrow--prev" data-lightbox-prev aria-label="Previous photo"><?= icon('chevron', '', 24) ?></button>
                         <button type="button" class="gallery-arrow gallery-arrow--next" data-lightbox-next aria-label="Next photo"><?= icon('chevron', '', 24) ?></button>

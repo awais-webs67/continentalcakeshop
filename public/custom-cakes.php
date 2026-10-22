@@ -104,10 +104,14 @@ $galleryPage = min($galleryPages, max(1, (int) input('page', '1')));
 $gallery = get_gallery(GALLERY_PER_PAGE, ($galleryPage - 1) * GALLERY_PER_PAGE);
 
 $crumbs = [['Home', url()], ['Custom Cakes', url('custom-cakes')]];
+// Gallery page 2, 3... are their own pages for search engines, each with its own title.
+$pageSuffix = $galleryPage > 1 ? ' - Page ' . $galleryPage : '';
 $page = [
-    'title'       => 'Custom Cakes Canberra | Birthday & Wedding Cakes',
-    'description' => 'Custom birthday, wedding, engagement and baby shower cakes made in Greenway, Canberra. Send us your idea or a photo and get a quote. 100% Halal.',
-    'canonical'   => url('custom-cakes'),
+    'title'       => 'Custom Cakes Canberra | Birthday & Wedding Cakes' . $pageSuffix,
+    'description' => $galleryPage > 1
+        ? 'More custom cakes we have made in Greenway, Canberra: birthday, wedding and baby shower cakes, page ' . $galleryPage . ' of our gallery. Send us your idea for a quote.'
+        : 'Custom birthday, wedding, engagement and baby shower cakes made in Greenway, Canberra. Send us your idea or a photo and get a quote. 100% Halal.',
+    'canonical'   => url('custom-cakes') . ($galleryPage > 1 ? '?page=' . $galleryPage : ''),
     'schema'      => [breadcrumb_schema($crumbs)],
 ];
 render('header', compact('page'));
@@ -256,7 +260,7 @@ render('header', compact('page'));
         <?php if ($galleryPages > 1): ?>
             <nav class="pagination" aria-label="Gallery pages">
                 <?php if ($galleryPage > 1): ?>
-                    <a class="pagination__step" href="<?= e(url('custom-cakes') . '?page=' . ($galleryPage - 1) . '#gallery') ?>" rel="prev">Previous</a>
+                    <a class="pagination__step" href="<?= e(url('custom-cakes') . ($galleryPage > 2 ? '?page=' . ($galleryPage - 1) : '') . '#gallery') ?>" rel="prev">Previous</a>
                 <?php endif; ?>
                 <?php for ($i = 1; $i <= $galleryPages; $i++): ?>
                     <a class="pagination__page <?= $i === $galleryPage ? 'is-current' : '' ?>" href="<?= e(url('custom-cakes') . ($i > 1 ? '?page=' . $i : '') . '#gallery') ?>" <?= $i === $galleryPage ? 'aria-current="page"' : '' ?>><?= $i ?></a>

@@ -205,6 +205,28 @@ function get_gallery(?int $limit = null, int $offset = 0): array
     return db_all($sql);
 }
 
+/** Words in a photo caption that fit each landing page's occasion. */
+const GALLERY_OCCASION_WORDS = [
+    'Birthday'    => 'birthday|spider|mario|unicorn|bluey|blippi|minnie|soccer|graduation|topper',
+    'Wedding'     => 'wedding|three-tier|roses|heart|ivory|white|gold',
+    'Baby shower' => 'baby|first birthday|pink|blue|unicorn|teddy|rosette',
+];
+
+/**
+ * Up to $limit gallery photos for a landing page: photos whose caption fits the occasion first,
+ * then the rest, so a wedding page leads with wedding cakes.
+ */
+function gallery_for_occasion(?string $occasion, int $limit = 8): array
+{
+    $all = get_gallery();
+    $words = GALLERY_OCCASION_WORDS[$occasion ?? ''] ?? null;
+    if ($words !== null) {
+        $match = array_filter($all, static fn ($g) => preg_match('/\b(' . $words . ')/i', (string) $g['caption']));
+        $all = array_merge($match, array_filter($all, static fn ($g) => !in_array($g, $match, true)));
+    }
+    return array_slice(array_values($all), 0, $limit);
+}
+
 function count_gallery(): int
 {
     return (int) db_value('SELECT COUNT(*) FROM gallery_images WHERE is_active = 1');
