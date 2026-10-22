@@ -16,7 +16,7 @@ if (is_post()) {
     } elseif ($password !== (string) ($_POST['confirm'] ?? '')) {
         $error = 'The two passwords do not match.';
     } else {
-        db_run('UPDATE admins SET password_hash = ?, failed_logins = 0, locked_until = NULL WHERE id = ?', [password_hash($password, PASSWORD_DEFAULT), $reset['admin_id']]);
+        db_run('UPDATE admins SET password_hash = ?, failed_logins = 0, locked_until = NULL, auth_version = auth_version + 1 WHERE id = ?', [password_hash($password, PASSWORD_DEFAULT), $reset['admin_id']]);
         db_run('UPDATE admin_password_resets SET used_at = NOW() WHERE id = ?', [$reset['id']]);
         flash('success', 'Your password was changed. Please log in.');
         redirect(admin_url('login'));

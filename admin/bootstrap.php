@@ -16,9 +16,9 @@ const ADMIN_SECTIONS = [
     'products'  => ['Products, categories and extras', ['products', 'products/edit', 'products/import', 'categories', 'categories/edit', 'addons']],
     'gallery'   => ['Gallery and reviews', ['gallery', 'reviews']],
     'content'   => ['Homepage, popup, pages, FAQs and SEO', ['homepage', 'popup', 'pages', 'pages/edit', 'faqs', 'upload-image', 'seo']],
-    'settings'  => ['Settings', ['settings']],
 ];
-const OWNER_ONLY_ROUTES = ['admins', 'system'];
+// Settings hold the bank and PayID details, the email password and the Stripe keys, so only owners open them.
+const OWNER_ONLY_ROUTES = ['admins', 'system', 'settings'];
 
 const CUSTOM_STATUSES = ['new' => 'New', 'quoted' => 'Quoted', 'confirmed' => 'Confirmed', 'closed' => 'Closed'];
 
@@ -31,9 +31,13 @@ function current_admin(): ?array
     static $admin = false;
     if ($admin === false) {
         $id = (int) ($_SESSION['admin_id'] ?? 0);
-        $admin = $id ? db_one('SELECT id, name, email, role, permissions FROM admins WHERE id = ? AND is_active = 1', [$id]) : null;
+        $admin = $id ? db_one('SELECT id, name, email, role, permissions, auth_version FROM admins WHERE id = ? AND is_active = 1', [$id]) : null;
+        // A password change or reset signs out every other session.
+        if ($admin && (int) $admin['auth_version'] !== (int) ($_SESSION['admin_auth'] ?? 0)) {
+            $admin = null;
+        }
         if ($id && !$admin) {
-            unset($_SESSION['admin_id']);
+            unset($_SESSION['admin_id'], $_SESSION['admin_auth']);
         }
     }
     return $admin;
@@ -89,28 +93,30 @@ function admin_count(): int
 
 function admin_attempt_login(string $email, string $password): array
 {
+    if (login_throttled('admin-login', $email)) {
+        return [null, LOGIN_THROTTLED_MESSAGE];
+    }
     $admin = db_one('SELECT * FROM admins WHERE email = ? AND is_active = 1', [strtolower(trim($email))]);
     $generic = 'That email and password do not match.';
     if (!$admin) {
         password_verify($password, password_hash('timing', PASSWORD_DEFAULT));
+        login_failed('admin-login', $email);
         return [null, $generic];
-    }
-    if ($admin['locked_until'] && strtotime($admin['locked_until']) > time()) {
-        return [null, 'Too many attempts. Please wait ' . LOGIN_LOCK_MINUTES . ' minutes.'];
     }
     if (!password_verify($password, $admin['password_hash'])) {
-        $failed = (int) $admin['failed_logins'] + 1;
-        $lock = $failed >= LOGIN_MAX_ATTEMPTS ? date('Y-m-d H:i:s', time() + LOGIN_LOCK_MINUTES * 60) : null;
-        db_run('UPDATE admins SET failed_logins = ?, locked_until = ? WHERE id = ?', [$lock ? 0 : $failed, $lock, $admin['id']]);
+        login_failed('admin-login', $email);
         return [null, $generic];
     }
+    login_throttle_clear('admin-login', $email);
     return [$admin, null];
 }
 
 function admin_login(int $id): void
 {
     session_regenerate_id(true);
+    unset($_SESSION['csrf_token']);
     $_SESSION['admin_id'] = $id;
+    $_SESSION['admin_auth'] = (int) db_value('SELECT auth_version FROM admins WHERE id = ?', [$id]);
     db_run('UPDATE admins SET failed_logins = 0, locked_until = NULL, last_login_at = NOW() WHERE id = ?', [$id]);
 }
 

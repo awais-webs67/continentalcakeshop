@@ -4,6 +4,9 @@ declare(strict_types=1);
 // Pickup and delivery scheduling: works out which dates and times a customer can choose,
 // based on opening hours, minimum notice, blocked dates, slot length and daily limits.
 
+/** Orders that count towards slot and delivery limits: not a card checkout left unpaid for 30+ minutes. */
+const HOLDS_A_PLACE_SQL = "NOT (payment_method = 'stripe' AND payment_status IN ('pending', 'failed') AND created_at < NOW() - INTERVAL 30 MINUTE)";
+
 function earliest_pickup(int $leadHours): DateTimeImmutable
 {
     return (new DateTimeImmutable())->modify('+' . $leadHours . ' hours');
@@ -47,7 +50,7 @@ function pickup_slots(string $date, int $leadHours): array
     $limit = (int) setting('max_orders_per_slot', '0');
     $booked = $limit > 0 ? array_column(db_all(
         "SELECT TIME_FORMAT(pickup_time, '%H:%i') AS slot, COUNT(*) AS n FROM orders
-         WHERE pickup_date = ? AND fulfilment = 'pickup' AND order_status <> 'cancelled' GROUP BY pickup_time",
+         WHERE pickup_date = ? AND fulfilment = 'pickup' AND order_status <> 'cancelled' AND " . HOLDS_A_PLACE_SQL . " GROUP BY pickup_time",
         [$date]
     ), 'n', 'slot') : [];
 
@@ -91,7 +94,7 @@ function delivery_date_error(string $date, int $leadHours): ?string
         return 'That date is too soon. Please choose a later day.';
     }
     $limit = (int) setting('max_deliveries_per_day', '0');
-    if ($limit > 0 && (int) db_value("SELECT COUNT(*) FROM orders WHERE pickup_date = ? AND fulfilment = 'delivery' AND order_status <> 'cancelled'", [$date]) >= $limit) {
+    if ($limit > 0 && (int) db_value("SELECT COUNT(*) FROM orders WHERE pickup_date = ? AND fulfilment = 'delivery' AND order_status <> 'cancelled' AND " . HOLDS_A_PLACE_SQL, [$date]) >= $limit) {
         return 'Deliveries are fully booked on ' . $day->format('l j F') . '. Please choose another day or pick up from the shop.';
     }
     return null;

@@ -3,6 +3,17 @@
 Options -Indexes
 DirectoryIndex index.php
 
+# Never serve hidden files such as .htaccess or .user.ini.
+<FilesMatch "^\.">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
@@ -34,6 +45,7 @@ DirectoryIndex index.php
     RewriteRule ^account$               account.php [L,QSA]
     RewriteRule ^forgot-password$       forgot-password.php [L,QSA]
     RewriteRule ^reset-password$        reset-password.php [L,QSA]
+    RewriteRule ^verify-email$          verify-email.php [L,QSA]
     RewriteRule ^faq$                   faq.php [L,QSA]
     RewriteRule ^(privacy-policy|terms|refund-policy|allergens)$ page.php?slug=$1 [L,QSA]
     RewriteRule ^api/slots$             api/slots.php [L,QSA]

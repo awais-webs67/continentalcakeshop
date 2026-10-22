@@ -232,6 +232,11 @@ function is_spam_submission(string $form, int $limit = 5, int $minutes = 10): bo
     if (count($recent) >= $limit) {
         return true;
     }
+    // The same limit (with room for a shared connection) per internet address, so a bot that
+    // drops its cookie each time is still counted.
+    if (rate_hit('form-' . $form, client_ip(), $limit * 3, $minutes * 60)) {
+        return true;
+    }
     $recent[] = time();
     $_SESSION['form_sends'][$form] = array_values($recent);
     return false;

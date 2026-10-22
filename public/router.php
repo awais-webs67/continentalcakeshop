@@ -4,6 +4,11 @@
 // On the live site Apache uses public/.htaccess instead.
 
 $path = rawurldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '/');
+// Like the .htaccess rule: hidden files (.htaccess, .user.ini) are never served.
+if (preg_match('#/\.#', $path)) {
+    http_response_code(404);
+    exit;
+}
 if ($path !== '/' && is_file(__DIR__ . $path) && !str_ends_with($path, '.php')) {
     return false;
 }
@@ -35,6 +40,7 @@ $routes = [
     '#^/account$#'                  => ['account.php', []],
     '#^/forgot-password$#'          => ['forgot-password.php', []],
     '#^/reset-password$#'           => ['reset-password.php', []],
+    '#^/verify-email$#'             => ['verify-email.php', []],
     '#^/faq$#'                      => ['faq.php', []],
     '#^/(privacy-policy|terms|refund-policy|allergens)$#' => ['page.php', ['slug']],
     '#^/api/slots$#'                => ['api/slots.php', []],

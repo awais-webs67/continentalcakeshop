@@ -26,6 +26,12 @@ if (is_post()) {
         redirect('account#details');
     }
 
+    if ($action === 'verify') {
+        $sent = !$user['email_verified_at'] && send_email_verification($user);
+        flash($sent ? 'success' : 'error', $sent ? 'We sent a confirmation link to ' . $user['email'] . '.' : 'Please wait a little before asking for another link.');
+        redirect('account');
+    }
+
     if ($action === 'reorder') {
         $order = db_one('SELECT * FROM orders WHERE id = ? AND user_id = ?', [(int) input('order_id'), $user['id']]);
         if (!$order) {
@@ -54,8 +60,9 @@ if (is_post()) {
         if ($errors) {
             fail_form($errors, [], 'account#details');
         }
-        db_run('UPDATE users SET password_hash = ? WHERE id = ?', [password_hash($new, PASSWORD_DEFAULT), $user['id']]);
+        db_run('UPDATE users SET password_hash = ?, auth_version = auth_version + 1 WHERE id = ?', [password_hash($new, PASSWORD_DEFAULT), $user['id']]);
         session_regenerate_id(true);
+        $_SESSION['user_auth'] = (int) db_value('SELECT auth_version FROM users WHERE id = ?', [$user['id']]); // this device stays signed in
         flash('success', 'Your password has been changed.');
         redirect('account#details');
     }
@@ -64,11 +71,12 @@ if (is_post()) {
 
 $errors = take_form_errors();
 $orders = get_user_orders((int) $user['id']);
-// Conversations with messages, linked to the account or sent from the same email.
+// Conversations with messages: linked to the account, or sent from the same email once the
+// customer has confirmed they own that email (so nobody can read someone else's by signing up with it).
 $threads = db_all(
     'SELECT t.*, (SELECT body FROM thread_messages m WHERE m.thread_id = t.id ORDER BY m.id DESC LIMIT 1) AS last_body
-     FROM threads t WHERE (t.user_id = ? OR t.customer_email = ?) AND t.last_message_at IS NOT NULL ORDER BY t.last_message_at DESC LIMIT 20',
-    [$user['id'], $user['email']]
+     FROM threads t WHERE (t.user_id = ? OR (? = 1 AND t.customer_email = ?)) AND t.last_message_at IS NOT NULL ORDER BY t.last_message_at DESC LIMIT 20',
+    [$user['id'], $user['email_verified_at'] ? 1 : 0, $user['email']]
 );
 $progress = ['new', 'confirmed', 'in_progress', 'ready', 'completed'];
 
@@ -88,6 +96,16 @@ render('header', compact('page'));
         </form>
     </div>
 </section>
+
+<?php if (!$user['email_verified_at']): ?>
+<div class="container">
+    <form class="verify-banner" method="post" action="<?= e(url('account')) ?>">
+        <?= csrf_field() ?><input type="hidden" name="action" value="verify">
+        <span><?= icon('mail', '', 20) ?> <span><strong>Please confirm your email.</strong> We sent a link to <?= e($user['email']) ?>. Once confirmed, orders and messages you sent with this email as a guest show here too.</span></span>
+        <button class="btn btn--outline btn--sm" type="submit">Send the link again</button>
+    </form>
+</div>
+<?php endif; ?>
 
 <section class="section section--compact">
     <div class="container account-layout">

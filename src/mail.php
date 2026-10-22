@@ -167,6 +167,13 @@ function html_to_text(string $html): string
 // ---------------------------------------------------------------------------
 
 /** Renders templates/emails/{name}.php inside the branded layout. */
+/** First name for "Hi Sarah,". Anything that looks like a link or an address becomes "there", so a form can't put a link in our emails. */
+function email_first_name(?string $name): string
+{
+    $first = (string) strtok(trim((string) $name), ' ');
+    return $first === '' || preg_match('#[./:@]|www#i', $first) ? 'there' : mb_substr($first, 0, 40);
+}
+
 function render_email(string $name, array $data): string
 {
     extract($data, EXTR_SKIP);

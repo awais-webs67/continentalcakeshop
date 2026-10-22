@@ -28,7 +28,8 @@ if (is_post()) {
     if (!$errors) {
         db_run('UPDATE admins SET name = ?, email = ? WHERE id = ?', [$name, $email, $admin['id']]);
         if ($password !== '') {
-            db_run('UPDATE admins SET password_hash = ? WHERE id = ?', [password_hash($password, PASSWORD_DEFAULT), $admin['id']]);
+            db_run('UPDATE admins SET password_hash = ?, auth_version = auth_version + 1 WHERE id = ?', [password_hash($password, PASSWORD_DEFAULT), $admin['id']]);
+            $_SESSION['admin_auth'] = (int) db_value('SELECT auth_version FROM admins WHERE id = ?', [$admin['id']]); // this device stays signed in
             session_regenerate_id(true);
         }
         flash('success', $password !== '' ? 'Your details and password were updated.' : 'Your details were updated.');

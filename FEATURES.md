@@ -347,12 +347,20 @@ Settings tabs in the admin: shop details (including the WhatsApp number for the 
 ## 22. Security
 
 - Prepared statements for all SQL, `e()` for all output, CSRF token on every form.
-- Passwords hashed with `password_hash()`. Login lockout after 5 tries. Session cookie is HttpOnly, SameSite=Lax and Secure on HTTPS.
+- Passwords hashed with `password_hash()`. Session cookie is HttpOnly, SameSite=Lax and Secure on HTTPS; strict session mode; a new session id and a new form token at every login.
+- **Login throttle** (`login_throttled()` in `src/security.php`, customers and staff): 5 tries per email per connection in 15 minutes (counted before the password is checked, so tries sent at the same moment are all counted), plus wrong passwords per connection (30) and per email from anywhere (50). The message is the same for real and made-up emails.
+- **Changing or resetting a password signs out every other session** (`auth_version` on `users` and `admins`).
+- **Limits per internet address** in the `rate_limits` table (`rate_hit()`): every public form (3 times the per-session limit), payment and photo uploads (20 an hour), coupon tries (20 per 15 minutes), orders (10 an hour), reset emails (3 an hour per address). They hold even when a bot drops its cookie.
+- **Email confirmation:** new accounts get a "Confirm your email" link (`public/verify-email.php`, signed with the site key). Conversations and quote orders that are linked only by email appear in an account after the email is confirmed (`find_verified_user_by_email()`), so nobody can see someone else's by signing up with their email.
+- **Rich text** from the editors is rebuilt from an allowlist (`clean_html()` parses the HTML with DOMDocument; only listed tags and attributes survive, links must be http(s), mailto, tel or on-site, styles keep text-align only). Link settings (social pages, Google reviews) must start with http(s)://.
+- **Settings are owner only** (bank and PayID details, email password, Stripe keys).
+- Emails to an address nobody has confirmed (contact and custom cake confirmations) do not repeat what the visitor typed, and a name that looks like a link is replaced by "there".
+- Unused payment screenshots and cake photos (chosen but never sent with a form) are deleted after two days; the missing-pages log keeps the 5,000 most visited addresses. Card checkouts left unpaid for 30 minutes do not hold a pickup slot or delivery spot.
 - Private folders (`storage`, `config`, `database`, `src`, `templates`, `cron`, `tests`, `.git`) are blocked in the root `.htaccess`, even if mod_rewrite is off. `storage/.htaccess` denies everything. `public/uploads/.htaccess` stops scripts from running there.
 - Payment screenshots and custom photos are only served to logged-in staff with the right section access. Order pages, invoices, quotes and conversations are opened with long random tokens.
 - Database backups are stored in `storage/backups` and can only be downloaded by the owner.
 - Public forms have spam protection: a hidden honeypot field, a minimum fill time of 3 seconds and a rate limit (`spam_trap_fields`, `is_spam_submission`).
-- Security headers in `public/.htaccess`. HSTS is sent on HTTPS.
+- Security headers in `public/.htaccess`, which also refuses hidden files such as `.user.ini`. HSTS is sent on HTTPS. Product import only downloads photos from public internet addresses, checking every redirect.
 - With `debug => false`, errors are hidden from visitors, saved to `storage/logs/php-errors.log`, and a friendly error page is shown.
 
 ## 23. Database and migrations

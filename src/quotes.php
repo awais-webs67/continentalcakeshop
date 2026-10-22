@@ -55,7 +55,7 @@ function order_for_quote(array $request, array $data): array
     $order = create_order([
         'channel'           => 'quote',
         'custom_request_id' => (int) $request['id'],
-        'user_id'           => find_user_by_email($request['email'])['id'] ?? null,
+        'user_id'           => find_verified_user_by_email($request['email'])['id'] ?? null,
         'name'              => $request['name'],
         'email'             => $request['email'],
         'phone'             => $request['phone'],

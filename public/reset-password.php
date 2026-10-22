@@ -12,7 +12,8 @@ if ($reset && is_post()) {
     if (mb_strlen($password) < PASSWORD_MIN_LENGTH) {
         fail_form(['password' => 'Please use at least ' . PASSWORD_MIN_LENGTH . ' characters.'], [], 'reset-password?token=' . $token);
     }
-    db_run('UPDATE users SET password_hash = ?, failed_logins = 0, locked_until = NULL WHERE id = ?', [password_hash($password, PASSWORD_DEFAULT), $reset['user_id']]);
+    // The new version signs out every session that used the old password.
+    db_run('UPDATE users SET password_hash = ?, failed_logins = 0, locked_until = NULL, auth_version = auth_version + 1 WHERE id = ?', [password_hash($password, PASSWORD_DEFAULT), $reset['user_id']]);
     db_run('UPDATE password_resets SET used_at = NOW() WHERE id = ?', [$reset['id']]);
     login_user((int) $reset['user_id']);
     flash('success', 'Your password has been changed.');

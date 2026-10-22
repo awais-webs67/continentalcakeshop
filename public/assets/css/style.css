@@ -1616,3 +1616,8 @@ body.has-buy-bar .whatsapp-fab { bottom: 88px; }
 .chat-window__foot { margin: 12px 4px 0; color: var(--muted); font-size: 14px; }
 @media (hover: none) { .chat-window__keys { display: none; } }
 @media (max-width: 640px) { .chat-window { height: calc(100vh - 24px); height: calc(100dvh - 24px); border-radius: 16px; scroll-margin-top: 12px; } .chat-window__who span { white-space: normal; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; } }
+
+/* Account: confirm your email */
+.verify-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 18px; margin: 20px 0 0; padding: 14px 18px; border: 1px solid #F3D9A4; border-radius: var(--radius); background: #FFF8E8; color: #6B4A00; font-size: 15px; }
+.verify-banner > span { display: flex; gap: 10px; align-items: flex-start; flex: 1 1 320px; }
+.verify-banner .icon { flex: 0 0 auto; margin-top: 2px; }

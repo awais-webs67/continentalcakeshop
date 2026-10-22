@@ -70,6 +70,7 @@ CREATE TABLE `admins` (
   `name` varchar(120) NOT NULL,
   `email` varchar(190) NOT NULL,
   `password_hash` varchar(255) NOT NULL,
+  `auth_version` int(10) unsigned NOT NULL DEFAULT 0,
   `role` enum('owner','staff') NOT NULL DEFAULT 'staff',
   `permissions` text DEFAULT NULL COMMENT 'JSON list of admin sections a staff account may open; NULL = all',
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
@@ -733,6 +734,22 @@ INSERT INTO `products` VALUES
 (41,6,'Orange & Poppy Seed Cake','orange-poppy-seed-cake','Orange and poppy seed tea cake.','A moist orange and poppy seed tea cake. Lovely with a cup of tea or coffee.','products/orange-poppy-seed-cake.webp',NULL,NULL,0,1,1,0,NULL,NULL,4,NULL,NULL,NULL,'2026-10-18 13:35:43','2026-10-18 13:35:43');
 /*!40000 ALTER TABLE `products` ENABLE KEYS */;
 UNLOCK TABLES;
+DROP TABLE IF EXISTS `rate_limits`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `rate_limits` (
+  `bucket` char(40) NOT NULL,
+  `hits` int(10) unsigned NOT NULL DEFAULT 0,
+  `window_start` datetime NOT NULL,
+  PRIMARY KEY (`bucket`),
+  KEY `idx_rate_window` (`window_start`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `rate_limits` WRITE;
+/*!40000 ALTER TABLE `rate_limits` DISABLE KEYS */;
+/*!40000 ALTER TABLE `rate_limits` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `reviews`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -789,7 +806,8 @@ INSERT INTO `schema_migrations` VALUES
 ('017_seo_landing_pages.sql','2026-10-21 10:26:08'),
 ('018_backups.sql','2026-10-21 10:26:08'),
 ('019_live_chat_category_style.sql','2026-10-22 04:37:24'),
-('020_same_day_orders.sql','2026-10-22 04:37:24');
+('020_same_day_orders.sql','2026-10-22 04:37:24'),
+('021_security.sql','2026-10-22 04:37:24');
 /*!40000 ALTER TABLE `schema_migrations` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `settings`;
@@ -999,6 +1017,8 @@ CREATE TABLE `users` (
   `email` varchar(190) NOT NULL,
   `phone` varchar(40) DEFAULT NULL,
   `password_hash` varchar(255) NOT NULL,
+  `email_verified_at` datetime DEFAULT NULL,
+  `auth_version` int(10) unsigned NOT NULL DEFAULT 0,
   `failed_logins` int(10) unsigned NOT NULL DEFAULT 0,
   `locked_until` datetime DEFAULT NULL,
   `last_login_at` datetime DEFAULT NULL,

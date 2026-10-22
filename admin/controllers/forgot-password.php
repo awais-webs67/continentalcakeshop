@@ -10,7 +10,7 @@ if (is_post()) {
         redirect(admin_url('forgot-password'));
     }
     $admin = db_one('SELECT * FROM admins WHERE email = ? AND is_active = 1', [strtolower(trim(input('email')))]);
-    if ($admin) {
+    if ($admin && !rate_hit('admin-reset-mail', $admin['email'], 3, 3600)) {
         $token = bin2hex(random_bytes(32));
         db_run('DELETE FROM admin_password_resets WHERE admin_id = ? OR expires_at < NOW()', [$admin['id']]);
         db_run('INSERT INTO admin_password_resets (admin_id, token_hash, expires_at) VALUES (?, ?, ?)', [$admin['id'], hash('sha256', $token), date('Y-m-d H:i:s', time() + 30 * 60)]);

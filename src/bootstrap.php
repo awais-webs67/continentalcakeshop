@@ -70,6 +70,7 @@ require __DIR__ . '/orders.php';
 require __DIR__ . '/quotes.php';
 require __DIR__ . '/mail.php';
 require __DIR__ . '/auth.php';
+require __DIR__ . '/security.php';
 require __DIR__ . '/messages.php';
 require __DIR__ . '/daily.php';
 require __DIR__ . '/backup.php';
@@ -85,6 +86,7 @@ if (PHP_SAPI !== 'cli') {
 
 if (session_status() === PHP_SESSION_NONE && PHP_SAPI !== 'cli') {
     session_name('ccs_session');
+    ini_set('session.use_strict_mode', '1'); // never adopt a session id the server did not create
     session_set_cookie_params([
         'lifetime' => 0,
         'path'     => '/',

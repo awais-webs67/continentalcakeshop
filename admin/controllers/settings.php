@@ -232,7 +232,7 @@ if (is_post()) {
     if ($tab === 'homepage') {
         $rating = (float) $values['google_rating'];
         $values['google_rating'] = $rating > 0 ? number_format(min(5, $rating), 1) : '';
-        if ($values['google_reviews_url'] !== '' && !filter_var($values['google_reviews_url'], FILTER_VALIDATE_URL)) {
+        if ($values['google_reviews_url'] !== '' && !safe_web_url($values['google_reviews_url'])) {
             $errors['google_reviews_url'] = 'Please paste the full link, starting with https://';
         }
         if (!$errors) {
@@ -268,7 +268,7 @@ if (is_post()) {
         }
         $values['seo_redirects'] = implode("\n", $lines);
         foreach (['social_facebook', 'social_instagram', 'social_pinterest'] as $key) {
-            if ($values[$key] !== '' && !filter_var($values[$key], FILTER_VALIDATE_URL)) {
+            if ($values[$key] !== '' && !safe_web_url($values[$key])) {
                 $errors[$key] = 'Please paste the full link, starting with https://';
             }
         }

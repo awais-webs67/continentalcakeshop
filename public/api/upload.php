@@ -26,6 +26,11 @@ if (!hash_equals(csrf_token(), (string) ($_POST['_token'] ?? ''))) {
     $reply(419, ['error' => 'Your session expired. Please refresh the page and try again.']);
 }
 
+// 20 uploads an hour from one connection is plenty for a real customer and stops disk filling.
+if (rate_hit('upload', client_ip(), 20, 3600)) {
+    $reply(429, ['error' => 'Too many uploads. Please wait a while and try again, or email the file to us.']);
+}
+
 [$token, $error] = store_async_upload(input('purpose'));
 if ($error) {
     $reply(422, ['error' => $error]);

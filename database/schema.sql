@@ -144,6 +144,8 @@ CREATE TABLE users (
     email           VARCHAR(190) NOT NULL UNIQUE,
     phone           VARCHAR(40) NULL,
     password_hash   VARCHAR(255) NOT NULL,
+    email_verified_at DATETIME NULL,
+    auth_version    INT UNSIGNED NOT NULL DEFAULT 0,
     failed_logins   INT UNSIGNED NOT NULL DEFAULT 0,
     locked_until    DATETIME NULL,
     last_login_at   DATETIME NULL,
@@ -324,6 +326,7 @@ CREATE TABLE admins (
     name           VARCHAR(120) NOT NULL,
     email          VARCHAR(190) NOT NULL UNIQUE,
     password_hash  VARCHAR(255) NOT NULL,
+    auth_version   INT UNSIGNED NOT NULL DEFAULT 0,
     role           ENUM('owner','staff') NOT NULL DEFAULT 'staff',
     permissions    TEXT NULL COMMENT 'JSON list of admin sections a staff account may open; NULL = all',
     is_active      TINYINT(1) NOT NULL DEFAULT 1,
@@ -438,6 +441,13 @@ CREATE TABLE not_found_log (
     first_seen DATETIME NOT NULL,
     last_seen  DATETIME NOT NULL,
     KEY idx_not_found_last (last_seen)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE rate_limits (
+    bucket       CHAR(40) NOT NULL PRIMARY KEY,
+    hits         INT UNSIGNED NOT NULL DEFAULT 0,
+    window_start DATETIME NOT NULL,
+    KEY idx_rate_window (window_start)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE schema_migrations (

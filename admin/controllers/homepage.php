@@ -51,7 +51,7 @@ if (is_post()) {
     }
     $rating = (float) $values['google_rating'];
     $values['google_rating'] = $rating > 0 ? number_format(min(5, $rating), 1) : '';
-    if ($values['google_reviews_url'] !== '' && !filter_var($values['google_reviews_url'], FILTER_VALIDATE_URL)) {
+    if ($values['google_reviews_url'] !== '' && !safe_web_url($values['google_reviews_url'])) {
         $errors[] = 'Paste the full Google reviews link, starting with https://';
     }
     if (!$errors) {

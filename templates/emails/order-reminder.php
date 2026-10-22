@@ -1,7 +1,7 @@
 <?php /** @var array $order @var array $items */
 $balance = order_balance($order);
 ?>
-<p style="margin:0 0 12px">Hi <?= e(strtok($order['customer_name'], ' ')) ?>,</p>
+<p style="margin:0 0 12px">Hi <?= e(email_first_name($order['customer_name'])) ?>,</p>
 <p style="margin:0 0 12px">A quick reminder that your order <strong><?= e($order['order_number']) ?></strong> is <?= is_delivery($order) ? 'being delivered' : 'ready to collect' ?> tomorrow.</p>
 <?php require __DIR__ . '/partials/pickup.php'; ?>
 <?php if (!is_delivery($order)): ?>

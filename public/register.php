@@ -23,6 +23,7 @@ if (is_post()) {
         fail_form($errors, $input, 'register');
     }
     login_user($userId);
+    send_email_verification(db_one('SELECT * FROM users WHERE id = ?', [$userId]));
     forget_input();
     flash('success', 'Your account is ready. Your orders will now be saved here.');
     redirect(take_after_login());

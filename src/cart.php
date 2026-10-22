@@ -136,7 +136,7 @@ function cart_items(): array
         "SELECT s.id AS size_id, s.label AS size_label, s.servings, s.price AS size_price,
                 p.id AS product_id, p.name, p.slug, p.image, p.lead_time_hours, c.name AS category_name
          FROM product_sizes s
-         JOIN products p ON p.id = s.product_id AND p.is_active = 1
+         JOIN products p ON p.id = s.product_id AND p.is_active = 1 AND p.is_enquiry = 0
          JOIN categories c ON c.id = p.category_id AND c.is_active = 1
          WHERE s.is_active = 1 AND s.id IN ($placeholders)",
         $ids

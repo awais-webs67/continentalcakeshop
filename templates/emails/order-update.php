@@ -1,5 +1,5 @@
 <?php /** @var array $order @var array $items @var string $message */ ?>
-<p style="margin:0 0 12px">Hi <?= e(strtok($order['customer_name'], ' ')) ?>,</p>
+<p style="margin:0 0 12px">Hi <?= e(email_first_name($order['customer_name'])) ?>,</p>
 <p style="margin:0 0 12px"><?= nl2br(e($message)) ?></p>
 <p style="margin:0 0 4px;font-size:14px;color:#66666E">Order <strong style="color:#1B1B1F"><?= e($order['order_number']) ?></strong>
     &middot; <?= e(order_status_label($order)) ?> &middot; <?= e(PAYMENT_STATUSES[$order['payment_status']]) ?></p>

@@ -192,30 +192,46 @@ function plan_import_row(array $row, array $categories, bool $createCategories):
 /** Downloads a photo from a link into a temporary file. Returns the path or null. */
 function download_import_image(string $url): ?string
 {
-    // Only public internet addresses, never the server's own network.
-    $host = (string) parse_url($url, PHP_URL_HOST);
-    $ip = gethostbyname($host);
-    if ($host === '' || !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-        return null;
-    }
-    $tmp = tempnam(sys_get_temp_dir(), 'img');
-    $ch = curl_init($url);
-    $fh = fopen($tmp, 'wb');
-    curl_setopt_array($ch, [
-        CURLOPT_FILE => $fh, CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 3, CURLOPT_TIMEOUT => 20,
-        CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
-        CURLOPT_NOPROGRESS => false,
-        // Stop large downloads early.
-        CURLOPT_PROGRESSFUNCTION => static fn ($c, $total, $done) => $done > 10 * 1024 * 1024 ? 1 : 0,
-    ]);
-    $ok = curl_exec($ch) && (int) curl_getinfo($ch, CURLINFO_HTTP_CODE) === 200;
-    curl_close($ch);
-    fclose($fh);
-    if (!$ok) {
+    // Only public internet addresses, never the server's own network. Each redirect is checked
+    // again, and curl is pinned to the address that was checked (no DNS tricks in between).
+    for ($hop = 0; $hop < 4; $hop++) {
+        $parts = parse_url($url);
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        $host = (string) ($parts['host'] ?? '');
+        if (!in_array($scheme, ['http', 'https'], true) || $host === '') {
+            return null;
+        }
+        $ip = filter_var($host, FILTER_VALIDATE_IP) ? $host : gethostbyname($host);
+        if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+            return null;
+        }
+        $port = (int) ($parts['port'] ?? ($scheme === 'https' ? 443 : 80));
+        $tmp = tempnam(sys_get_temp_dir(), 'img');
+        $ch = curl_init($url);
+        $fh = fopen($tmp, 'wb');
+        curl_setopt_array($ch, [
+            CURLOPT_FILE => $fh, CURLOPT_FOLLOWLOCATION => false, CURLOPT_TIMEOUT => 20,
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+            CURLOPT_RESOLVE => [$host . ':' . $port . ':' . $ip],
+            CURLOPT_NOPROGRESS => false,
+            // Stop large downloads early.
+            CURLOPT_PROGRESSFUNCTION => static fn ($c, $total, $done) => $done > 10 * 1024 * 1024 ? 1 : 0,
+        ]);
+        $ok = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $next = (string) curl_getinfo($ch, CURLINFO_REDIRECT_URL);
+        curl_close($ch);
+        fclose($fh);
+        if ($ok && $code === 200) {
+            return $tmp;
+        }
         @unlink($tmp);
-        return null;
+        if (!$ok || $code < 300 || $code > 399 || $next === '') {
+            return null;
+        }
+        $url = $next;
     }
-    return $tmp;
+    return null;
 }
 
 /** Saves one planned row. Returns a note about the photo, if any. */

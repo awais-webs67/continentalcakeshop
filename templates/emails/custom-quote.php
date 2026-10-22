@@ -1,5 +1,5 @@
 <?php /** @var array $request @var string $message */ ?>
-<p style="margin:0 0 12px">Hi <?= e(strtok($request['name'], ' ')) ?>,</p>
+<p style="margin:0 0 12px">Hi <?= e(email_first_name($request['name'])) ?>,</p>
 <p style="margin:0 0 12px"><?= nl2br(e($message)) ?></p>
 <?php if ($request['quoted_price']): ?>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0;background:#F1FCF9;border-radius:12px">

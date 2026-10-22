@@ -180,10 +180,15 @@ function stripe_confirm_session(array $order, string $sessionId): bool
     if ($order['payment_status'] === 'paid' && order_balance($order) <= 0) {
         return true;
     }
-    if ($sessionId === '' || $sessionId !== $order['stripe_session_id']) {
+    if (!preg_match('/^cs_[A-Za-z0-9_]+$/', $sessionId)) {
         return false;
     }
+    // Any card session made for this order counts (the customer may have opened "Pay now" twice);
+    // Stripe's own record says which order it belongs to.
     $session = stripe_request('GET', 'checkout/sessions/' . rawurlencode($sessionId));
+    if (($session['client_reference_id'] ?? null) !== $order['order_number']) {
+        return false;
+    }
     if (($session['payment_status'] ?? '') === 'paid') {
         mark_order_paid($order, (string) ($session['payment_intent'] ?? $sessionId), isset($session['amount_total']) ? $session['amount_total'] / 100 : null);
         return true;

@@ -24,7 +24,9 @@ $object = $event['data']['object'] ?? [];
 
 if (in_array($type, ['checkout.session.completed', 'checkout.session.async_payment_succeeded', 'checkout.session.async_payment_failed'], true)) {
     $order = get_order_by_number((string) ($object['client_reference_id'] ?? ''));
-    if ($order && $order['stripe_session_id'] === ($object['id'] ?? null)) {
+    // The event is signed by Stripe and the order number was set by us when the session was made,
+    // so a payment on an older session of the same order (two "Pay now" tabs) still counts.
+    if ($order) {
         if (($object['payment_status'] ?? '') === 'paid') {
             mark_order_paid($order, (string) ($object['payment_intent'] ?? $object['id']), isset($object['amount_total']) ? $object['amount_total'] / 100 : null);
         } elseif ($type === 'checkout.session.async_payment_failed' && in_array($order['payment_status'], ['pending', 'awaiting_verification'], true)) {

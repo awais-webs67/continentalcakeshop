@@ -14,9 +14,13 @@ function current_user(): ?array
     static $user = false;
     if ($user === false) {
         $id = (int) ($_SESSION['user_id'] ?? 0);
-        $user = $id ? db_one('SELECT id, name, email, phone, created_at FROM users WHERE id = ?', [$id]) : null;
+        $user = $id ? db_one('SELECT id, name, email, phone, created_at, email_verified_at, auth_version FROM users WHERE id = ?', [$id]) : null;
+        // A password change or reset signs out every other session (their version no longer matches).
+        if ($user && (int) $user['auth_version'] !== (int) ($_SESSION['user_auth'] ?? 0)) {
+            $user = null;
+        }
         if ($id && !$user) {
-            unset($_SESSION['user_id']);
+            unset($_SESSION['user_id'], $_SESSION['user_auth']);
         }
     }
     return $user;
@@ -41,13 +45,15 @@ function require_login(): array
 function login_user(int $userId): void
 {
     session_regenerate_id(true);
+    unset($_SESSION['csrf_token']); // a fresh form token for the signed-in session
     $_SESSION['user_id'] = $userId;
+    $_SESSION['user_auth'] = (int) db_value('SELECT auth_version FROM users WHERE id = ?', [$userId]);
     db_run('UPDATE users SET failed_logins = 0, locked_until = NULL, last_login_at = NOW() WHERE id = ?', [$userId]);
 }
 
 function logout_user(): void
 {
-    unset($_SESSION['user_id']);
+    unset($_SESSION['user_id'], $_SESSION['user_auth'], $_SESSION['csrf_token']);
     session_regenerate_id(true);
 }
 
@@ -78,7 +84,6 @@ function email_used_by_customer(string $email): bool
     return (bool) db_value('SELECT 1 FROM users WHERE email = ?', [strtolower(trim($email))]);
 }
 
-const STAFF_EMAIL_TAKEN = 'This email is used for a shop staff login. Please use a different email for a customer account.';
 const CUSTOMER_EMAIL_TAKEN = 'A customer account already uses this email. Please use a different email for the staff login.';
 
 /**
@@ -95,10 +100,9 @@ function register_user(string $name, string $email, string $phone, string $passw
     }
     if (!valid_email($email)) {
         $errors['email'] = 'Please enter a valid email address.';
-    } elseif (find_user_by_email($email)) {
-        $errors['email'] = 'An account with this email already exists. Please log in instead.';
-    } elseif (email_used_by_staff($email)) {
-        $errors['email'] = STAFF_EMAIL_TAKEN;
+    } elseif (find_user_by_email($email) || email_used_by_staff($email)) {
+        // Same words for both, so nobody can find out which emails are staff logins.
+        $errors['email'] = 'An account with this email already exists. Please log in, or use a different email.';
     }
     if ($phone !== '' && !valid_au_phone($phone)) {
         $errors['phone'] = 'Please enter an Australian phone number.';
@@ -119,21 +123,21 @@ function register_user(string $name, string $email, string $phone, string $passw
 /** Checks credentials with a short lock after repeated failures. Returns [user, error]. */
 function attempt_login(string $email, string $password): array
 {
+    if (login_throttled('login', $email)) {
+        return [null, LOGIN_THROTTLED_MESSAGE];
+    }
     $user = find_user_by_email($email);
     $generic = 'That email and password do not match. Please try again.';
     if (!$user) {
         password_verify($password, '$2y$10$YHBeJrKlV.IVtnhkuGstZOkPft3zghGztr7dRyafzhnzmREtFlpni'); // keeps timing similar
+        login_failed('login', $email);
         return [null, $generic];
-    }
-    if ($user['locked_until'] && strtotime($user['locked_until']) > time()) {
-        return [null, 'Too many attempts. Please wait ' . LOGIN_LOCK_MINUTES . ' minutes or reset your password.'];
     }
     if (!password_verify($password, $user['password_hash'])) {
-        $failed = (int) $user['failed_logins'] + 1;
-        $lock = $failed >= LOGIN_MAX_ATTEMPTS ? date('Y-m-d H:i:s', time() + LOGIN_LOCK_MINUTES * 60) : null;
-        db_run('UPDATE users SET failed_logins = ?, locked_until = ? WHERE id = ?', [$lock ? 0 : $failed, $lock, $user['id']]);
+        login_failed('login', $email);
         return [null, $generic];
     }
+    login_throttle_clear('login', $email);
     if (password_needs_rehash($user['password_hash'], PASSWORD_DEFAULT)) {
         db_run('UPDATE users SET password_hash = ? WHERE id = ?', [password_hash($password, PASSWORD_DEFAULT), $user['id']]);
     }
@@ -144,7 +148,8 @@ function attempt_login(string $email, string $password): array
 function send_password_reset(string $email): void
 {
     $user = find_user_by_email($email);
-    if (!$user) {
+    // At most 3 reset emails an hour to one address, and 10 an hour from one connection.
+    if (!$user || rate_hit('reset-mail', $user['email'], 3, 3600) || rate_hit('reset-mail-ip', client_ip(), 10, 3600)) {
         return;
     }
     $token = bin2hex(random_bytes(32));

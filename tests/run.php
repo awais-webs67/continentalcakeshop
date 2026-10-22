@@ -106,6 +106,26 @@ check('keyword found in title', $checks[1][1]);
 check('keyword words found in web address', $checks[3][1]);
 check('old addresses redirect', legacy_redirect_target('about-us') === url('about'));
 
+// --- HTML sanitizer: only safe tags, attributes and links survive -----------------------------
+$xss = [
+    '<img src="/u/x.webp"/onerror="alert(1)">', '<a href="&#106;avascript:alert(1)">x</a>', '<a href="javascript&colon;alert(1)">x</a>',
+    "<a href=\"java\tscript:alert(1)\">x</a>", '<svg onload=alert(1)>', '<p onmouseover="x()">p</p>', '<img src="data:image/png;base64,AA">',
+    '<a href="javascript:alert(\'x\')">x</a>', '<img src=x alt="a"onerror=alert(1)>', '<iframe src="https://x.com"></iframe>',
+];
+$leaks = array_filter($xss, static fn ($h) => preg_match('/onerror|onload|onmouseover|javascript|data:|<svg|<iframe/i', clean_html($h)));
+check('sanitizer blocks script tricks', !$leaks, implode(' | ', array_map('clean_html', $leaks)));
+same('sanitizer keeps normal formatting', '<h2>Hi</h2><p style="text-align: center"><a href="{url:shop}">Shop</a> <strong>now</strong></p>', clean_html('<h2>Hi</h2><p style="text-align:center;color:red" class="x"><a href="{url:shop}" onclick="y()">Shop</a> <strong>now</strong></p>'));
+check('only web links for settings', safe_web_url('https://g.page/x') && !safe_web_url('javascript://x/%0aalert(1)'));
+same('first name with a link becomes "there"', 'there', email_first_name('https://evil.example/x Smith'));
+
+// --- Rate limits count across sessions ------------------------------------------------------
+$key = 'test-' . bin2hex(random_bytes(4));
+$results = array_map(static fn () => rate_hit('tests', $key, 3, 60), range(1, 4));
+same('fourth try is over a limit of three', [false, false, false, true], $results);
+rate_clear('tests', $key);
+check('limit starts again after clearing', !rate_hit('tests', $key, 3, 60));
+rate_clear('tests', $key);
+
 // --- Payments ledger (the test order is deleted afterwards) ----------------------------------
 try {
     $order = create_order([

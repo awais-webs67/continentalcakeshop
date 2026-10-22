@@ -73,6 +73,10 @@ function applied_coupon_code(): string
 
 function apply_coupon(string $code, float $subtotal): ?string
 {
+    // 20 tries per 15 minutes from one connection: plenty for customers, too few to guess codes.
+    if (rate_hit('coupon', client_ip(), 20, 900)) {
+        return 'Too many tries. Please wait 15 minutes before trying another code.';
+    }
     $coupon = find_coupon($code);
     if ($error = coupon_error($coupon, $subtotal)) {
         return $error;

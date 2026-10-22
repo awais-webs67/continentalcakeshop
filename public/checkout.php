@@ -145,7 +145,7 @@ if (is_post()) {
         } elseif (!isset($errors['email']) && find_user_by_email($data['email'])) {
             $errors['email'] = 'This email already has an account. Please log in to save this order to it.';
         } elseif (!isset($errors['email']) && email_used_by_staff($data['email'])) {
-            $errors['email'] = STAFF_EMAIL_TAKEN . ' Or untick "Create an account" to order as a guest.';
+            $errors['email'] = 'An account with this email already exists. Please log in, or untick "Create an account" to order as a guest.';
         }
     }
     if (!empty($couponNotice)) {
@@ -179,8 +179,16 @@ if (is_post()) {
         [$newUserId] = register_user($data['name'], $data['email'], $data['phone'], $accountPassword);
         if ($newUserId) {
             login_user($newUserId);
+            send_email_verification(find_user_by_email($data['email']));
             $data['user_id'] = $newUserId;
         }
+    }
+
+    // Real customers place a few orders at most; this stops scripts filling the day with fake orders.
+    if (rate_hit('order', client_ip(), 10, 3600)) {
+        remember_input(array_diff_key($data, ['payment_proof' => true, 'user_id' => true]));
+        flash('error', 'Too many orders from this connection in the last hour. Please call us on ' . setting('store_phone') . ' and we will help.');
+        redirect('checkout');
     }
 
     try {

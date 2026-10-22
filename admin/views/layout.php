@@ -27,7 +27,6 @@ $nav = [
         ['pages', 'Pages', 'info', null],
         ['faqs', 'FAQs', 'search', null],
         ['seo', 'SEO', 'chart', null],
-        ['settings', 'Settings', 'pen', null],
     ],
 ];
 // Hide links the account may not open.
@@ -38,6 +37,7 @@ foreach ($nav as $group => $links) {
     }
 }
 if ($admin['role'] === 'owner') {
+    $nav['Website'][] = ['settings', 'Settings', 'pen', null];
     $nav['Website'][] = ['admins', 'Staff accounts', 'user', null];
     $nav['Website'][] = ['system', 'System check', 'check', null];
 }

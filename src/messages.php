@@ -53,7 +53,7 @@ function custom_request_thread(array $request): array
 {
     return db_one('SELECT * FROM threads WHERE custom_request_id = ?', [$request['id']])
         ?? create_thread($request['occasion'] . ' cake request', $request['name'], $request['email'], $request['phone'],
-            ['custom_request_id' => $request['id'], 'user_id' => find_user_by_email($request['email'])['id'] ?? null]);
+            ['custom_request_id' => $request['id'], 'user_id' => find_verified_user_by_email($request['email'])['id'] ?? null]);
 }
 
 /** Adds a message and marks the conversation unread for the other side. */

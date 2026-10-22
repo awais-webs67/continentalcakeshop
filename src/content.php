@@ -11,7 +11,7 @@ const CAKE_OCCASIONS = ['Birthday', 'Kids birthday', 'Wedding', 'Engagement', 'B
 
 // Addresses the website already uses, so a page can never take one of them.
 const RESERVED_SLUGS = ['shop', 'cakes', 'order', 'messages', 'quote', 'cart', 'checkout', 'custom-cakes', 'about', 'contact', 'login', 'register',
-    'logout', 'account', 'forgot-password', 'reset-password', 'faq', 'api', 'admin', 'stripe-webhook', 'sitemap', 'robots', 'uploads', 'assets', '404', 'index', 'page'];
+    'logout', 'account', 'forgot-password', 'reset-password', 'verify-email', 'faq', 'api', 'admin', 'stripe-webhook', 'sitemap', 'robots', 'uploads', 'assets', '404', 'index', 'page'];
 
 function get_page(string $slug): ?array
 {
@@ -62,26 +62,134 @@ function render_content(string $html): string
 }
 
 /**
- * Keeps the formatting the admin editor produces and removes anything that could run code:
- * scripts, event attributes, javascript: links, inline images and any style except text alignment.
+ * Keeps the formatting the admin editor produces and removes everything else. The HTML is parsed
+ * (like a browser does) and rebuilt from an allowlist: only the tags and attributes below survive,
+ * links may only be web, email, phone or on-site addresses, and style keeps text-align only.
+ * Anything not on the list is dropped, so tricks like entity-encoded "javascript:" or
+ * "<img/onerror=...>" cannot get through.
  */
-function clean_html(string $html): string
+const CLEAN_HTML_TAGS = ['h2', 'h3', 'h4', 'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'ul', 'ol', 'li', 'a', 'blockquote', 'hr', 'img',
+    'table', 'thead', 'tbody', 'tr', 'th', 'td', 'span'];
+const CLEAN_HTML_DROP = ['script', 'style', 'iframe', 'frame', 'frameset', 'object', 'embed', 'applet', 'form', 'input', 'button', 'select', 'textarea',
+    'svg', 'math', 'template', 'noscript', 'link', 'meta', 'base', 'audio', 'video', 'source', 'track', 'canvas', 'title', 'head'];
+const CLEAN_HTML_ATTRS = ['a' => ['href', 'title', 'target'], 'img' => ['src', 'alt', 'width', 'height', 'title'], 'td' => ['colspan', 'rowspan'], 'th' => ['colspan', 'rowspan']];
+
+/** A link or image address that is safe to keep: http(s), mailto, tel, or a path on this site. */
+function clean_url(string $url, bool $image = false): ?string
 {
-    $html = (string) preg_replace('#<(script|style|iframe|object|embed|form|svg|math)\b[^>]*>.*?</\1>#is', '', $html);
-    $html = strip_tags($html, '<h2><h3><h4><p><br><strong><b><em><i><u><s><ul><ol><li><a><blockquote><hr><img><table><thead><tbody><tr><th><td><span>');
-    $html = (string) preg_replace('/\s+on[a-z]+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $html);
-    $html = (string) preg_replace('/\s+(href|src)\s*=\s*(["\']?)\s*(javascript|data|vbscript):[^"\'>]*\2/i', ' $1="#"', $html);
-    $html = (string) preg_replace('/<img\b[^>]*\bsrc="#"[^>]*>/i', '', $html);
-    // Only text-align survives from style attributes (used by the align and justify buttons).
-    $html = (string) preg_replace_callback('/\s+style\s*=\s*("([^"]*)"|\'([^\']*)\')/i', static function (array $m): string {
-        $css = $m[2] !== '' ? $m[2] : ($m[3] ?? '');
-        return preg_match('/text-align\s*:\s*(left|right|center|justify)/i', $css, $align) ? ' style="text-align: ' . strtolower($align[1]) . '"' : '';
-    }, $html);
-    $html = (string) preg_replace('#<p[^>]*>(\s|&nbsp;|<br\s*/?>)*</p>#i', '', $html);
-    return trim($html);
+    $url = trim($url);
+    // Decide on the decoded form too, so "javascript&colon;" or "jav&#x09;ascript:" cannot hide a scheme.
+    $check = $url;
+    for ($i = 0; $i < 3; $i++) {
+        $check = html_entity_decode($check, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    }
+    $check = (string) preg_replace('/[\x00-\x20\x7F]+/', '', $check);
+    if ($check === '') {
+        return null;
+    }
+    if (preg_match('/^([a-z][a-z0-9+.\-]*):/i', $check, $m) && !str_starts_with($check, '{url:')) {
+        $scheme = strtolower($m[1]);
+        $allowed = $image ? ['http', 'https'] : ['http', 'https', 'mailto', 'tel'];
+        return in_array($scheme, $allowed, true) ? $url : null;
+    }
+    return $url; // relative: /path, #anchor, ?query or a {url:page} placeholder
 }
 
-/** Shows stored text: formatted HTML from the editor, or plain text with line breaks. */
+function clean_html(string $html): string
+{
+    if (trim($html) === '') {
+        return '';
+    }
+    if (!class_exists('DOMDocument')) {
+        return nl2br(e(trim(strip_tags($html)))); // no DOM extension: keep the text only
+    }
+    $doc = new DOMDocument();
+    $previous = libxml_use_internal_errors(true);
+    $doc->loadHTML('<!DOCTYPE html><html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"></head><body><div id="clean-root">' . $html . '</div></body></html>', LIBXML_NONET);
+    libxml_clear_errors();
+    libxml_use_internal_errors($previous);
+    $root = $doc->getElementById('clean-root');
+    if (!$root) {
+        return '';
+    }
+
+    $walk = static function (DOMNode $node) use (&$walk): void {
+        foreach (iterator_to_array($node->childNodes) as $child) {
+            if ($child instanceof DOMComment || $child instanceof DOMProcessingInstruction || $child instanceof DOMCdataSection) {
+                $node->removeChild($child);
+                continue;
+            }
+            if (!$child instanceof DOMElement) {
+                continue;
+            }
+            $tag = strtolower($child->tagName);
+            if (in_array($tag, CLEAN_HTML_DROP, true)) {
+                $node->removeChild($child);
+                continue;
+            }
+            $walk($child);
+            if (!in_array($tag, CLEAN_HTML_TAGS, true)) {
+                // Unknown tag (div, font, h1...): keep what is inside it.
+                while ($child->firstChild) {
+                    $node->insertBefore($child->firstChild, $child);
+                }
+                $node->removeChild($child);
+                continue;
+            }
+            $keep = CLEAN_HTML_ATTRS[$tag] ?? [];
+            $align = null;
+            foreach (iterator_to_array($child->attributes) as $attr) {
+                $name = strtolower($attr->name);
+                if ($name === 'style' && preg_match('/text-align\s*:\s*(left|right|center|justify)/i', $attr->value, $m)) {
+                    $align = strtolower($m[1]);
+                }
+                if (!in_array($name, $keep, true)) {
+                    $child->removeAttribute($attr->name);
+                }
+            }
+            if ($align !== null && $tag !== 'img') {
+                $child->setAttribute('style', 'text-align: ' . $align);
+            }
+            if ($tag === 'a') {
+                $href = $child->hasAttribute('href') ? clean_url($child->getAttribute('href')) : null;
+                $href === null ? $child->removeAttribute('href') : $child->setAttribute('href', $href);
+                if ($child->getAttribute('target') !== '') {
+                    $child->setAttribute('target', '_blank');
+                    $child->setAttribute('rel', 'noopener noreferrer');
+                }
+            }
+            if ($tag === 'img') {
+                $src = clean_url($child->getAttribute('src'), true);
+                if ($src === null) {
+                    $node->removeChild($child);
+                    continue;
+                }
+                $child->setAttribute('src', $src);
+                foreach (['width', 'height'] as $size) {
+                    if ($child->hasAttribute($size) && !ctype_digit($child->getAttribute($size))) {
+                        $child->removeAttribute($size);
+                    }
+                }
+            }
+            foreach (['colspan', 'rowspan'] as $span) {
+                if ($child->hasAttribute($span) && !ctype_digit($child->getAttribute($span))) {
+                    $child->removeAttribute($span);
+                }
+            }
+        }
+    };
+    $walk($root);
+
+    $out = '';
+    foreach ($root->childNodes as $child) {
+        $out .= $doc->saveHTML($child);
+    }
+    // saveHTML() escapes the braces of {url:page} placeholders inside links; put them back.
+    $out = (string) preg_replace('/%7Burl:([a-z0-9-]+)%7D/i', '{url:$1}', $out);
+    $out = (string) preg_replace('#<p[^>]*>(\s|&nbsp;|\xC2\xA0|<br\s*/?>)*</p>#i', '', $out);
+    return trim($out);
+}
+
 function rich_text(?string $text): string
 {
     $text = (string) $text;

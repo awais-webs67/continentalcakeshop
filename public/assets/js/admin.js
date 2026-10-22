@@ -125,8 +125,10 @@
     // Random coupon code, avoiding letters that are easy to mix up (O/0, I/1)
     $$('[data-generate-code]').forEach(function (btn) {
         btn.addEventListener('click', function () {
-            var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', code = 'CAKE';
-            for (var i = 0; i < 5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+            // 8 random characters from the browser's secure generator: about a trillion possible codes.
+            var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', code = 'CAKE', bytes = new Uint8Array(8);
+            (window.crypto || window.msCrypto).getRandomValues(bytes);
+            for (var i = 0; i < 8; i++) code += chars.charAt(bytes[i] % chars.length);
             var input = $('[data-coupon-code-input]');
             input.value = code;
             input.focus();
@@ -486,9 +488,9 @@ document.addEventListener('input', function (e) {
     var bodyText = function () {
         var editor = descArea && descArea.parentNode.querySelector('.ql-editor');
         var html = editor ? editor.innerHTML : (descArea ? descArea.value : '');
-        var div = document.createElement('div');
-        div.innerHTML = html;
-        return (div.textContent || '').replace(/\s+/g, ' ').trim();
+        // DOMParser builds an inert document: no image loads and no handlers run, whatever the text holds.
+        var text = new DOMParser().parseFromString(html, 'text/html').body.textContent || '';
+        return text.replace(/\s+/g, ' ').trim();
     };
     var titleValue = function () {
         if (titleInput.value.trim()) return titleInput.value.trim();

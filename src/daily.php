@@ -212,5 +212,46 @@ function cleanup_task(DateTimeImmutable $now): string
     $removed = db_run('DELETE FROM not_found_log WHERE last_seen < ?', [$now->modify('-90 days')->format('Y-m-d H:i:s')])->rowCount();
     db_run('DELETE FROM password_resets WHERE expires_at < ?', [$now->modify('-7 days')->format('Y-m-d H:i:s')]);
     db_run('DELETE FROM admin_password_resets WHERE expires_at < ?', [$now->modify('-7 days')->format('Y-m-d H:i:s')]);
-    return 'Tidied up' . ($removed ? ", {$removed} old missing page entries" : '') . '.';
+    // The missing-pages list keeps the 5,000 most visited addresses, so bots cannot grow it forever.
+    $keepFrom = db_value('SELECT hits FROM not_found_log ORDER BY hits DESC, last_seen DESC LIMIT 1 OFFSET 4999');
+    if ($keepFrom !== null) {
+        $removed += db_run('DELETE FROM not_found_log WHERE hits < ?', [(int) $keepFrom])->rowCount();
+    }
+    try {
+        db_run('DELETE FROM rate_limits WHERE window_start < ?', [$now->modify('-2 days')->format('Y-m-d H:i:s')]);
+    } catch (PDOException) {
+    }
+    $files = remove_unused_uploads($now);
+    return 'Tidied up' . ($removed ? ", {$removed} old missing page entries" : '') . ($files ? ", {$files} unused uploads" : '') . '.';
+}
+
+/**
+ * Payment screenshots and cake photos are saved as soon as they are chosen, before the form is
+ * sent. Files that never became part of an order or a request are deleted after two days.
+ */
+function remove_unused_uploads(DateTimeImmutable $now): int
+{
+    $used = array_flip(array_merge(
+        array_column(db_all("SELECT payment_proof AS p FROM orders WHERE payment_proof IS NOT NULL AND payment_proof <> ''"), 'p'),
+        array_column(db_all("SELECT reference_image AS p FROM custom_requests WHERE reference_image IS NOT NULL AND reference_image <> ''"), 'p')
+    ));
+    $cutoff = $now->modify('-2 days')->getTimestamp();
+    $deleted = 0;
+    foreach (array_keys(ASYNC_UPLOADS) as $purpose) {
+        $base = STORAGE_PATH . '/uploads/' . ASYNC_UPLOADS[$purpose]['folder'];
+        if (!is_dir($base)) {
+            continue;
+        }
+        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($base, FilesystemIterator::SKIP_DOTS));
+        foreach ($files as $file) {
+            if (!$file->isFile() || $file->getFilename() === '.htaccess' || $file->getMTime() > $cutoff) {
+                continue;
+            }
+            $relative = ASYNC_UPLOADS[$purpose]['folder'] . substr($file->getPathname(), strlen($base));
+            if (!isset($used[$relative]) && @unlink($file->getPathname())) {
+                $deleted++;
+            }
+        }
+    }
+    return $deleted;
 }
