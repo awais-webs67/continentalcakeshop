@@ -82,10 +82,28 @@ function csrf_field(): string
     return '<input type="hidden" name="_token" value="' . e(csrf_token()) . '">';
 }
 
+/** Sent by our own scripts (fetch with the X-Requested-With: fetch header). */
+function is_fetch_request(): bool
+{
+    return ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'fetch';
+}
+
+function json_out(array $data, int $status = 200): never
+{
+    http_response_code($status);
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    echo json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 function verify_csrf(): void
 {
     $token = $_POST['_token'] ?? '';
     if (!is_string($token) || !hash_equals(csrf_token(), $token)) {
+        if (is_fetch_request()) {
+            json_out(['ok' => false, 'error' => 'Your session has expired. Please refresh the page.'], 419);
+        }
         http_response_code(419);
         exit('Your session has expired. Please go back, refresh the page and try again.');
     }

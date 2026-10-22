@@ -8,22 +8,22 @@
 </div>
 <div class="grid-main">
     <section class="card">
-        <div class="card__body chat-admin">
-            <?php if (!$messages): ?><p class="hint">No messages yet. Write the first one below; the customer gets it by email with a button to reply.</p><?php endif; ?>
+        <div class="card__body chat-admin" data-chat data-chat-url="<?= e(admin_url('messages/view', ['id' => $thread['id']])) ?>" data-last-id="<?= (int) ($messages ? end($messages)['id'] : 0) ?>" aria-live="polite">
+            <?php if (!$messages): ?><p class="hint chat-admin__empty">No messages yet. Write the first one below; the customer gets it by email with a button to reply.</p><?php endif; ?>
             <?php foreach ($messages as $m): ?>
-                <div class="chat-admin__msg chat-admin__msg--<?= e($m['sender']) ?>">
-                    <div class="chat-admin__bubble"><?= nl2br(e($m['body'])) ?></div>
-                    <p class="chat-admin__meta"><?= $m['sender'] === 'shop' ? e($m['admin_name'] ?: 'Shop') : e($thread['customer_name']) ?> &middot; <?= e(date('j M Y, g:ia', strtotime($m['created_at']))) ?></p>
-                </div>
+                <?= chat_bubble_html($m, $thread, 'admin') ?>
             <?php endforeach; ?>
         </div>
-        <form class="card__body form-stack" id="reply" method="post" style="border-top:1px solid var(--line)">
+        <form class="card__body form-stack chat-admin__form" id="reply" method="post" data-chat-form>
             <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $thread['id'] ?>"><input type="hidden" name="action" value="reply">
             <label class="field"><span>Reply to <?= e($thread['customer_name']) ?></span><textarea class="input" name="body" rows="5" required placeholder="Write your reply. It is emailed to the customer with a button to answer."></textarea></label>
-            <div class="form-actions" style="padding:0">
+            <p class="field-error" data-chat-error hidden></p>
+            <div class="form-actions chat-admin__actions">
                 <button class="btn btn--primary" type="submit"><?= icon('mail', '', 18) ?> Send reply</button>
                 <label class="inline-check"><input type="checkbox" name="close" value="1"> Close after sending</label>
+                <span class="live-dot" title="New messages appear here automatically"><span></span> Live</span>
             </div>
+            <p class="hint" data-chat-note hidden></p>
         </form>
     </section>
     <div class="stack">

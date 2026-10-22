@@ -6,10 +6,10 @@ $section = explode('/', $route)[0];
 $nav = [
     'Shop' => [
         ['', 'Dashboard', 'store', null],
-        ['orders', 'Orders', 'bag', $badges['orders'] + $badges['payments']],
+        ['orders', 'Orders', 'bag', $badges['orders'] + $badges['payments'], 'orders'],
         ['pickups', 'Pickups & deliveries', 'calendar', null],
-        ['custom-requests', 'Custom requests', 'gift', $badges['custom']],
-        ['messages', 'Messages', 'mail', $badges['messages']],
+        ['custom-requests', 'Custom requests', 'gift', $badges['custom'], 'custom'],
+        ['messages', 'Messages', 'mail', $badges['messages'], 'messages'],
         ['customers', 'Customers', 'user', null],
         ['reports', 'Sales reports', 'chart', null],
         ['coupons', 'Coupons', 'tag', null],
@@ -74,9 +74,9 @@ $quickAdd = array_values(array_filter([
 ]));
 $bottomNav = array_values(array_filter([
     ['', 'Home', 'store', 0],
-    admin_can('orders', $admin) ? ['orders', 'Orders', 'bag', $badges['orders'] + $badges['payments']] : null,
-    admin_can('messages', $admin) ? ['messages', 'Messages', 'mail', $badges['messages']] : null,
-    admin_can('products', $admin) ? ['products', 'Products', 'cake', 0] : (admin_can('custom', $admin) ? ['custom-requests', 'Requests', 'gift', $badges['custom']] : null),
+    admin_can('orders', $admin) ? ['orders', 'Orders', 'bag', $badges['orders'] + $badges['payments'], 'orders'] : null,
+    admin_can('messages', $admin) ? ['messages', 'Messages', 'mail', $badges['messages'], 'messages'] : null,
+    admin_can('products', $admin) ? ['products', 'Products', 'cake', 0] : (admin_can('custom', $admin) ? ['custom-requests', 'Requests', 'gift', $badges['custom'], 'custom'] : null),
 ]));
 $alertCount = array_sum(array_map(static fn ($a) => (int) $a[2], $alerts));
 ?>
@@ -91,11 +91,11 @@ $alertCount = array_sum(array_map(static fn ($a) => (int) $a[2], $alerts));
     <nav class="sidebar__nav" aria-label="Admin">
         <?php foreach ($nav as $group => $links): ?>
             <p class="sidebar__group"><?= e($group) ?></p>
-            <?php foreach ($links as [$path, $label, $iconName, $count]): ?>
+            <?php foreach ($links as $link): [$path, $label, $iconName, $count] = $link; $badgeKey = $link[4] ?? null; ?>
                 <a href="<?= e(admin_url($path)) ?>" class="<?= $section === $path ? 'is-active' : '' ?>"<?= $section === $path ? ' aria-current="page"' : '' ?>>
                     <span class="sidebar__icon"><?= icon($iconName, '', 18) ?></span>
                     <span><?= e($label) ?></span>
-                    <?php if ($count): ?><em><?= (int) $count ?></em><?php endif; ?>
+                    <?php if ($badgeKey): ?><em data-badge="<?= e($badgeKey) ?>" <?= $count ? '' : 'hidden' ?>><?= (int) $count ?></em><?php elseif ($count): ?><em><?= (int) $count ?></em><?php endif; ?>
                 </a>
             <?php endforeach; ?>
         <?php endforeach; ?>
@@ -138,8 +138,8 @@ $alertCount = array_sum(array_map(static fn ($a) => (int) $a[2], $alerts));
             </details>
             <?php endif; ?>
             <details class="dropdown">
-                <summary class="icon-button" aria-label="Notifications"><?= icon('bell', '', 20) ?><?php if ($alertCount): ?><span class="icon-button__badge"><?= $alertCount > 99 ? '99+' : $alertCount ?></span><?php endif; ?></summary>
-                <div class="dropdown__panel dropdown__panel--wide">
+                <summary class="icon-button" aria-label="Notifications"><?= icon('bell', '', 20) ?><span class="icon-button__badge" data-badge="alerts" <?= $alertCount ? '' : 'hidden' ?>><?= $alertCount > 99 ? '99+' : $alertCount ?></span></summary>
+                <div class="dropdown__panel dropdown__panel--wide" data-live="alerts">
                     <p class="dropdown__title">Needs attention</p>
                     <?php if (!$alerts): ?><p class="dropdown__empty"><?= icon('check', '', 18) ?> You are all caught up.</p><?php endif; ?>
                     <?php foreach ($alerts as [$link, $iconName, $label]): ?>
@@ -174,8 +174,8 @@ $alertCount = array_sum(array_map(static fn ($a) => (int) $a[2], $alerts));
 </div>
 
 <nav class="bottom-nav" aria-label="Quick links">
-    <?php foreach ($bottomNav as [$path, $label, $iconName, $count]): ?>
-        <a href="<?= e(admin_url($path)) ?>" class="<?= $section === $path ? 'is-active' : '' ?>"><span class="bottom-nav__icon"><?= icon($iconName, '', 22) ?><?php if ($count): ?><em><?= (int) $count ?></em><?php endif; ?></span><span><?= e($label) ?></span></a>
+    <?php foreach ($bottomNav as $link): [$path, $label, $iconName, $count] = $link; $badgeKey = $link[4] ?? null; ?>
+        <a href="<?= e(admin_url($path)) ?>" class="<?= $section === $path ? 'is-active' : '' ?>"><span class="bottom-nav__icon"><?= icon($iconName, '', 22) ?><?php if ($badgeKey): ?><em data-badge="<?= e($badgeKey) ?>" <?= $count ? '' : 'hidden' ?>><?= (int) $count ?></em><?php endif; ?></span><span><?= e($label) ?></span></a>
     <?php endforeach; ?>
     <button type="button" data-sidebar-open><span class="bottom-nav__icon"><?= icon('menu', '', 22) ?></span><span>Menu</span></button>
 </nav>
@@ -184,7 +184,8 @@ $alertCount = array_sum(array_map(static fn ($a) => (int) $a[2], $alerts));
     'quillCss'  => asset('vendor/quill/quill.snow.css'),
     'uploadUrl' => admin_url('upload-image'),
     'csrf'      => csrf_token(),
-], JSON_UNESCAPED_SLASHES) ?>;</script>
+    'live'      => ['url' => admin_url('live')] + admin_live_state($admin),
+], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?>;</script>
 <script src="<?= e(asset('js/admin.js')) ?>" defer></script>
 </body>
 </html>

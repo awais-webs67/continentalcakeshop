@@ -68,12 +68,52 @@ function add_thread_message(array $thread, string $sender, string $body, ?int $a
     );
 }
 
-/** A customer wrote: save it and let the shop know by email. */
+/** How long after its last check a chat page still counts as open. */
+const CHAT_LIVE_SECONDS = 40;
+
+/** True while the other side has this conversation open (their page checked in a moment ago). */
+function thread_seen_live(array $thread, string $who): bool
+{
+    $seen = $thread[$who . '_seen_at'] ?? null;
+    return $seen && strtotime((string) $seen) >= time() - CHAT_LIVE_SECONDS;
+}
+
+/** Records that the shop or the customer has the conversation open right now. */
+function mark_thread_seen(array $thread, string $who): void
+{
+    db_run($who === 'admin'
+        ? 'UPDATE threads SET admin_seen_at = NOW(), unread_admin = 0 WHERE id = ?'
+        : 'UPDATE threads SET customer_seen_at = NOW(), unread_customer = 0 WHERE id = ?', [$thread['id']]);
+}
+
+/** Messages newer than the given id. */
+function thread_messages_after(int $threadId, int $afterId): array
+{
+    return db_all(
+        'SELECT m.*, a.name AS admin_name FROM thread_messages m LEFT JOIN admins a ON a.id = m.admin_id
+         WHERE m.thread_id = ? AND m.id > ? ORDER BY m.id',
+        [$threadId, $afterId]
+    );
+}
+
+/** One chat bubble, as the customer ('customer') or the shop ('admin') sees it. */
+function chat_bubble_html(array $m, array $thread, string $view): string
+{
+    $prefix = $view === 'admin' ? 'chat-admin' : 'chat';
+    $who = $view === 'admin'
+        ? ($m['sender'] === 'shop' ? ($m['admin_name'] ?: 'Shop') : $thread['customer_name'])
+        : ($m['sender'] === 'shop' ? setting('store_short_name') : 'You');
+    return '<div class="' . $prefix . '__msg ' . $prefix . '__msg--' . e($m['sender']) . '" data-msg-id="' . (int) $m['id'] . '">'
+        . '<div class="' . $prefix . '__bubble">' . nl2br(e($m['body'])) . '</div>'
+        . '<p class="' . $prefix . '__meta">' . e($who) . ' &middot; ' . e(date('j M Y, g:ia', strtotime((string) $m['created_at']))) . '</p></div>';
+}
+
+/** A customer wrote: save it and let the shop know by email (unless staff are reading it live). */
 function customer_message(array $thread, string $body): void
 {
     add_thread_message($thread, 'customer', $body);
     $notify = setting('order_notification_email');
-    if ($notify !== '') {
+    if ($notify !== '' && !thread_seen_live($thread, 'admin')) {
         send_mail(
             $notify,
             'New message from ' . $thread['customer_name'] . ': ' . $thread['subject'],
@@ -88,6 +128,9 @@ function customer_message(array $thread, string $body): void
 function shop_message(array $thread, string $body, int $adminId): bool
 {
     add_thread_message($thread, 'shop', $body, $adminId);
+    if (thread_seen_live($thread, 'customer')) {
+        return true; // The customer has the chat open and sees the reply straight away.
+    }
     return send_mail(
         $thread['customer_email'],
         'Re: ' . $thread['subject'] . ' - ' . setting('store_short_name'),

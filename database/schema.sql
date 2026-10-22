@@ -389,6 +389,8 @@ CREATE TABLE threads (
     unread_admin       TINYINT(1) NOT NULL DEFAULT 0,
     unread_customer    TINYINT(1) NOT NULL DEFAULT 0,
     last_message_at    DATETIME NULL,
+    admin_seen_at      DATETIME NULL,
+    customer_seen_at   DATETIME NULL,
     created_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uq_threads_order (order_id),
     UNIQUE KEY uq_threads_custom (custom_request_id),

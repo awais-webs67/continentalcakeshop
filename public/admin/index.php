@@ -52,6 +52,7 @@ const ADMIN_ROUTES = [
     'account'              => 'account',
     'file'                 => 'file',
     'system'               => 'system',
+    'live'                 => 'live',
 ];
 
 $controller = ADMIN_ROUTES[$route] ?? null;

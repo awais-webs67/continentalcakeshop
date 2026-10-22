@@ -3,7 +3,7 @@
     <div><h1>Custom cake requests</h1><p>Enquiries sent from the custom cakes page. Reply with a quote from each request.</p></div>
 </div>
 <section class="card">
-    <nav class="tabs">
+    <nav class="tabs" data-live="tabs">
         <a href="<?= e(admin_url('custom-requests')) ?>" class="<?= $status === '' ? 'is-active' : '' ?>">All<span><?= array_sum($counts) ?></span></a>
         <?php foreach (CUSTOM_STATUSES as $key => $label): ?>
             <a href="<?= e(admin_url('custom-requests', ['status' => $key])) ?>" class="<?= $status === $key ? 'is-active' : '' ?>"><?= e($label) ?><span><?= (int) ($counts[$key] ?? 0) ?></span></a>
@@ -14,6 +14,7 @@
         <input class="input grow" type="search" name="q" value="<?= e($q) ?>" placeholder="Name, email, phone or occasion">
         <button class="btn btn--secondary" type="submit">Search</button>
     </form>
+    <div data-live="list">
     <?php if (!$result['rows']): ?>
         <div class="empty"><?= icon('gift', '', 32) ?><p>No custom cake requests here yet.</p></div>
     <?php else: ?>
@@ -35,4 +36,5 @@
         </table></div>
     <?php endif; ?>
     <?php require __DIR__ . '/partials/pager.php'; ?>
+    </div>
 </section>

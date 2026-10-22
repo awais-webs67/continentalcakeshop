@@ -731,3 +731,56 @@
         gallery.querySelectorAll('[data-gallery-thumb]').forEach(function (t) { t.classList.toggle('is-active', t === thumb); });
     });
 })();
+
+/* Conversation with the shop: replies appear on their own and messages send without reloading. */
+(function () {
+    var list = document.querySelector('[data-chat]');
+    if (!list || !window.fetch) return;
+    var form = document.querySelector('[data-chat-form]');
+    var url = list.getAttribute('data-chat-url');
+    var lastId = parseInt(list.getAttribute('data-last-id'), 10) || 0;
+    var timer, busy = false;
+    var append = function (messages) {
+        var added = null;
+        messages.forEach(function (m) {
+            if (m.id <= lastId || list.querySelector('[data-msg-id="' + m.id + '"]')) return;
+            var empty = list.querySelector('.chat__empty');
+            if (empty) empty.remove();
+            list.insertAdjacentHTML('beforeend', m.html);
+            lastId = Math.max(lastId, m.id);
+            added = list.lastElementChild;
+        });
+        if (added) added.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    };
+    var schedule = function () { clearTimeout(timer); timer = setTimeout(poll, document.hidden ? 30000 : 5000); };
+    var poll = function () {
+        if (busy) return schedule();
+        busy = true;
+        fetch(url + (url.indexOf('?') < 0 ? '?' : '&') + 'poll=1&after=' + lastId, { credentials: 'same-origin', cache: 'no-store', headers: { 'X-Requested-With': 'fetch' } })
+            .then(function (r) { return r.json(); })
+            .then(function (d) { append(d.messages || []); })
+            .catch(function () {})
+            .then(function () { busy = false; schedule(); });
+    };
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) poll(); });
+    schedule();
+
+    if (!form) return;
+    var error = form.querySelector('[data-chat-error]');
+    var textarea = form.querySelector('textarea');
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var button = form.querySelector('button[type="submit"]');
+        button.disabled = true;
+        error.hidden = true;
+        fetch(form.getAttribute('action') || location.href, { method: 'POST', body: new FormData(form), credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (!d.ok) { error.textContent = d.error || 'Your message could not be sent.'; error.hidden = false; return; }
+                textarea.value = '';
+                poll();
+            })
+            .catch(function () { error.textContent = 'Could not send. Please check your connection and try again.'; error.hidden = false; })
+            .then(function () { button.disabled = false; });
+    });
+})();

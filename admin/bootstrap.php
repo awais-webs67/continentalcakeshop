@@ -500,5 +500,35 @@ function admin_badges(): array
         'messages' => unread_thread_count(),
     ];
 }
+/**
+ * What the live check sends to open admin pages: badge counts, a marker that changes whenever
+ * an order, payment, message or custom request is added or changed, and the newest of each.
+ */
+function admin_live_state(array $admin): array
+{
+    $can = static fn (string $section): bool => admin_can($section, $admin);
+    $badges = admin_badges();
+    $counts = [
+        'orders'   => $can('orders') ? $badges['orders'] + $badges['payments'] : 0,
+        'messages' => $can('messages') ? $badges['messages'] : 0,
+        'custom'   => $can('custom') ? $badges['custom'] : 0,
+    ];
+    $counts['alerts'] = array_sum($counts);
+    $stamp = md5(json_encode([
+        $counts,
+        db_one('SELECT COUNT(*) AS n, MAX(id) AS id, MAX(updated_at) AS changed FROM orders'),
+        db_value('SELECT MAX(id) FROM payments'),
+        db_one('SELECT MAX(last_message_at) AS last, SUM(unread_admin) AS unread, SUM(status = \'open\') AS open FROM threads'),
+        db_one('SELECT COUNT(*) AS n, MAX(id) AS id, SUM(status = \'new\') AS fresh FROM custom_requests'),
+    ]));
+    return [
+        'counts'  => $counts,
+        'stamp'   => $stamp,
+        'order'   => $can('orders') ? db_one('SELECT id, order_number, customer_name, total, channel FROM orders ORDER BY id DESC LIMIT 1') : null,
+        'message' => $can('messages') ? db_one("SELECT m.id, m.thread_id, t.customer_name, LEFT(m.body, 140) AS body FROM thread_messages m JOIN threads t ON t.id = m.thread_id WHERE m.sender = 'customer' ORDER BY m.id DESC LIMIT 1") : null,
+        'request' => $can('custom') ? db_one('SELECT id, name, occasion FROM custom_requests ORDER BY id DESC LIMIT 1') : null,
+    ];
+}
+
 require __DIR__ . '/reports.php';
 require __DIR__ . '/product-import.php';

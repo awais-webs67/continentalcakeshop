@@ -12,6 +12,7 @@ $hour = (int) date('G');
     </div>
 </div>
 
+<div data-live="dashboard">
 <?php if ($admin['role'] === 'owner' && !available_payment_methods()): ?>
     <div class="alert alert--error" style="margin-bottom:16px"><strong>Customers cannot pay at checkout yet.</strong> Add your PayID, bank details or Stripe key and switch the method on in <a href="<?= e(admin_url('settings', ['tab' => 'payments'])) ?>">Settings &gt; Payments</a>.</div>
 <?php endif; ?>
@@ -169,4 +170,5 @@ $hour = (int) date('G');
         </section>
         <?php endif; ?>
     </div>
+</div>
 </div>

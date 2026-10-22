@@ -3,7 +3,7 @@
     <div><h1>Messages</h1><p>Conversations with customers. They write from the contact page, their order page or the "Reply to us" button in our emails.</p></div>
 </div>
 <section class="card">
-    <nav class="tabs">
+    <nav class="tabs" data-live="tabs">
         <?php foreach (['' => 'Open', 'unread' => 'Unread', 'closed' => 'Closed', 'all' => 'All'] as $key => $label): ?>
             <a href="<?= e(admin_url('messages', $key !== '' ? ['filter' => $key] : [])) ?>" class="<?= $filter === $key ? 'is-active' : '' ?>"><?= e($label) ?><?php if ($key === 'unread' && $unread): ?><span><?= (int) $unread ?></span><?php endif; ?></a>
         <?php endforeach; ?>
@@ -13,6 +13,7 @@
         <input class="input grow" type="search" name="q" value="<?= e($q) ?>" placeholder="Name, email or subject">
         <button class="btn btn--secondary" type="submit">Search</button>
     </form>
+    <div data-live="list">
     <?php if (!$result['rows']): ?>
         <div class="empty"><?= icon('mail', '', 32) ?><p>No conversations here.</p></div>
     <?php else: ?>
@@ -31,4 +32,5 @@
         </div>
     <?php endif; ?>
     <?php require __DIR__ . '/partials/pager.php'; ?>
+    </div>
 </section>

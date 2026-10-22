@@ -17,15 +17,20 @@
         if (!t.classList.contains('toast--error')) setTimeout(hide, 5000);
     });
 
-    // Confirm before destructive actions
-    $$('[data-confirm]').forEach(function (el) {
-        el.addEventListener(el.tagName === 'FORM' ? 'submit' : 'click', function (e) {
-            if (!window.confirm(el.getAttribute('data-confirm'))) e.preventDefault();
-        });
+    // Confirm before destructive actions (delegated, so lists refreshed live keep working)
+    document.addEventListener('submit', function (e) {
+        var form = e.target;
+        if (form.hasAttribute && form.hasAttribute('data-confirm') && !window.confirm(form.getAttribute('data-confirm'))) e.preventDefault();
+    });
+    document.addEventListener('click', function (e) {
+        var el = e.target.closest && e.target.closest('[data-confirm]');
+        if (el && el.tagName !== 'FORM' && !window.confirm(el.getAttribute('data-confirm'))) e.preventDefault();
     });
 
     // Auto-submit filters
-    $$('[data-auto-submit]').forEach(function (el) { el.addEventListener('change', function () { el.form.submit(); }); });
+    document.addEventListener('change', function (e) {
+        if (e.target.matches && e.target.matches('[data-auto-submit]') && e.target.form) e.target.form.submit();
+    });
 
     // Image preview before upload
     $$('[data-image-input]').forEach(function (input) {
@@ -349,17 +354,16 @@
     });
 
     // Top bar menus: only one open at a time, closed by a click outside or Esc
-    var dropdowns = $$('details.dropdown, details.row-menu');
-    dropdowns.forEach(function (d) {
-        d.addEventListener('toggle', function () {
-            if (d.open) dropdowns.forEach(function (o) { if (o !== d) o.open = false; });
-        });
-    });
+    var dropdowns = function () { return $$('details.dropdown, details.row-menu'); };
+    document.addEventListener('toggle', function (e) {
+        var d = e.target;
+        if (d.open && d.matches && d.matches('details.dropdown, details.row-menu')) dropdowns().forEach(function (o) { if (o !== d) o.open = false; });
+    }, true);
     document.addEventListener('click', function (e) {
-        dropdowns.forEach(function (d) { if (d.open && !d.contains(e.target)) d.open = false; });
+        dropdowns().forEach(function (d) { if (d.open && !d.contains(e.target)) d.open = false; });
     });
     document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') dropdowns.forEach(function (d) { d.open = false; });
+        if (e.key === 'Escape') dropdowns().forEach(function (d) { d.open = false; });
         var search = $('[data-search-input]');
         var typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName) || document.activeElement.isContentEditable;
         if (e.key === '/' && search && !typing && !e.ctrlKey && !e.metaKey) {
@@ -546,4 +550,222 @@ document.addEventListener('input', function (e) {
     form.addEventListener('change', refresh);
     document.addEventListener('keyup', function (e) { if (e.target.closest && e.target.closest('.ql-editor')) refresh(); });
     refresh();
+})();
+
+/* ---------- Live updates ----------
+   Every open admin page checks in every few seconds. New orders, customer messages and custom
+   requests pop up with a sound, the badges update, and lists marked data-live refresh themselves
+   (unless you are typing in them). */
+(function () {
+    var cfg = window.CCS_ADMIN && window.CCS_ADMIN.live;
+    if (!cfg || !window.fetch) return;
+    var stamp = cfg.stamp;
+    var baseTitle = document.title;
+    var unseen = 0;
+    var store = function () { try { return window.localStorage; } catch (e) { return null; } };
+    var seen = function (kind, id) {
+        // Shared by all open tabs, so a new order pops up once and not in every tab.
+        var s = store(); var key = 'ccsLive.' + kind;
+        var last = s ? parseInt(s.getItem(key) || '0', 10) : 0;
+        if (id <= last) return true;
+        if (s) s.setItem(key, String(id));
+        return false;
+    };
+    ['order', 'message', 'request'].forEach(function (k) { if (cfg[k]) seen(k, parseInt(cfg[k].id, 10)); });
+
+    var setBadges = function (counts) {
+        Object.keys(counts).forEach(function (k) {
+            document.querySelectorAll('[data-badge="' + k + '"]').forEach(function (el) {
+                var n = counts[k];
+                el.hidden = !n;
+                el.textContent = n > 99 ? '99+' : n;
+            });
+        });
+    };
+
+    var audio;
+    var chime = function () {
+        try {
+            audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+            [[880, 0], [1320, 0.16]].forEach(function (n) {
+                var o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime + n[1];
+                o.type = 'sine'; o.frequency.value = n[0];
+                g.gain.setValueAtTime(0.0001, t);
+                g.gain.exponentialRampToValueAtTime(0.25, t + 0.02);
+                g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+                o.connect(g); g.connect(audio.destination);
+                o.start(t); o.stop(t + 0.4);
+            });
+        } catch (e) {}
+    };
+    // Browsers only allow sound after the first click on the page.
+    document.addEventListener('click', function () { try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); if (audio.state === 'suspended') audio.resume(); } catch (e) {} }, { once: true });
+
+    var notify = function (title, text, link, linkLabel) {
+        var stack = document.querySelector('.toast-stack');
+        if (!stack) {
+            stack = document.createElement('div');
+            stack.className = 'toast-stack';
+            document.querySelector('.admin-main').insertBefore(stack, document.querySelector('.admin-content'));
+        }
+        var t = document.createElement('div');
+        t.className = 'toast toast--info toast--live';
+        t.setAttribute('role', 'status');
+        var body = document.createElement('span');
+        var strong = document.createElement('strong');
+        strong.textContent = title;
+        body.appendChild(strong);
+        if (text) { var small = document.createElement('small'); small.textContent = text; body.appendChild(small); }
+        var dot = document.createElement('i');
+        dot.className = 'toast__pulse';
+        t.appendChild(dot);
+        t.appendChild(body);
+        if (link) {
+            var a = document.createElement('a');
+            a.className = 'btn btn--primary btn--sm';
+            a.href = link;
+            a.textContent = linkLabel || 'Open';
+            t.appendChild(a);
+        }
+        var close = document.createElement('button');
+        close.type = 'button';
+        close.setAttribute('aria-label', 'Dismiss');
+        close.innerHTML = '&times;';
+        close.className = 'toast__x';
+        close.addEventListener('click', function () { t.remove(); });
+        t.appendChild(close);
+        stack.appendChild(t);
+        setTimeout(function () { t.style.opacity = '0'; setTimeout(function () { t.remove(); }, 300); }, 15000);
+        unseen++;
+        document.title = '(' + unseen + ') ' + baseTitle;
+        chime();
+    };
+    window.addEventListener('focus', function () { unseen = 0; document.title = baseTitle; });
+
+    var money = function (n) { return '$' + Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); };
+    var adminUrl = function (path, id) { return cfg.url.replace(/live$/, path) + (cfg.url.indexOf('?') < 0 ? '?' : '&') + 'id=' + id; };
+
+    // Lists marked data-live are swapped for fresh copies, unless someone is working in them.
+    var dirty = false;
+    document.addEventListener('input', function (e) { if (e.target.closest && e.target.closest('[data-live] form')) dirty = true; });
+    var busy = function (region) {
+        var a = document.activeElement;
+        if (a && region.contains(a) && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)) return true;
+        if (region.querySelector('details[open]:not(.dropdown__live-ok)') && region.getAttribute('data-live') !== 'alerts') return true;
+        return false;
+    };
+    var pending = false;
+    var refreshRegions = function () {
+        var regions = Array.prototype.slice.call(document.querySelectorAll('[data-live]'));
+        if (!regions.length) return;
+        if (dirty || regions.some(busy)) { pending = true; return; }
+        pending = false;
+        fetch(location.href, { credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch-page' } })
+            .then(function (r) { return r.ok && !r.redirected ? r.text() : null; })
+            .then(function (html) {
+                if (!html) return;
+                var doc = new DOMParser().parseFromString(html, 'text/html');
+                regions.forEach(function (region) {
+                    if (busy(region)) return;
+                    var fresh = doc.querySelector('[data-live="' + region.getAttribute('data-live') + '"]');
+                    if (fresh && fresh.innerHTML !== region.innerHTML) {
+                        region.innerHTML = fresh.innerHTML;
+                        region.classList.remove('is-refreshed');
+                        void region.offsetWidth;
+                        region.classList.add('is-refreshed');
+                    }
+                });
+                document.dispatchEvent(new CustomEvent('admin:refreshed'));
+            })
+            .catch(function () {});
+    };
+
+    var timer;
+    var schedule = function () { clearTimeout(timer); timer = setTimeout(check, document.hidden ? 60000 : 10000); };
+    var check = function () {
+        fetch(cfg.url, { credentials: 'same-origin', cache: 'no-store', headers: { 'X-Requested-With': 'fetch' } })
+            .then(function (r) { return r.ok && !r.redirected ? r.json() : null; })
+            .then(function (d) {
+                if (!d) return;
+                setBadges(d.counts);
+                if (d.order && !seen('order', parseInt(d.order.id, 10))) {
+                    notify('New order ' + d.order.order_number, d.order.customer_name + ' · ' + money(d.order.total), adminUrl('orders/view', d.order.id), 'Open order');
+                }
+                if (d.message && !seen('message', parseInt(d.message.id, 10))) {
+                    var onThread = document.querySelector('[data-chat][data-chat-url*="id=' + d.message.thread_id + '"]');
+                    if (!onThread) notify('Message from ' + d.message.customer_name, d.message.body, adminUrl('messages/view', d.message.thread_id), 'Reply');
+                }
+                if (d.request && !seen('request', parseInt(d.request.id, 10))) {
+                    notify('New custom cake request', d.request.name + ' · ' + d.request.occasion, adminUrl('custom-requests/view', d.request.id), 'Open');
+                }
+                if (d.stamp !== stamp || pending) {
+                    stamp = d.stamp;
+                    refreshRegions();
+                }
+            })
+            .catch(function () {})
+            .then(schedule);
+    };
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) check(); });
+    schedule();
+})();
+
+/* Conversation page: new messages appear on their own, replies send without reloading. */
+(function () {
+    var list = document.querySelector('[data-chat]');
+    if (!list || !window.fetch) return;
+    var form = document.querySelector('[data-chat-form]');
+    var url = list.getAttribute('data-chat-url');
+    var lastId = parseInt(list.getAttribute('data-last-id'), 10) || 0;
+    var timer, busy = false;
+    var append = function (messages) {
+        var added = false;
+        messages.forEach(function (m) {
+            if (m.id <= lastId || list.querySelector('[data-msg-id="' + m.id + '"]')) return;
+            var empty = list.querySelector('.chat-admin__empty');
+            if (empty) empty.remove();
+            list.insertAdjacentHTML('beforeend', m.html);
+            lastId = Math.max(lastId, m.id);
+            added = true;
+        });
+        if (added) list.scrollTo({ top: list.scrollHeight, behavior: 'smooth' });
+    };
+    var schedule = function () { clearTimeout(timer); timer = setTimeout(poll, document.hidden ? 30000 : 4000); };
+    var poll = function () {
+        if (busy) return schedule();
+        busy = true;
+        fetch(url + '&poll=1&after=' + lastId, { credentials: 'same-origin', cache: 'no-store', headers: { 'X-Requested-With': 'fetch' } })
+            .then(function (r) { return r.json(); })
+            .then(function (d) { append(d.messages || []); })
+            .catch(function () {})
+            .then(function () { busy = false; schedule(); });
+    };
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) poll(); });
+    schedule();
+
+    if (!form) return;
+    var error = form.querySelector('[data-chat-error]');
+    var note = form.querySelector('[data-chat-note]');
+    var textarea = form.querySelector('textarea');
+    textarea.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); form.requestSubmit ? form.requestSubmit() : form.submit(); }
+    });
+    form.addEventListener('submit', function (e) {
+        var close = form.querySelector('input[name="close"]');
+        if (close && close.checked) return; // Closing the conversation reloads the page.
+        e.preventDefault();
+        var button = form.querySelector('button[type="submit"]');
+        button.disabled = true;
+        error.hidden = true;
+        fetch(form.getAttribute('action') || location.href, { method: 'POST', body: new FormData(form), credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (!d.ok) { error.textContent = d.error || 'The reply could not be sent.'; error.hidden = false; return; }
+                textarea.value = '';
+                if (note && d.note) { note.textContent = d.note; note.hidden = false; }
+                poll();
+            })
+            .catch(function () { error.textContent = 'Could not send. Check your connection and try again.'; error.hidden = false; })
+            .then(function () { button.disabled = false; textarea.focus(); });
+    });
 })();

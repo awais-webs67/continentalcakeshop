@@ -12,23 +12,39 @@ if (!$thread) {
 }
 $self = thread_url($thread);
 
+// The open page checks every few seconds for replies (and sends without reloading).
+if (!is_post() && input('poll') === '1') {
+    session_write_close();
+    mark_thread_seen($thread, 'customer');
+    json_out(['messages' => array_map(static fn ($m) => ['id' => (int) $m['id'], 'html' => chat_bubble_html($m, $thread, 'customer')],
+        thread_messages_after((int) $thread['id'], max(0, (int) input('after'))))]);
+}
+
 if (is_post()) {
     verify_csrf();
     $body = trim(str_limit(input('body'), 3000));
-    if (is_spam_submission('thread', 10, 10)) {
-        flash('error', 'Please wait a moment before sending another message.');
+    $error = null;
+    if (is_spam_submission('thread', 30, 10)) {
+        $error = 'Please wait a moment before sending another message.';
     } elseif (mb_strlen($body) < 2) {
-        flash('error', 'Please write your message.');
-        remember_input(['body' => $body]);
+        $error = 'Please write your message.';
     } else {
         customer_message($thread, $body);
+    }
+    if (is_fetch_request()) {
+        json_out($error ? ['ok' => false, 'error' => $error] : ['ok' => true]);
+    }
+    if ($error) {
+        flash('error', $error);
+        remember_input(['body' => $body]);
+    } else {
         forget_input();
         flash('success', 'Message sent. We will reply here and by email.');
     }
     redirect($self . '#reply');
 }
 
-db_run('UPDATE threads SET unread_customer = 0 WHERE id = ?', [$thread['id']]);
+mark_thread_seen($thread, 'customer');
 $messages = get_thread_messages((int) $thread['id']);
 $order = $thread['order_id'] ? get_order((int) $thread['order_id']) : null;
 
@@ -49,25 +65,24 @@ render('header', compact('page'));
 
 <section class="section section--compact">
     <div class="container chat">
-        <div class="chat__list">
+        <div class="chat__list" data-chat data-chat-url="<?= e($self) ?>" data-last-id="<?= (int) ($messages ? end($messages)['id'] : 0) ?>" aria-live="polite">
             <?php if (!$messages): ?>
                 <p class="chat__empty"><?= icon('mail', '', 22) ?> Ask us anything about <?= e(strtolower($thread['subject'])) ?>. We usually reply within one business day.</p>
             <?php endif; ?>
             <?php foreach ($messages as $m): ?>
-                <div class="chat__msg chat__msg--<?= e($m['sender']) ?>">
-                    <div class="chat__bubble"><?= nl2br(e($m['body'])) ?></div>
-                    <p class="chat__meta"><?= $m['sender'] === 'shop' ? e(setting('store_short_name')) : 'You' ?> &middot; <?= e(date('j M Y, g:ia', strtotime($m['created_at']))) ?></p>
-                </div>
+                <?= chat_bubble_html($m, $thread, 'customer') ?>
             <?php endforeach; ?>
         </div>
 
-        <form class="chat__form form-card" id="reply" method="post" action="<?= e($self) ?>">
+        <form class="chat__form form-card" id="reply" method="post" action="<?= e($self) ?>" data-chat-form>
             <?= csrf_field() ?>
             <?= spam_trap_fields() ?>
             <label class="field-label" for="body">Your message</label>
             <textarea class="input" id="body" name="body" rows="4" maxlength="3000" required placeholder="Type your message"><?= e(old('body')) ?></textarea>
+            <p class="field-error" data-chat-error hidden></p>
             <div class="chat__actions">
                 <button class="btn btn--primary" type="submit"><?= icon('mail', '', 18) ?> Send message</button>
+                <span class="chat__live" title="New replies appear here automatically"><span></span> Live</span>
                 <span class="field-help">Or call us on <a href="tel:<?= e(setting('store_phone_e164')) ?>"><?= e(setting('store_phone')) ?></a></span>
             </div>
         </form>
