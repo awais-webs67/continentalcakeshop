@@ -506,13 +506,18 @@ document.addEventListener('input', function (e) {
         return form.querySelectorAll('.photo-row').length + (galleryInput && galleryInput.files ? galleryInput.files.length : 0);
     };
 
+    // Same rules as seo_words() in src/seo.php: "&" is "and", no apostrophes, hyphens are spaces.
+    var seoWords = function (t) {
+        return t.toLowerCase().replace(/&/g, ' and ').replace(/['\u2018\u2019]/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+    };
+    var STOP = ['and', 'the', 'with', 'for', 'from', 'in', 'of', 'n'];
     var checks = function () {
-        var kw = keywordInput.value.trim().toLowerCase();
+        var kw = seoWords(keywordInput.value);
         var title = titleValue(), desc = metaInput.value.trim() || descDefault();
-        var has = function (t) { return kw !== '' && t.toLowerCase().indexOf(kw) !== -1; };
-        var slugWords = slug().replace(/-/g, ' ');
-        var missing = kw.split(/\s+/).filter(function (w) { return w.length > 2 && slugWords.indexOf(w) === -1; }).length;
-        var body = (bodyText() + ' ' + (shortInput ? shortInput.value : '')).toLowerCase();
+        var has = function (t) { return kw !== '' && (' ' + seoWords(t) + ' ').indexOf(' ' + kw + ' ') !== -1; };
+        var slugWords = ' ' + slug().replace(/-/g, ' ') + ' ';
+        var missing = kw.split(/\s+/).filter(function (w) { return w.length > 2 && STOP.indexOf(w) === -1 && slugWords.indexOf(' ' + w + ' ') === -1; }).length;
+        var body = bodyText() + ' ' + (shortInput ? shortInput.value : '');
         var words = bodyText().split(/\s+/).filter(Boolean).length;
         return [
             kw !== '', has(title), has(desc), kw !== '' && missing <= 1, has(body),
@@ -555,7 +560,7 @@ document.addEventListener('input', function (e) {
         var options = [base + ' | Order Online | ' + store, base + ' | ' + store, base + ' | Order Online', base];
         titleInput.value = options.filter(function (t) { return t.length <= 60; })[0] || cut(base, 60);
         var desc = descDefault();
-        if (kw && desc.toLowerCase().indexOf(kw.toLowerCase()) === -1) desc = 'Looking for ' + kw.toLowerCase() + '? ' + desc;
+        if (kw && (' ' + seoWords(desc) + ' ').indexOf(' ' + seoWords(kw) + ' ') === -1) desc = 'Looking for ' + kw.toLowerCase() + '? ' + desc;
         metaInput.value = cut(desc, 160);
         [titleInput, metaInput].forEach(function (el) { el.dispatchEvent(new Event('input', { bubbles: true })); });
         if (altInput && altInput.value.trim() === '' && hasMainPhoto()) altInput.value = name() + (shortInput && shortInput.value.trim() ? ', ' + shortInput.value.trim().replace(/\.$/, '').toLowerCase() : ' from ' + store);

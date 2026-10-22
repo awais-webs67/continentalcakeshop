@@ -257,7 +257,7 @@ function analytics_tags(): string
 /** Title patterns for a cake page, best first; the first one that fits in 60 characters is used. */
 function product_title_patterns(): array
 {
-    return ['%s Canberra | ' . setting('store_short_name'), '%s | Order Online in Canberra', '%s Canberra', '%s'];
+    return ['%s Canberra | ' . setting('store_short_name'), '%s Canberra | Cake Shop Greenway', '%s Canberra | Order Online', '%s Canberra', '%s'];
 }
 
 /** Search title used when the product has none, e.g. "Red Velvet Cake Canberra | The Continental Cake Shop". */
@@ -289,7 +289,7 @@ function product_default_description(array $product, array $sizes): string
         ? strtolower((string) ($sizes[0]['servings'] ?: $sizes[0]['label']))
         : implode(', ', array_slice($labels, 0, -1)) . ' or ' . end($labels);
     $text = sprintf(
-        '%s, %s, from %s. 100%% Halal, made fresh in Greenway. Order online for pickup%s.',
+        '%s Canberra: %s, from %s. 100%% Halal, made fresh in Greenway. Order online for pickup%s.',
         $product['name'], $sizeText, money(min(array_map(static fn ($s) => (float) $s['price'], $sizes))),
         setting_bool('delivery_enabled') ? ' or delivery across Canberra' : ' in Canberra'
     );
@@ -335,6 +335,21 @@ function get_product_images(int $productId): array
     }
 }
 
+/** Small words that do not need to be in a web address. */
+const SEO_STOP_WORDS = ['and', 'the', 'with', 'for', 'from', 'in', 'of', 'n'];
+
+/**
+ * Text as search engines read it, for matching a focus keyword: lower case, "&" as "and",
+ * apostrophes dropped, hyphens and punctuation as spaces. "Cookies 'n' Cream" matches
+ * "cookies n cream", "Honey-Bee" matches "honey bee". admin.js has the same rules (seoWords).
+ */
+function seo_words(string $text): string
+{
+    $text = mb_strtolower(str_replace('&', ' and ', $text));
+    $text = str_replace(["'", '’', '‘'], '', $text);
+    return trim((string) preg_replace('/[^\p{L}\p{N}]+/u', ' ', $text));
+}
+
 /**
  * The SEO checklist for a product. Each row: [label, passed, tip].
  * The same rules run live in the editor (admin.js) while staff type.
@@ -345,16 +360,16 @@ function product_seo_checks(array $p, int $extraPhotos = 0, ?array $sizes = null
     $sizes ??= !empty($p['id']) ? get_product_sizes((int) $p['id']) : [];
     $title = trim((string) ($p['meta_title'] ?? '')) ?: product_default_title($p);
     $desc = trim((string) ($p['meta_description'] ?? '')) ?: product_default_description($p, $sizes);
-    $keyword = mb_strtolower(trim((string) ($p['focus_keyword'] ?? '')));
-    $body = mb_strtolower(content_text((string) ($p['description'] ?? '')) . ' ' . ($p['short_description'] ?? ''));
-    $has = static fn (string $text): bool => $keyword !== '' && str_contains(mb_strtolower($text), $keyword);
-    $slugWords = str_replace('-', ' ', (string) ($p['slug'] ?? ''));
+    $keyword = seo_words((string) ($p['focus_keyword'] ?? ''));
+    $body = content_text((string) ($p['description'] ?? '')) . ' ' . ($p['short_description'] ?? '');
+    $has = static fn (string $text): bool => $keyword !== '' && str_contains(' ' . seo_words($text) . ' ', ' ' . $keyword . ' ');
+    $slugWords = ' ' . str_replace('-', ' ', (string) ($p['slug'] ?? '')) . ' ';
     $words = str_word_count(content_text((string) ($p['description'] ?? '')));
     return [
         ['Focus keyword chosen', $keyword !== '', 'Type the words people search for, e.g. "red velvet cake canberra".'],
         ['Keyword in the page title', $has($title), 'Start the page title with the keyword.'],
         ['Keyword in the search description', $has($desc), 'Use the keyword once in the description.'],
-        ['Keyword in the web address', $keyword !== '' && count(array_filter(explode(' ', $keyword), static fn ($w) => mb_strlen($w) > 2 && !str_contains($slugWords, $w))) <= 1, 'Use the main words of the keyword in the web address.'],
+        ['Keyword in the web address', $keyword !== '' && count(array_filter(explode(' ', $keyword), static fn ($w) => mb_strlen($w) > 2 && !in_array($w, SEO_STOP_WORDS, true) && !str_contains($slugWords, ' ' . $w . ' '))) <= 1, 'Use the main words of the keyword in the web address.'],
         ['Keyword in the description text', $has($body), 'Mention the keyword in the full description.'],
         ['Page title 30 to 60 characters', mb_strlen($title) >= 30 && mb_strlen($title) <= 60, 'Google cuts titles longer than about 60 characters.'],
         ['Search description 120 to 160 characters', mb_strlen($desc) >= 120 && mb_strlen($desc) <= 160, 'A full description gets more clicks. Google shows about 155 characters.'],
