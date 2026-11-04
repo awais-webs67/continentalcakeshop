@@ -42,8 +42,9 @@ render('header', compact('page'));
         </div>
         <div class="about-media">
             <picture>
-                <source srcset="<?= e(asset('img/shop-front.webp')) ?>" type="image/webp">
-                <img src="<?= e(asset('img/shop-front.jpg')) ?>" alt="The Continental Cake Shop in Greenway, Canberra" width="948" height="1024" loading="lazy">
+                <?php $shopPhoto = shop_photo(); ?>
+                <?php if ($shopPhoto['webp']): ?><source srcset="<?= e($shopPhoto['webp']) ?>" type="image/webp"><?php endif; ?>
+                <img src="<?= e($shopPhoto['src']) ?>" alt="The Continental Cake Shop in Greenway, Canberra" width="948" height="1024" loading="lazy">
             </picture>
         </div>
     </div>

@@ -452,3 +452,14 @@ Before pushing:
 
 **Before launch.** Set `app_url` to the `https://` address (every page then moves to HTTPS and one host), add the Search Console code in Admin > Settings > Social & SEO and submit `/sitemap.xml` in Google Search Console.
 
+## 32. Shop front photo and search-ready new cakes
+
+**Shop front photo** (Admin > Homepage > Hero, setting `shop_photo`, `shop_photo()` in `src/catalog.php`): upload a photo of the shop to replace the built-in one. It is used in the small hero card with today's hours, on the About page, in the shop's structured data for Google and in the sitemap. "Go back to the original photo" returns to `assets/img/shop-front.*`; a replaced upload is deleted.
+
+**New cakes are search ready on save** (`product_seo_autofill()` in `src/seo.php`, run by the product editor and for new cakes in the Excel import). Only what is empty or very short is filled in, staff text is never removed:
+- focus keyword: the name plus "canberra"; photo text: the name and the short description
+- a description under 60 words gets a paragraph for its category (`SEO_CATEGORY_TEXT`), the sizes, "Perfect for" occasions and a "<name> Canberra pickup and delivery" section; a longer one without the keyword gets only that section
+- a custom keyword that the automatic title or description would miss gets its own title and description
+
+A new cake with one photo scores 10/11; the last point is a second photo.
+

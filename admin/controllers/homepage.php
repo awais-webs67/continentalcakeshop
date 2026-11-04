@@ -61,6 +61,20 @@ if (is_post()) {
         } elseif ($hero) {
             $values['hero_image'] = $hero;
         }
+        // Shop front photo (hero card, About page, Google): a new upload, or back to the original.
+        $oldShop = setting('shop_photo');
+        [$shop, $shopError] = save_public_image('shop_photo_upload', 'gallery', 948, 1024, 'shop-front');
+        if ($shopError) {
+            $errors[] = $shopError;
+        } elseif ($shop) {
+            $values['shop_photo'] = $shop;
+        } elseif (input('shop_photo_reset') === '1') {
+            $values['shop_photo'] = '';
+        }
+        // The replaced upload is no longer used anywhere.
+        if (isset($values['shop_photo']) && $oldShop !== '' && $oldShop !== $values['shop_photo'] && str_starts_with($oldShop, 'gallery/shop-front-')) {
+            @unlink(BASE_PATH . '/public/uploads/' . $oldShop);
+        }
     }
     if ($errors) {
         flash('error', implode(' ', $errors));

@@ -256,6 +256,13 @@ function apply_import_row(array $plan, bool $replaceImages, array &$categories):
         }
     }
 
+    // New cakes get the same search-ready fill-in as cakes saved in the editor.
+    if ($plan['action'] !== 'update') {
+        $data = product_seo_autofill($data, $plan['sizes'], (string) db_value('SELECT slug FROM categories WHERE id = ?', [$data['category_id']]), !empty($data['image']));
+        foreach (['description', 'image_alt', 'focus_keyword', 'meta_title', 'meta_description'] as $field) {
+            $data[$field] = ($data[$field] ?? '') !== '' ? $data[$field] : null;
+        }
+    }
     $pdo->beginTransaction();
     $columns = array_keys($data);
     if ($plan['action'] === 'update') {

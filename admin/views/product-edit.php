@@ -114,6 +114,7 @@ $sizesForSeo = array_values(array_filter($sizeRows, static fn ($r) => ($r['label
                     <label class="field"><span>Search description <small>120 to 160 characters</small></span>
                         <textarea class="input" name="meta_description" rows="3" maxlength="255" data-count data-seo-desc data-default="<?= e(product_default_description(['name' => '__NAME__', 'is_enquiry' => $product['is_enquiry']], $sizesForSeo)) ?>"><?= e((string) $product['meta_description']) ?></textarea></label>
                     <p style="margin:-4px 0 0"><button type="button" class="btn btn--secondary btn--sm" data-seo-fill><?= icon('pen', '', 16) ?> Fill in for me</button> <span class="hint">Writes a title and description from the name, keyword and prices. Edit them as you like.</span></p>
+                    <p class="hint" style="margin:0">No time? Just save: an empty keyword, photo text or short description is filled in for Google automatically (sizes, occasions, pickup and delivery). Your own text is never removed.</p>
                     <ul class="seo-checks" data-seo-checks>
                         <?php foreach ($seoChecks as [$label, $ok, $tip]): ?>
                             <li class="<?= $ok ? 'is-ok' : 'is-todo' ?>"><?= icon($ok ? 'check' : 'info', '', 16) ?><span><strong><?= e($label) ?></strong><?php if (!$ok): ?><small><?= e($tip) ?></small><?php endif; ?></span></li>

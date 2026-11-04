@@ -50,7 +50,7 @@ function local_business_schema(): array
         'name'       => setting('store_name'),
         'url'        => url(),
         'logo'       => url('assets/img/logo-email.png'),
-        'image'      => url('assets/img/shop-front.jpg'),
+        'image'      => shop_photo()['absolute'],
         'telephone'  => setting('store_phone_e164'),
         'email'      => setting('store_email'),
         'priceRange' => '$$',
@@ -410,4 +410,83 @@ function add_seo_redirect(string $from, string $to): void
     }
     $lines[] = $from . ' ' . $to;
     setting_save('seo_redirects', implode("\n", $lines));
+}
+
+/** A sentence about how each kind of cake is made, for descriptions written by product_seo_autofill(). */
+const SEO_CATEGORY_TEXT = [
+    'tortes'                  => ['Every %s is made fresh in our Greenway kitchen with 100%% Halal ingredients, and the writing on top is free: add your message when you order.', ['Birthdays and family celebrations', 'Eid, engagements and anniversaries', 'Office morning teas and farewells']],
+    'velvet-cakes'            => ['Our %s is baked fresh in Greenway with 100%% Halal ingredients and finished by hand. Free writing on top is included, so it is ready to celebrate.', ['Birthdays and anniversaries', 'Engagements and Eid gatherings', 'Anyone who loves a cream cheese frosting']],
+    'mud-cakes'               => ['Our %s is made with 100%% Halal ingredients in our Greenway kitchen, with free writing on top. Mud cakes are firm enough to decorate and travel well.', ['Birthday cakes that travel well to parties', 'A base for decorated and themed cakes', 'Chocolate lovers of every age']],
+    'baked-cheesecakes'       => ['Our %s is baked in Greenway with 100%% Halal ingredients, so it suits a family dinner as well as a party.', ['Dinner parties and family lunches', 'Office morning teas', 'A dessert table next to a celebration cake']],
+    'continental-cheesecakes' => ['Our %s is a light, set continental-style cheesecake made with 100%% Halal ingredients in Greenway.', ['Dessert after a big family meal', 'Morning and afternoon teas', 'Guests who prefer something light']],
+    'tea-cakes-desserts'      => ['Our %s is made fresh in Greenway with 100%% Halal ingredients, ready for morning tea, a dessert table or a gift.', ['Morning and afternoon teas', 'Dessert tables and parties', 'Bringing something sweet to a friend']],
+    ''                        => ['Our %s is made fresh in our Greenway kitchen with 100%% Halal ingredients.', ['Birthdays and celebrations', 'Family gatherings and Eid', 'Morning teas and dessert tables']],
+];
+
+/**
+ * Fills in what Google needs when a cake is saved without it, so a new cake is search ready
+ * straight away. Only empty or very short fields are filled; anything staff wrote is kept.
+ *  - focus keyword: the cake's name plus "canberra"
+ *  - photo text (alt): the name and the short description
+ *  - description under 60 words: what staff wrote, then a paragraph about how it is made, the
+ *    sizes, "Perfect for" occasions and a "<name> Canberra pickup and delivery" section
+ *  - a description with no mention of the keyword gets the pickup and delivery section
+ *  - search title and description only when the automatic ones would miss a custom keyword
+ *
+ * @param array $sizes rows with label and servings
+ */
+function product_seo_autofill(array $data, array $sizes, string $categorySlug, bool $hasImage): array
+{
+    $name = trim((string) ($data['name'] ?? ''));
+    if ($name === '') {
+        return $data;
+    }
+    $short = trim((string) ($data['short_description'] ?? ''));
+    $keyword = trim((string) ($data['focus_keyword'] ?? ''));
+    if ($keyword === '') {
+        $keyword = $data['focus_keyword'] = mb_strtolower($name) . ' canberra';
+    }
+    if ($hasImage && trim((string) ($data['image_alt'] ?? '')) === '') {
+        $first = trim((string) preg_split('/(?<=[.!?])\s/', $short)[0]);
+        $data['image_alt'] = str_limit($first !== '' ? $name . ', ' . mb_strtolower(mb_substr($first, 0, 1)) . rtrim(mb_substr($first, 1), '.') : $name . ' from ' . setting('store_short_name') . ', Canberra', 160);
+    }
+
+    $enquiry = !empty($data['is_enquiry']);
+    $ordering = '<h3>' . e($name) . ' Canberra pickup and delivery</h3><p>' . ($enquiry
+        ? 'Send us your details for a quote and pick up from {store_address}, or ask about delivery across Canberra and Queanbeyan. Questions about allergens or a custom design? Call us on {store_phone}.'
+        : 'Order online at least {min_lead_hours} hours ahead and pick up from {store_address}, or choose delivery across Canberra and Queanbeyan. Questions about allergens or a custom design? Call us on {store_phone}.') . '</p>';
+    $html = trim((string) ($data['description'] ?? ''));
+    $has = static fn (string $text): bool => str_contains(' ' . seo_words($text) . ' ', ' ' . seo_words($keyword) . ' ');
+    if (str_word_count(content_text($html)) < 60) {
+        [$made, $occasions] = SEO_CATEGORY_TEXT[$categorySlug] ?? SEO_CATEGORY_TEXT[''];
+        $labels = array_values(array_filter(array_map(static fn ($s) => trim((string) $s['label']) . (trim((string) ($s['servings'] ?? '')) !== '' ? ' (' . mb_strtolower(trim((string) $s['servings'])) . ')' : ''), $sizes)));
+        $sizeText = match (true) {
+            count($labels) > 1 => 'Choose from ' . implode(', ', array_slice($labels, 0, -1)) . ' or ' . end($labels) . '.',
+            count($labels) === 1 => 'It comes in one size: ' . $labels[0] . '.',
+            default => 'The price depends on the size and design, so ask us for a quote.',
+        };
+        $intro = $html !== '' ? $html : ($short !== '' ? '<p>' . e($short) . '</p>' : '');
+        $html = $intro
+            . '<p>' . e(sprintf($made, $name)) . ' ' . e($sizeText) . '</p>'
+            . '<h3>Perfect for</h3><ul>' . implode('', array_map(static fn ($o) => '<li>' . e($o) . '</li>', $occasions)) . '</ul>'
+            . $ordering;
+    } elseif (!$has(content_text($html))) {
+        $html .= $ordering;
+    }
+    $data['description'] = $html;
+
+    // The automatic title and description start with "<name> Canberra"; a different keyword needs its own.
+    if (trim((string) ($data['meta_title'] ?? '')) === '' && !$has(product_default_title($data))) {
+        $base = mb_convert_case($keyword, MB_CASE_TITLE);
+        $title = $base . ' | ' . setting('store_short_name');
+        $data['meta_title'] = mb_strlen($title) <= 60 ? $title : mb_substr($base, 0, 60);
+    }
+    $defaultDesc = product_default_description($data, $sizes);
+    if (trim((string) ($data['meta_description'] ?? '')) === '' && !$has($defaultDesc)) {
+        // "Lemon Tart Canberra: serves 12, from $42.00. 100% Halal, made fresh in Greenway..."
+        $rest = str_contains($defaultDesc, ': ') ? substr($defaultDesc, strpos($defaultDesc, ': ') + 2) : $defaultDesc;
+        $desc = mb_convert_case($keyword, MB_CASE_TITLE) . ': ' . $rest;
+        $data['meta_description'] = mb_strlen($desc) <= 160 ? $desc : rtrim(mb_substr($desc, 0, (int) mb_strrpos(mb_substr($desc, 0, 158), ' ')), ' ,.') . '...';
+    }
+    return $data;
 }

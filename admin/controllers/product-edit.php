@@ -6,7 +6,7 @@ if ($id && !$product) {
     flash('error', 'That product was not found.');
     redirect(admin_url('products'));
 }
-$categories = db_all('SELECT id, name FROM categories ORDER BY sort_order, name');
+$categories = db_all('SELECT id, name, slug FROM categories ORDER BY sort_order, name');
 $errors = [];
 
 if (is_post()) {
@@ -108,6 +108,10 @@ if (is_post()) {
 
     if (!$errors) {
         $data['slug'] = unique_slug('products', $data['slug'], (int) ($product['id'] ?? 0));
+        // Anything left empty for Google (keyword, photo text, a full description) is written now.
+        $categorySlug = (string) (array_column($categories, 'slug', 'id')[$data['category_id']] ?? '');
+        $hasImage = $image || (!empty($product['image']) && input('remove_image') !== '1');
+        $data = product_seo_autofill($data, $sizes, $categorySlug, (bool) $hasImage);
         foreach (['short_description', 'description', 'badge', 'meta_title', 'meta_description', 'image_alt', 'focus_keyword'] as $optional) {
             $data[$optional] = $data[$optional] !== '' ? $data[$optional] : null;
         }

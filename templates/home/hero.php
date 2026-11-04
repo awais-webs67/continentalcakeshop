@@ -30,9 +30,10 @@ $heroCake = db_one('SELECT * FROM gallery_images WHERE image = ?', [$heroImage])
             <?php endif; ?>
             <?php if (setting_bool('hero_show_shop_card')): ?>
             <figure class="hero__shop">
+                <?php $shopPhoto = shop_photo(); ?>
                 <picture>
-                    <source srcset="<?= e(asset('img/shop-front.webp')) ?>" type="image/webp">
-                    <img src="<?= e(asset('img/shop-front.jpg')) ?>" alt="The Continental Cake Shop storefront on Reed Street North, Greenway" width="948" height="1024" loading="lazy">
+                    <?php if ($shopPhoto['webp']): ?><source srcset="<?= e($shopPhoto['webp']) ?>" type="image/webp"><?php endif; ?>
+                    <img src="<?= e($shopPhoto['src']) ?>" alt="<?= e(setting('store_name')) ?> storefront on <?= e(setting('store_street')) ?>, <?= e(setting('store_suburb')) ?>" width="948" height="1024" loading="lazy">
                 </picture>
                 <figcaption>
                     <strong><?= e(today_hours_label()) ?></strong>

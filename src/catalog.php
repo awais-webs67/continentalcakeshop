@@ -231,3 +231,17 @@ function count_gallery(): int
 {
     return (int) db_value('SELECT COUNT(*) FROM gallery_images WHERE is_active = 1');
 }
+
+/**
+ * The shop front photo: the one uploaded in Admin > Homepage > Hero, or the photo that came
+ * with the website. 'webp' is only set for the built-in photo, which also has a JPG copy.
+ */
+function shop_photo(): array
+{
+    $custom = setting('shop_photo');
+    if ($custom !== '') {
+        $src = product_image_url($custom);
+        return ['webp' => null, 'src' => $src, 'absolute' => $src];
+    }
+    return ['webp' => asset('img/shop-front.webp'), 'src' => asset('img/shop-front.jpg'), 'absolute' => asset_url_plain('img/shop-front.jpg')];
+}

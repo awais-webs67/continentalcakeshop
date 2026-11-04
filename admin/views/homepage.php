@@ -52,6 +52,11 @@ $steps = array_pad(setting_list('home_custom_steps'), 3, ['', '']);
                         <img id="hero-preview" src="<?= e(product_image_url(setting('hero_image'))) ?>" alt="" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:12px;border:1px solid var(--line)">
                         <input class="input" type="file" name="hero_upload" accept="image/jpeg,image/png,image/webp" data-image-input="hero-preview">
                         <p class="hint">Portrait photos work best, or choose one in <a href="<?= e(admin_url('gallery')) ?>">Gallery</a>.</p>
+                        <span class="label" style="margin-top:8px">Shop front photo</span>
+                        <img id="shop-photo-preview" src="<?= e(shop_photo()['src']) ?>" alt="" style="width:100%;max-width:220px;aspect-ratio:948/1024;object-fit:cover;border-radius:12px;border:1px solid var(--line)">
+                        <input class="input" type="file" name="shop_photo_upload" accept="image/jpeg,image/png,image/webp" data-image-input="shop-photo-preview">
+                        <p class="hint">Shown in the small card on the hero (with today's hours), on the About page and to Google. A photo taken from the street works best.</p>
+                        <?php if (setting('shop_photo') !== ''): ?><label class="switch"><input type="checkbox" name="shop_photo_reset" value="1"><span class="switch__track"></span><span>Go back to the original photo</span></label><?php endif; ?>
                     </div>
                 </div>
             <?php elseif ($key === 'usp'): ?>

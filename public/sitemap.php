@@ -17,7 +17,7 @@ $entries = [
     [url(), $latestProduct, 'daily', '1.0', array_filter([$photo(setting('hero_image'), setting('hero_title'))])],
     [url('shop'), $latestProduct, 'weekly', '0.9', []],
     [url('custom-cakes'), null, 'weekly', '0.8', $galleryPhotos],
-    [url('about'), null, 'monthly', '0.5', [[asset_url_plain('img/shop-front.jpg'), setting('store_name') . ' shop front']]],
+    [url('about'), null, 'monthly', '0.5', [[shop_photo()['absolute'], setting('store_name') . ' shop front']]],
     [url('contact'), null, 'monthly', '0.6', []],
     [url('faq'), null, 'monthly', '0.6', []],
 ];
