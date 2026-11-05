@@ -410,10 +410,12 @@
 
         // Another shop chosen: show its address and load its free times.
         var pickupAddress = $('[data-pickup-address]', checkout);
+        var pickupLine = $('[data-pickup-line]', checkout);
         $$('[data-branch]', checkout).forEach(function (radio) {
             radio.addEventListener('change', function () {
                 if (!radio.checked) return;
                 if (pickupAddress) pickupAddress.textContent = radio.getAttribute('data-name') + ' shop, ' + radio.getAttribute('data-address');
+                if (pickupLine) pickupLine.hidden = false;
                 loadSlots();
                 if (deliveryDate && deliveryDate.value) deliveryDate.dispatchEvent(new Event('change'));
             });
@@ -1033,51 +1035,4 @@
         if (Math.abs(dx) > 40) show(at + (dx < 0 ? 1 : -1));
         startX = null;
     }, { passive: true });
-})();
-
-/* "Choose your shop" cards: "Find the nearest shop" uses the browser's location (it stays in the
-   browser), shows how far each shop is and picks the closest one if none is chosen yet. */
-(function () {
-    document.querySelectorAll('[data-branch-picker]').forEach(function (picker) {
-        var button = picker.querySelector('[data-branch-locate]');
-        var status = picker.querySelector('[data-branch-status]');
-        var radios = Array.prototype.slice.call(picker.querySelectorAll('[data-branch][data-lat]'));
-        if (!button || !navigator.geolocation || radios.length < 2) return;
-        button.hidden = false;
-        var say = function (text) { status.textContent = text; status.hidden = !text; };
-        var km = function (lat1, lng1, lat2, lng2) {
-            var r = Math.PI / 180, a = Math.sin((lat2 - lat1) * r / 2), b = Math.sin((lng2 - lng1) * r / 2);
-            var h = a * a + Math.cos(lat1 * r) * Math.cos(lat2 * r) * b * b;
-            return 12742 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
-        };
-        button.addEventListener('click', function () {
-            button.disabled = true;
-            say('Finding your location...');
-            navigator.geolocation.getCurrentPosition(function (pos) {
-                var best = null;
-                radios.forEach(function (radio) {
-                    var d = km(pos.coords.latitude, pos.coords.longitude, parseFloat(radio.getAttribute('data-lat')), parseFloat(radio.getAttribute('data-lng')));
-                    var box = radio.closest('.branch-option');
-                    var dist = box.querySelector('[data-branch-distance]');
-                    dist.textContent = (d < 10 ? d.toFixed(1) : Math.round(d)) + ' km away';
-                    dist.hidden = false;
-                    box.querySelector('[data-branch-near]').hidden = true;
-                    if (!best || d < best.d) best = { radio: radio, d: d };
-                });
-                best.radio.closest('.branch-option').querySelector('[data-branch-near]').hidden = false;
-                var chosen = picker.querySelector('[data-branch]:checked');
-                if (!chosen) {
-                    best.radio.checked = true;
-                    best.radio.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-                say(chosen && chosen !== best.radio
-                    ? 'The ' + best.radio.getAttribute('data-name') + ' shop is closest to you. You can still choose either shop.'
-                    : 'The ' + best.radio.getAttribute('data-name') + ' shop is closest to you.');
-                button.disabled = false;
-            }, function () {
-                say('We could not get your location. Please choose the shop yourself.');
-                button.disabled = false;
-            }, { timeout: 10000, maximumAge: 600000 });
-        });
-    });
 })();

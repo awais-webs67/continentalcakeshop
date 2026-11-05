@@ -330,14 +330,29 @@
         if (location.hash && $(location.hash)) $(location.hash).open = true;
     }
 
-    // New staff form: the access list only applies to staff accounts
-    var roleSelect = $('[data-role-select]');
-    var staffPerms = $('[data-staff-permissions]');
-    if (roleSelect && staffPerms) {
-        var syncRole = function () { staffPerms.hidden = roleSelect.value !== 'staff'; };
-        roleSelect.addEventListener('change', syncRole);
-        syncRole();
-    }
+    // Staff accounts: owners need no shop or page list, branch managers need a shop,
+    // staff choose a shop (or every shop) and the pages they can open.
+    $$('[data-access-form]').forEach(function (form) {
+        var type = $('[data-access-type]', form);
+        if (!type) return;
+        var help = $('[data-access-help]', form);
+        var branch = $('[data-access-branch]', form);
+        var pages = $('[data-access-pages]', form);
+        var sync = function () {
+            var option = type.options[type.selectedIndex];
+            if (help) help.textContent = option.getAttribute('data-help') || '';
+            if (branch) {
+                branch.hidden = type.value === 'owner';
+                var every = $('[data-every]', branch);
+                if (every) every.hidden = every.disabled = type.value === 'manager';
+                var select = $('select', branch);
+                if (type.value === 'manager' && select.value === '0' && select.options.length > 1) select.selectedIndex = 1;
+            }
+            if (pages) pages.hidden = type.value !== 'staff';
+        };
+        type.addEventListener('change', sync);
+        sync();
+    });
 
     // Conversations open at the newest message
     $$('.chat-admin').forEach(function (box) { box.scrollTop = box.scrollHeight; });
@@ -935,6 +950,8 @@ document.addEventListener('input', function (e) {
             var isSub = i > 0 && sub.checked;
             row.classList.toggle('menu-row--sub', isSub);
             row.querySelector('[data-menu-level]').value = isSub ? '1' : '0';
+            var kind = row.querySelector('[data-menu-kind]');
+            if (kind) kind.textContent = isSub ? 'Sub item' : 'Top item';
             sub.disabled = i === 0;
         });
     };

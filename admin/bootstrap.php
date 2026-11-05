@@ -80,6 +80,24 @@ function admin_branch_id(?array $admin = null): ?int
     return $view && get_branch($view) ? $view : null;
 }
 
+/**
+ * The kind of login: 'owner' (every shop, everything), 'manager' (one shop, the whole panel
+ * except owner pages) or 'staff' (the pages the owner ticked, for one shop or every shop).
+ * A manager is a staff account with a branch and no page limits (permissions NULL).
+ */
+function admin_account_type(array $admin): string
+{
+    if ($admin['role'] === 'owner') {
+        return 'owner';
+    }
+    return !empty($admin['branch_id']) && $admin['permissions'] === null ? 'manager' : 'staff';
+}
+
+function admin_is_manager(array $admin): bool
+{
+    return admin_account_type($admin) === 'manager';
+}
+
 /** True for a staff account that belongs to one branch. */
 function admin_branch_locked(?array $admin = null): bool
 {
@@ -121,8 +139,13 @@ function branch_tag(?int $branchId): string
 /** Sections a staff account may open. Owners can open everything. */
 function admin_permissions(array $admin): array
 {
-    if ($admin['role'] === 'owner' || $admin['permissions'] === null) {
+    if ($admin['role'] === 'owner') {
         return array_keys(ADMIN_SECTIONS);
+    }
+    if ($admin['permissions'] === null) {
+        // A branch manager: the whole panel for their shop, except the website pages
+        // (homepage, menu, pages, SEO) that both shops share.
+        return !empty($admin['branch_id']) ? array_values(array_diff(array_keys(ADMIN_SECTIONS), ['content'])) : array_keys(ADMIN_SECTIONS);
     }
     $list = json_decode((string) $admin['permissions'], true);
     return is_array($list) ? array_values(array_intersect($list, array_keys(ADMIN_SECTIONS))) : [];
@@ -669,4 +692,5 @@ function admin_live_state(array $admin): array
 }
 
 require __DIR__ . '/reports.php';
+require __DIR__ . '/branch-form.php';
 require __DIR__ . '/product-import.php';

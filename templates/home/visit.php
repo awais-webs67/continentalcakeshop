@@ -3,10 +3,15 @@ $todayKey = day_key(new DateTime());
 $mapQuery = rawurlencode(setting('store_name') . ', ' . store_address_line());
 ?>
 <?php if (multi_branch()): ?>
+<?php // "Visit us in Greenway" names one shop: with two shops the heading speaks of both.
+$visitTitle = setting('home_visit_title');
+if (stripos($visitTitle, (string) main_branch()['suburb']) !== false) {
+    $visitTitle = 'Visit our shops';
+} ?>
 <section class="section visit">
     <div class="container visit__grid">
         <div class="visit__info">
-            <h2 class="section-title"><?= e(setting('home_visit_title')) ?></h2>
+            <h2 class="section-title"><?= e($visitTitle) ?></h2>
             <div class="visit__shops">
                 <?php foreach (active_branches() as $shop): ?>
                     <div class="shop-card">

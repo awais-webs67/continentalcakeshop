@@ -37,6 +37,10 @@ foreach ($nav as $group => $links) {
         unset($nav[$group]);
     }
 }
+// A branch manager's own shop details, right under the dashboard.
+if (admin_branch_locked($admin) && admin_is_manager($admin) && isset($nav['Shop'])) {
+    array_splice($nav['Shop'], 1, 0, [['my-shop', 'My shop', 'pin', null]]);
+}
 if ($admin['role'] === 'owner') {
     $nav['Website'][] = ['branches', 'Branches', 'pin', null];
     $nav['Website'][] = ['settings', 'Settings', 'pen', null];

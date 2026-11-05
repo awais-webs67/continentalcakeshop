@@ -350,9 +350,9 @@ render('header', compact('page'));
                 </fieldset>
 
                 <fieldset class="checkout-step" id="step-fulfilment" data-step>
-                    <legend class="checkout-step__title"><span class="checkout-step__num"><b>2</b><?= icon('check', '', 16) ?></span> <?= $multiBranch ? 'Shop, ' . (count($fulfilmentOptions) > 1 ? 'pickup or delivery' : ($fulfilmentOptions === ['delivery'] ? 'delivery' : 'pickup date and time')) : (count($fulfilmentOptions) > 1 ? 'Pickup or delivery' : ($fulfilmentOptions === ['delivery'] ? 'Delivery' : 'Pickup date and time')) ?></legend>
+                    <legend class="checkout-step__title"><span class="checkout-step__num"><b>2</b><?= icon('check', '', 16) ?></span> <?= count($fulfilmentOptions) > 1 ? 'Pickup or delivery' : ($fulfilmentOptions === ['delivery'] ? 'Delivery' : 'Pickup date and time') ?></legend>
                     <?php if ($multiBranch): ?>
-                        <?php render('partials/branch-picker', ['selected' => $selectedBranch, 'legend' => 'Which shop?', 'hint' => 'Your order is made at the shop you choose' . ($deliveryEnabled ? ', and picked up from there or delivered by them.' : ' and picked up from there.'), 'error' => $errors['branch_id'] ?? '']); ?>
+                        <?php render('partials/branch-picker', ['selected' => $selectedBranch, 'legend' => 'Which shop?', 'error' => $errors['branch_id'] ?? '']); ?>
                     <?php else: ?>
                         <input type="hidden" name="branch_id" value="<?= $onlyBranchId ?>">
                     <?php endif; ?>
@@ -375,7 +375,7 @@ render('header', compact('page'));
 
                     <?php if ($pickupEnabled): ?>
                     <div class="fulfilment-panel" data-pickup-only <?= $selectedFulfilment === 'pickup' ? '' : 'hidden' ?>>
-                        <p class="pickup-address"><?= icon('store', '', 20) ?> <span>Pick up from <strong data-pickup-address><?= e($pickupBranch ? ($multiBranch ? $pickupBranch['name'] . ' shop, ' : '') . branch_address_line($pickupBranch) : 'the shop you choose above') ?></strong></span></p>
+                        <p class="pickup-address" data-pickup-line <?= $pickupBranch ? '' : 'hidden' ?>><?= icon('store', '', 20) ?> <span>Pick up from <strong data-pickup-address><?= e($pickupBranch ? ($multiBranch ? $pickupBranch['name'] . ' shop, ' : '') . branch_address_line($pickupBranch) : '') ?></strong></span></p>
                         <div class="field-row">
                             <div class="field">
                                 <label class="field-label" for="pickup_date">Pickup date</label>

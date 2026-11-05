@@ -18,31 +18,36 @@ $menuRow = static function (string $i, array $row) use ($choices, $known): void 
     ?>
     <li class="menu-row<?= $sub ? ' menu-row--sub' : '' ?>" data-menu-row>
         <input type="hidden" name="rows[<?= $i ?>][level]" value="<?= $sub ? '1' : '0' ?>" data-menu-level>
-        <span class="menu-row__move">
-            <button type="button" class="icon-btn" data-menu-move="-1" aria-label="Move up">&#8593;</button>
-            <button type="button" class="icon-btn" data-menu-move="1" aria-label="Move down">&#8595;</button>
-        </span>
-        <label class="field menu-row__label"><span>Name</span><input class="input" name="rows[<?= $i ?>][label]" maxlength="<?= MENU_LABEL_MAX ?>" value="<?= e((string) ($row['label'] ?? '')) ?>" placeholder="e.g. Our Range"></label>
-        <div class="field menu-row__link">
-            <label for="menu-link-<?= $i ?>">Goes to</label>
-            <select class="input" id="menu-link-<?= $i ?>" name="rows[<?= $i ?>][link]" data-menu-link>
-                <?php foreach ($choices as $group => $options): if (!$options) continue; ?>
-                    <optgroup label="<?= e($group) ?>">
-                        <?php foreach ($options as $value => $name): ?>
-                            <option value="<?= e((string) $value) ?>" <?= selected(!$custom && (string) $value === $link) ?>><?= e($name) ?></option>
-                        <?php endforeach; ?>
+        <div class="menu-row__bar">
+            <span class="menu-row__kind" data-menu-kind><?= $sub ? 'Sub item' : 'Top item' ?></span>
+            <span class="menu-row__tools">
+                <button type="button" class="icon-btn" data-menu-move="-1" aria-label="Move up" title="Move up">&#8593;</button>
+                <button type="button" class="icon-btn" data-menu-move="1" aria-label="Move down" title="Move down">&#8595;</button>
+                <button type="button" class="icon-btn icon-btn--danger" data-menu-remove aria-label="Remove" title="Remove"><?= icon('trash', '', 16) ?></button>
+            </span>
+        </div>
+        <div class="menu-row__fields">
+            <label class="field"><span>Name</span><input class="input" name="rows[<?= $i ?>][label]" maxlength="<?= MENU_LABEL_MAX ?>" value="<?= e((string) ($row['label'] ?? '')) ?>" placeholder="e.g. Our Range"></label>
+            <div class="menu-row__link">
+                <label class="field"><span>Goes to</span>
+                <select class="input" id="menu-link-<?= $i ?>" name="rows[<?= $i ?>][link]" data-menu-link>
+                    <?php foreach ($choices as $group => $options): if (!$options) continue; ?>
+                        <optgroup label="<?= e($group) ?>">
+                            <?php foreach ($options as $value => $name): ?>
+                                <option value="<?= e((string) $value) ?>" <?= selected(!$custom && (string) $value === $link) ?>><?= e($name) ?></option>
+                            <?php endforeach; ?>
+                        </optgroup>
+                    <?php endforeach; ?>
+                    <optgroup label="Other">
+                        <option value="__custom" <?= selected($custom) ?>>Another web address...</option>
                     </optgroup>
-                <?php endforeach; ?>
-                <optgroup label="Other">
-                    <option value="__custom" <?= selected($custom) ?>>Another web address...</option>
-                </optgroup>
-            </select>
-            <input class="input" name="rows[<?= $i ?>][url]" value="<?= $custom ? e($link) : '' ?>" placeholder="https://... or /page-address" aria-label="Web address" data-menu-url <?= $custom ? '' : 'hidden' ?>>
+                </select></label>
+                <input class="input menu-row__url" name="rows[<?= $i ?>][url]" value="<?= $custom ? e($link) : '' ?>" placeholder="https://... or /page-address" aria-label="Web address" data-menu-url <?= $custom ? '' : 'hidden' ?>>
+            </div>
         </div>
         <div class="menu-row__opts">
-            <label class="switch"><input type="checkbox" value="1" <?= checked($sub) ?> data-menu-sub><span class="switch__track"></span><span>Sub item</span></label>
-            <label class="switch"><input type="checkbox" name="rows[<?= $i ?>][new_tab]" value="1" <?= checked(!empty($row['new_tab'])) ?>><span class="switch__track"></span><span>New tab</span></label>
-            <button type="button" class="link-btn link-btn--danger" data-menu-remove>Remove</button>
+            <label class="switch"><input type="checkbox" value="1" <?= checked($sub) ?> data-menu-sub><span class="switch__track"></span><span>Sub item <small>in the drop down of the item above</small></span></label>
+            <label class="switch"><input type="checkbox" name="rows[<?= $i ?>][new_tab]" value="1" <?= checked(!empty($row['new_tab'])) ?>><span class="switch__track"></span><span>Open in a new tab</span></label>
         </div>
     </li>
     <?php

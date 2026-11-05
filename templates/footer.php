@@ -42,7 +42,11 @@ $socials = array_filter([
                 <?php if (multi_branch()): ?>
                     <?php // Every shop's name, address and phone on every page: what Google matches with each Business Profile. ?>
                     <?php foreach (active_branches() as $shop): ?>
-                        <li class="footer-shop"><a href="<?= e(branch_url($shop)) ?>"><strong><?= e($shop['name']) ?>:</strong> <?= e(branch_address_line($shop)) ?></a> <a href="tel:<?= e(phone_e164(branch_phone($shop))) ?>"><?= e(branch_phone($shop)) ?></a></li>
+                        <li class="footer-shop">
+                            <a class="footer-shop__name" href="<?= e(branch_url($shop)) ?>"><?= e($shop['name']) ?> shop</a>
+                            <span><?= e(branch_address_line($shop)) ?></span>
+                            <a href="tel:<?= e(phone_e164(branch_phone($shop))) ?>"><?= e(branch_phone($shop)) ?></a>
+                        </li>
                     <?php endforeach; ?>
                 <?php else: ?>
                 <li><a href="<?= e(store_maps_url()) ?>" target="_blank" rel="noopener"><?= e(store_address_line()) ?></a></li>

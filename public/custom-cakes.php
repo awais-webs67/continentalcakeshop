@@ -180,7 +180,7 @@ render('header', compact('page'));
                 </div>
             </div>
             <?php if ($multiBranch): ?>
-                <?php render('partials/branch-picker', ['selected' => $selectedBranch, 'legend' => 'Which shop?', 'hint' => 'The shop you choose makes your cake and replies with the quote.', 'error' => $errors['branch_id'] ?? '']); ?>
+                <?php render('partials/branch-picker', ['selected' => $selectedBranch, 'legend' => 'Which shop?', 'error' => $errors['branch_id'] ?? '', 'style' => 'pills']); ?>
             <?php endif; ?>
             <?php if (setting_bool('delivery_enabled')): ?>
             <fieldset class="field">

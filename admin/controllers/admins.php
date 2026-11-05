@@ -5,6 +5,18 @@ $admin = require_admin('owner');
 $postedPermissions = static fn (): string => json_encode(array_values(array_intersect((array) ($_POST['permissions'] ?? []), array_keys(ADMIN_SECTIONS))));
 /** The branch chosen for a staff account; null = every branch. */
 $postedBranch = static fn (): ?int => get_branch(post_int('branch_id')) ? post_int('branch_id') : null;
+/**
+ * The posted account type as [role, branch_id, permissions, error]:
+ * owner = every shop; manager = one shop, whole panel (permissions NULL); staff = ticked pages.
+ */
+$postedAccess = static function () use ($postedPermissions, $postedBranch): array {
+    $type = input('type') ?: (input('role') === 'owner' ? 'owner' : 'staff');
+    return match ($type) {
+        'owner'   => ['owner', null, null, null],
+        'manager' => $postedBranch() ? ['staff', $postedBranch(), null, null] : ['staff', null, null, 'Choose the shop this branch manager runs.'],
+        default   => ['staff', $postedBranch(), $postedPermissions(), null],
+    };
+};
 
 if (is_post()) {
     $action = input('action');
@@ -15,8 +27,10 @@ if (is_post()) {
         $name = str_limit(trim(input('name')), 120);
         $email = strtolower(str_limit(trim(input('email')), 190));
         $password = (string) ($_POST['password'] ?? '');
-        $role = isset(ADMIN_ROLES[input('role')]) ? input('role') : 'staff';
-        if ($name === '' || !valid_email($email)) {
+        [$role, $branchId, $permissions, $accessError] = $postedAccess();
+        if ($accessError) {
+            flash('error', $accessError);
+        } elseif ($name === '' || !valid_email($email)) {
             flash('error', 'Please enter a name and a valid email.');
         } elseif (mb_strlen($password) < 10) {
             flash('error', 'Use at least 10 characters for the password.');
@@ -25,7 +39,7 @@ if (is_post()) {
         } elseif (email_used_by_customer($email)) {
             flash('error', CUSTOMER_EMAIL_TAKEN);
         } else {
-            db_run('INSERT INTO admins (name, email, password_hash, role, branch_id, permissions) VALUES (?, ?, ?, ?, ?, ?)', [$name, $email, password_hash($password, PASSWORD_DEFAULT), $role, $role === 'staff' ? $postedBranch() : null, $role === 'staff' ? $postedPermissions() : null]);
+            db_run('INSERT INTO admins (name, email, password_hash, role, branch_id, permissions) VALUES (?, ?, ?, ?, ?, ?)', [$name, $email, password_hash($password, PASSWORD_DEFAULT), $role, $branchId, $permissions]);
             flash('success', $name . ' can now log in at ' . admin_url('login') . '. Share the password with them in person.');
         }
     } elseif ($target && (int) $target['id'] === (int) $admin['id']) {
@@ -43,6 +57,16 @@ if (is_post()) {
         } else {
             db_run('UPDATE admins SET role = ? WHERE id = ?', [input('role'), $target['id']]);
             flash('success', $target['name'] . ' is now ' . strtolower(ADMIN_ROLES[input('role')]) . '.');
+        }
+    } elseif ($target && $action === 'access') {
+        [$role, $branchId, $permissions, $accessError] = $postedAccess();
+        if ($accessError) {
+            flash('error', $accessError);
+        } elseif ($target['role'] === 'owner' && $role !== 'owner' && (int) db_value("SELECT COUNT(*) FROM admins WHERE role = 'owner' AND is_active = 1") <= 1) {
+            flash('error', 'Keep at least one active owner account.');
+        } else {
+            db_run('UPDATE admins SET role = ?, branch_id = ?, permissions = ? WHERE id = ?', [$role, $branchId, $permissions, $target['id']]);
+            flash('success', 'Access for ' . $target['name'] . ' saved.');
         }
     } elseif ($target && $action === 'permissions') {
         db_run('UPDATE admins SET permissions = ?, branch_id = ? WHERE id = ?', [$postedPermissions(), $postedBranch(), $target['id']]);

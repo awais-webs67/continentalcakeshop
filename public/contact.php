@@ -161,7 +161,7 @@ render('header', compact('page'));
     <div class="container<?= $multiBranch ? ' shop-maps' : '' ?>">
         <?php foreach ($multiBranch ? $shops : [main_branch()] as $shop): ?>
         <div class="visit__map visit__map--wide">
-            <iframe title="Map showing <?= e(setting('store_name') . ($multiBranch ? ', ' . $shop['name'] : '')) ?>" src="https://www.google.com/maps?q=<?= e(rawurlencode(setting('store_name') . ', ' . branch_address_line($shop))) ?>&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+            <iframe title="Map showing <?= e(setting('store_name') . ($multiBranch ? ', ' . $shop['name'] : '')) ?>" src="https://www.google.com/maps?q=<?= e(rawurlencode((int) $shop['is_main'] ? setting('store_name') . ', ' . branch_address_line($shop) : branch_address_line($shop))) ?>&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
         </div>
         <?php endforeach; ?>
     </div>

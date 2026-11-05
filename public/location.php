@@ -61,14 +61,13 @@ render('header', compact('page'));
 </section>
 
 <section class="section section--compact">
-    <div class="container location-grid">
-        <div class="location-info">
-            <div class="info-card">
+    <div class="container">
+        <div class="location-grid">
+            <div class="info-card location-visit">
                 <h2>Visit the <?= e($suburb) ?> shop</h2>
                 <ul class="location-facts">
                     <li><?= icon('pin', '', 20) ?><span><strong>Address</strong><a href="<?= e(branch_maps_url($branch)) ?>" target="_blank" rel="noopener"><?= e($address) ?></a></span></li>
                     <li><?= icon('phone', '', 20) ?><span><strong>Phone</strong><a href="tel:<?= e(phone_e164($phone)) ?>"><?= e($phone) ?></a></span></li>
-                    <li><?= icon('clock', '', 20) ?><span><strong>Today</strong><?= e(today_hours_label()) ?></span></li>
                 </ul>
                 <table class="hours-table">
                     <caption class="sr-only">Opening hours of the <?= e($suburb) ?> shop</caption>
@@ -82,29 +81,29 @@ render('header', compact('page'));
                     </tbody>
                 </table>
             </div>
-            <div class="info-card location-about">
-                <h2>About our <?= e($suburb) ?> shop</h2>
-                <?php if ($intro !== ''): ?>
-                    <div class="prose"><?= render_content($intro) ?></div>
-                <?php else: ?>
-                    <div class="prose">
-                        <p>Our <?= e($suburb) ?> shop bakes the same menu as all our shops: tortes, velvet cakes, mud cakes, baked and continental cheesecakes, and tea cakes, every one made with 100% Halal ingredients.</p>
-                        <p>Order online and choose <?= e($suburb) ?> at checkout, then pick up your cake at the time you chose. For birthdays, weddings and other celebrations, send us your idea and we will make a custom cake for you.</p>
-                    </div>
+            <div class="location-media">
+                <?php if ($photo): ?>
+                    <figure class="location-photo"><img src="<?= e($photo) ?>" alt="<?= e($store . ' shop in ' . $suburb . ', Canberra') ?>" width="1200" height="900" loading="lazy" decoding="async"></figure>
                 <?php endif; ?>
-                <form method="post" action="<?= e(branch_url($branch)) ?>" class="location-about__cta">
-                    <?= csrf_field() ?><input type="hidden" name="to" value="custom-cakes">
-                    <button class="btn btn--outline btn--sm" type="submit"><?= icon('gift', '', 16) ?> Ask for a custom cake here</button>
-                </form>
+                <div class="visit__map location-map">
+                    <?php // The main shop is found on Google by its name; other shops by their street address. ?>
+                    <iframe title="Map showing <?= e($store . ' in ' . $suburb) ?>" src="https://www.google.com/maps?q=<?= e(rawurlencode((int) $branch['is_main'] ? $store . ', ' . $address : $address)) ?>&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                </div>
             </div>
         </div>
-        <div class="location-media">
-            <?php if ($photo): ?>
-                <figure class="location-photo"><img src="<?= e($photo) ?>" alt="<?= e($store . ' shop in ' . $suburb . ', Canberra') ?>" width="1200" height="900" loading="lazy" decoding="async"></figure>
-            <?php endif; ?>
-            <div class="visit__map">
-                <iframe title="Map showing <?= e($store . ' in ' . $suburb) ?>" src="https://www.google.com/maps?q=<?= e(rawurlencode($store . ', ' . $address)) ?>&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+
+        <div class="location-about">
+            <div class="prose">
+                <h2>About our <?= e($suburb) ?> shop</h2>
+                <?php if ($intro !== ''): ?>
+                    <?= render_content($intro) ?>
+                <?php endif; ?>
+                <p>Every cake on our menu is made with 100% Halal ingredients: tortes, velvet cakes, mud cakes, baked and continental cheesecakes, and tea cakes. Order online, choose <?= e($suburb) ?> at checkout and pick up at the time you chose. For birthdays, weddings and other celebrations we also make custom cakes.</p>
             </div>
+            <form method="post" action="<?= e(branch_url($branch)) ?>" class="location-about__cta">
+                <?= csrf_field() ?><input type="hidden" name="to" value="custom-cakes">
+                <button class="btn btn--outline" type="submit"><?= icon('gift', '', 18) ?> Ask for a custom cake here</button>
+            </form>
         </div>
     </div>
 </section>
