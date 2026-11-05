@@ -227,6 +227,47 @@ function gallery_for_occasion(?string $occasion, int $limit = 8): array
     return array_slice(array_values($all), 0, $limit);
 }
 
+const GALLERY_INTRO_DEFAULT = 'Birthday, wedding, engagement and baby shower cakes we have made for Canberra families. Tap a photo to see it bigger, and send it to us to order one like it.';
+
+// Filter buttons on the Custom Cake Gallery page. A photo gets a tag when its caption has one of the words.
+const GALLERY_FILTERS = [
+    'birthday'    => ['Birthday', 'birthday|bday|kids|spider|mario|unicorn|bluey|blippi|minnie|mickey|frozen|elsa|paw patrol|soccer|football|princess|dinosaur|superhero|number|topper'],
+    'wedding'     => ['Wedding', 'wedding|bride|bridal|three-tier|3 tier'],
+    'engagement'  => ['Engagement', 'engagement|engaged|proposal'],
+    'baby'        => ['Baby shower', 'baby|gender reveal|christening|baptism|first birthday|1st birthday'],
+    'anniversary' => ['Anniversary', 'anniversary'],
+    'graduation'  => ['Graduation', 'graduation|graduate'],
+    'corporate'   => ['Corporate', 'corporate|company|office|logo'],
+    'festive'     => ['Festive', 'eid|ramadan|christmas|easter|diwali|mother|father|valentine'],
+];
+
+/** Filter tags for a gallery photo, from its caption. */
+function gallery_tags(string $caption): array
+{
+    $tags = [];
+    foreach (GALLERY_FILTERS as $key => [, $words]) {
+        if (preg_match('/\b(' . $words . ')/i', $caption)) {
+            $tags[] = $key;
+        }
+    }
+    return $tags;
+}
+
+/** Width and height of an uploaded photo, so the page keeps its space while it loads. */
+function upload_image_size(string $image, int $fallbackW = 720, int $fallbackH = 960): array
+{
+    $file = BASE_PATH . '/public/uploads/' . ltrim($image, '/');
+    $size = !str_contains($image, '..') && is_file($file) ? @getimagesize($file) : false;
+    return $size ? [(int) $size[0], (int) $size[1]] : [$fallbackW, $fallbackH];
+}
+
+/** Caption for a photo uploaded without one, e.g. "Birthday cake by The Continental Cake Shop, Canberra". */
+function gallery_default_caption(string $occasion = ''): string
+{
+    $kind = $occasion !== '' && $occasion !== 'Other' ? $occasion . ' cake' : 'Custom cake';
+    return $kind . ' by ' . setting('store_short_name') . ', Canberra';
+}
+
 function count_gallery(): int
 {
     return (int) db_value('SELECT COUNT(*) FROM gallery_images WHERE is_active = 1');

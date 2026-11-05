@@ -10,7 +10,7 @@ const POLICY_PAGES = ['privacy-policy', 'terms', 'refund-policy', 'allergens'];
 const CAKE_OCCASIONS = ['Birthday', 'Kids birthday', 'Wedding', 'Engagement', 'Baby shower', 'Gender reveal', 'Anniversary', 'Graduation', 'Corporate event', 'Other'];
 
 // Addresses the website already uses, so a page can never take one of them.
-const RESERVED_SLUGS = ['shop', 'cakes', 'order', 'messages', 'quote', 'cart', 'checkout', 'custom-cakes', 'about', 'contact', 'login', 'register',
+const RESERVED_SLUGS = ['shop', 'cakes', 'order', 'messages', 'quote', 'cart', 'checkout', 'custom-cakes', 'custom-cake-gallery', 'about', 'contact', 'login', 'register',
     'logout', 'account', 'forgot-password', 'reset-password', 'verify-email', 'faq', 'api', 'admin', 'stripe-webhook', 'sitemap', 'robots', 'uploads', 'assets', '404', 'index', 'page'];
 
 function get_page(string $slug): ?array
@@ -290,6 +290,29 @@ function home_sections(): array
         $list[$key] ??= $key !== 'text';
     }
     return $list;
+}
+
+// ---------------------------------------------------------------------------
+// Where reviews and the Google rating show (Admin > Reviews)
+// ---------------------------------------------------------------------------
+
+const REVIEW_PLACES = [
+    'hero'    => ['Homepage top banner', 'Google logo, stars and "4.3 from 290+ Google reviews" under the main buttons'],
+    'home'    => ['Homepage reviews section', 'The customer review cards. Same switch as in Admin > Homepage.'],
+    'product' => ['Cake pages', 'Stars and the Google rating under the price of every cake'],
+    'about'   => ['About Us page', 'The "Google rating" number in the facts row'],
+];
+
+/** True when reviews should show in this place: the main switch is on and so is the place's own switch. */
+function reviews_shown(string $place): bool
+{
+    if (setting('reviews_enabled', '1') !== '1') {
+        return false;
+    }
+    if ($place === 'home') {
+        return home_sections()['reviews'] ?? false;
+    }
+    return setting('reviews_show_' . $place, '1') === '1' && setting('google_rating') !== '';
 }
 
 /** A JSON list stored in a setting, e.g. the feature strip items. */

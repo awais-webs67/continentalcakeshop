@@ -4,9 +4,28 @@ $form = $editing ?? ['id' => 0, 'author' => '', 'source' => 'Google', 'body' => 
 <div class="page-head">
     <div><h1>Reviews</h1><p>Customer reviews shown on the homepage. Copy your best Google reviews here. The first four visible reviews are shown.</p></div>
 </div>
+<?php
+$reviewsOn = setting('reviews_enabled', '1') === '1';
+$placeOn = static fn (string $p): bool => $p === 'home' ? (home_sections()['reviews'] ?? false) : setting('reviews_show_' . $p, '1') === '1';
+?>
+<section class="card" id="review-places">
+    <div class="card__head"><h2>Where reviews show</h2><span class="hint">Turn each place on or off. Nothing is deleted.</span></div>
+    <form class="card__body form-stack" method="post">
+        <?= csrf_field() ?><input type="hidden" name="action" value="places">
+        <label class="switch"><input type="checkbox" name="reviews_enabled" value="1" <?= checked($reviewsOn) ?> data-reviews-master><span class="switch__track"></span><span><strong>Show reviews and the Google rating on the website</strong><small>Off hides them everywhere below in one go.</small></span></label>
+        <div class="switch-list" data-reviews-places<?= $reviewsOn ? '' : ' aria-disabled="true"' ?>>
+            <?php foreach (REVIEW_PLACES as $place => [$label, $hint]): ?>
+                <label class="switch"><input type="checkbox" name="places[<?= e($place) ?>]" value="1" <?= checked($placeOn($place)) ?>><span class="switch__track"></span><span><?= e($label) ?><small><?= e($hint) ?></small></span></label>
+            <?php endforeach; ?>
+        </div>
+        <?php if (setting('google_rating') === ''): ?><p class="hint">No Google rating is set, so stars only show once you add it in <a href="<?= e(admin_url('homepage')) ?>#reviews">Homepage &gt; Google reviews</a>.</p><?php endif; ?>
+        <p class="hint">The email that asks customers for a Google review is in <a href="<?= e(admin_url('settings', ['tab' => 'emails'])) ?>">Settings &gt; Emails</a>.</p>
+        <div><button class="btn btn--primary btn--sm" type="submit"><?= icon('check', '', 16) ?> Save</button></div>
+    </form>
+</section>
 <div class="grid-main">
     <section class="card">
-        <div class="card__head"><h2>All reviews</h2><span class="hint">Rating shown: <?= e(setting('google_rating')) ?> from <?= e(setting('google_review_count')) ?> reviews (change in Settings)</span></div>
+        <div class="card__head"><h2>All reviews</h2><span class="hint">Rating shown: <?= e(setting('google_rating')) ?> from <?= e(setting('google_review_count')) ?> reviews (change in Homepage &gt; Google reviews)</span></div>
         <?php if (!$reviews): ?>
             <div class="empty"><?= icon('star', '', 32) ?><p>No reviews yet.</p></div>
         <?php else: ?>

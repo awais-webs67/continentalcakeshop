@@ -1,17 +1,13 @@
 <?php
 /** @var array $page */
 $page = page_meta($page ?? []);
-$navCategories = get_categories();
+$menu = nav_menu(); // Admin > Menu
 $cartCount = cart_count();
 $user = current_user();
 $phone = setting('store_phone');
 $phoneHref = 'tel:' . setting('store_phone_e164');
-$navLinks = [
-    ['shop', 'Shop Cakes'],
-    ['custom-cakes', 'Custom Cakes'],
-    ['about', 'About Us'],
-    ['contact', 'Contact'],
-];
+$target = static fn (array $item): string => $item['new_tab'] ? ' target="_blank" rel="noopener"' : '';
+$current = static fn (array $item): string => $item['active'] ? ' aria-current="page"' : '';
 ?>
 <!doctype html>
 <html lang="en-AU">
@@ -81,22 +77,25 @@ $navLinks = [
 
         <nav class="main-nav" aria-label="Main">
             <ul class="main-nav__list">
-                <li><a href="<?= e(url()) ?>" <?= is_active_path('/') ? 'aria-current="page"' : '' ?>>Home</a></li>
-                <li class="has-dropdown">
-                    <a href="<?= e(url('shop')) ?>" <?= is_active_path('shop') || is_active_path('cakes') ? 'aria-current="page"' : '' ?>>
-                        Shop Cakes <?= icon('down', 'dropdown-caret', 16) ?>
-                    </a>
-                    <div class="dropdown">
-                        <ul>
-                            <?php foreach ($navCategories as $cat): ?>
-                                <li><a href="<?= e(category_url($cat)) ?>"><?= e($cat['name']) ?></a></li>
-                            <?php endforeach; ?>
-                            <li class="dropdown__all"><a href="<?= e(url('shop')) ?>">View all cakes <?= icon('arrow', '', 16) ?></a></li>
-                        </ul>
-                    </div>
-                </li>
-                <?php foreach (array_slice($navLinks, 1) as [$path, $label]): ?>
-                    <li><a href="<?= e(url($path)) ?>" <?= is_active_path($path) ? 'aria-current="page"' : '' ?>><?= e($label) ?></a></li>
+                <?php foreach ($menu as $item): ?>
+                    <?php if (!$item['children']): ?>
+                        <li><a href="<?= e($item['href']) ?>"<?= $current($item) . $target($item) ?>><?= e($item['label']) ?></a></li>
+                    <?php else: ?>
+                        <li class="has-dropdown">
+                            <?php if ($item['href'] !== ''): ?>
+                                <a href="<?= e($item['href']) ?>"<?= $current($item) . $target($item) ?>><?= e($item['label']) ?> <?= icon('down', 'dropdown-caret', 16) ?></a>
+                            <?php else: ?>
+                                <button type="button" class="main-nav__btn"<?= $item['active'] ? ' data-active' : '' ?>><?= e($item['label']) ?> <?= icon('down', 'dropdown-caret', 16) ?></button>
+                            <?php endif; ?>
+                            <div class="dropdown">
+                                <ul>
+                                    <?php foreach ($item['children'] as $child): ?>
+                                        <li<?= $child['all'] ? ' class="dropdown__all"' : '' ?>><a href="<?= e($child['href']) ?>"<?= $current($child) . $target($child) ?>><?= e($child['label']) ?><?= $child['all'] ? ' ' . icon('arrow', '', 16) : '' ?></a></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+                        </li>
+                    <?php endif; ?>
                 <?php endforeach; ?>
             </ul>
         </nav>
@@ -136,18 +135,25 @@ $navLinks = [
         </div>
 
         <nav class="drawer__nav" aria-label="Mobile">
-            <a href="<?= e(url()) ?>" <?= is_active_path('/') ? 'aria-current="page"' : '' ?>>Home <?= icon('chevron', '', 18) ?></a>
-            <details class="drawer__group" <?= is_active_path('shop') || is_active_path('cakes') ? 'open' : '' ?>>
-                <summary>Shop Cakes <?= icon('down', '', 18) ?></summary>
-                <div class="drawer__sub">
-                    <a href="<?= e(url('shop')) ?>">All cakes</a>
-                    <?php foreach ($navCategories as $cat): ?>
-                        <a href="<?= e(category_url($cat)) ?>"><?= e($cat['name']) ?></a>
-                    <?php endforeach; ?>
-                </div>
-            </details>
-            <?php foreach (array_slice($navLinks, 1) as [$path, $label]): ?>
-                <a href="<?= e(url($path)) ?>" <?= is_active_path($path) ? 'aria-current="page"' : '' ?>><?= e($label) ?> <?= icon('chevron', '', 18) ?></a>
+            <?php foreach ($menu as $item): ?>
+                <?php if (!$item['children']): ?>
+                    <a href="<?= e($item['href']) ?>"<?= $current($item) . $target($item) ?>><?= e($item['label']) ?> <?= icon('chevron', '', 18) ?></a>
+                <?php else: ?>
+                    <?php // The parent's own page is offered first, unless a sub item already goes there.
+                    $showParent = $item['href'] !== '' && !in_array($item['href'], array_column($item['children'], 'href'), true); ?>
+                    <details class="drawer__group" <?= $item['active'] ? 'open' : '' ?>>
+                        <summary><?= e($item['label']) ?> <?= icon('down', '', 18) ?></summary>
+                        <div class="drawer__sub">
+                            <?php if ($showParent): ?><a href="<?= e($item['href']) ?>"<?= $target($item) ?>><?= e($item['label']) ?></a><?php endif; ?>
+                            <?php // On phones "All cakes" comes first, before the categories.
+                            $drawerChildren = $item['children'];
+                            usort($drawerChildren, static fn ($a, $b) => $b['all'] <=> $a['all']); ?>
+                            <?php foreach ($drawerChildren as $child): ?>
+                                <a href="<?= e($child['href']) ?>"<?= $current($child) . $target($child) ?>><?= e($child['all'] ? 'All cakes' : $child['label']) ?></a>
+                            <?php endforeach; ?>
+                        </div>
+                    </details>
+                <?php endif; ?>
             <?php endforeach; ?>
             <a href="<?= e(url('cart')) ?>">Cart<?= $cartCount ? ' (' . $cartCount . ')' : '' ?> <?= icon('chevron', '', 18) ?></a>
             <?php if ($user): ?>

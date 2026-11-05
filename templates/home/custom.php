@@ -18,7 +18,7 @@ $gallery = array_slice(array_values(array_filter(get_gallery(12), static fn ($p)
             <?php endif; ?>
             <div class="custom-feature__actions">
                 <a class="btn btn--primary" href="<?= e(url('custom-cakes')) ?>"><?= e(setting('home_custom_btn_text', 'Get a Quote')) ?> <?= icon('arrow', '', 18) ?></a>
-                <a class="btn btn--outline" href="<?= e(url('custom-cakes') . '#gallery') ?>">See our work</a>
+                <a class="btn btn--outline" href="<?= e(url('custom-cake-gallery')) ?>">See our work</a>
             </div>
         </div>
         <?php if ($gallery): ?>

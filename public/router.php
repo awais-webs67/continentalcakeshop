@@ -32,6 +32,7 @@ $routes = [
     '#^/cart$#'                     => ['cart.php', []],
     '#^/checkout$#'                 => ['checkout.php', []],
     '#^/custom-cakes$#'             => ['custom-cakes.php', []],
+    '#^/custom-cake-gallery$#'      => ['custom-cake-gallery.php', []],
     '#^/about$#'                    => ['about.php', []],
     '#^/contact$#'                  => ['contact.php', []],
     '#^/login$#'                    => ['login.php', []],

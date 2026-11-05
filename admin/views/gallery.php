@@ -1,16 +1,43 @@
 <?php /** @var array $result @var string $hero */ ?>
+<?php $showOnCustom = setting('custom_show_gallery', '1') === '1'; ?>
 <div class="page-head">
-    <div><h1>Gallery</h1><p>Photos of past cakes. They appear on the custom cakes page and the homepage. Portrait photos (3:4) look best.</p></div>
+    <div><h1>Gallery</h1><p>Photos of cakes you have made. They fill the <a href="<?= e(url('custom-cake-gallery')) ?>" target="_blank" rel="noopener">Custom Cake Gallery</a> page (Pinterest style, every photo keeps its own shape) and also show on the homepage and the custom cakes page.</p></div>
+    <a class="btn btn--secondary btn--sm" href="<?= e(url('custom-cake-gallery')) ?>" target="_blank" rel="noopener">View gallery page <?= icon('arrow', '', 16) ?></a>
 </div>
+<?php if (query_int('added') > 0): ?>
+    <div class="alert alert--success" role="status"><?= query_int('added') === 1 ? 'Photo added to the gallery.' : query_int('added') . ' photos added to the gallery.' ?></div>
+<?php endif; ?>
+<div class="grid-2">
 <section class="card">
-    <div class="card__head"><h2>Add a photo</h2></div>
-    <form class="card__body toolbar toolbar--plain" method="post" enctype="multipart/form-data">
+    <div class="card__head"><h2>Add photos</h2><span class="hint">Choose many at once</span></div>
+    <form class="card__body form-stack" method="post" enctype="multipart/form-data" data-gallery-upload>
         <?= csrf_field() ?><input type="hidden" name="action" value="upload">
-        <input class="input" type="file" name="image" accept="image/jpeg,image/png,image/webp" required>
-        <input class="input grow" name="caption" maxlength="160" placeholder="Short description, e.g. Two-tier wedding cake with fresh roses">
-        <button class="btn btn--primary" type="submit"><?= icon('upload', '', 18) ?> Upload</button>
+        <label class="field"><span>Photos <small>JPG, PNG or WebP, up to 10 MB each</small></span><input class="input" type="file" name="images[]" accept="image/jpeg,image/png,image/webp" multiple required></label>
+        <div class="form-grid">
+            <label class="field"><span>Occasion <small>sorts them into the filter buttons</small></span>
+                <select class="input" name="occasion">
+                    <option value="">Choose one (optional)</option>
+                    <?php foreach (CAKE_OCCASIONS as $o): ?><option><?= e($o) ?></option><?php endforeach; ?>
+                </select></label>
+            <label class="field"><span>Short description <small>optional, used for all photos chosen</small></span><input class="input" name="caption" maxlength="160" placeholder="e.g. Two-tier wedding cake with fresh roses"></label>
+        </div>
+        <p class="hint">The description is what Google Images reads, so describe the cake: colours, theme, tiers. Empty means "Birthday cake by <?= e(setting('store_short_name')) ?>, Canberra" (with the occasion you chose). You can change each photo's text below after uploading.</p>
+        <div><button class="btn btn--primary" type="submit"><?= icon('upload', '', 18) ?> Upload</button></div>
+        <p class="hint" data-gallery-progress role="status" hidden></p>
     </form>
 </section>
+<section class="card" id="gallery-settings">
+    <div class="card__head"><h2>Where the photos show</h2></div>
+    <form class="card__body form-stack" method="post">
+        <?= csrf_field() ?><input type="hidden" name="action" value="settings">
+        <label class="switch"><input type="checkbox" name="custom_show_gallery" value="1" <?= checked($showOnCustom) ?>><span class="switch__track"></span><span><strong>Photos at the bottom of the "Order a custom cake" page</strong><small>Off hides them there. The gallery page and homepage keep their photos.</small></span></label>
+        <label class="field" style="max-width:220px"><span>How many photos there</span><input class="input" type="number" min="2" max="24" name="custom_gallery_count" value="<?= (int) setting('custom_gallery_count', '8') ?>"></label>
+        <label class="field"><span>Gallery page heading</span><input class="input" name="gallery_title" maxlength="80" value="<?= e(setting('gallery_title')) ?>" placeholder="Custom Cake Gallery"></label>
+        <label class="field"><span>Gallery page intro</span><textarea class="input" name="gallery_intro" rows="3" maxlength="400" placeholder="<?= e(GALLERY_INTRO_DEFAULT) ?>"><?= e(setting('gallery_intro')) ?></textarea></label>
+        <div><button class="btn btn--secondary btn--sm" type="submit"><?= icon('check', '', 16) ?> Save</button></div>
+    </form>
+</section>
+</div>
 <section class="card">
     <div class="card__head"><h2>Photos</h2><span class="hint">The outlined photo is the main homepage photo.</span></div>
     <div class="card__body">

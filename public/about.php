@@ -58,7 +58,7 @@ render('header', compact('page'));
                 <h2 class="section-title">Made in our kitchen</h2>
                 <p class="section-sub">A few of the cakes we have made for Canberra families.</p>
             </div>
-            <a class="link-arrow" href="<?= e(url('custom-cakes') . '#gallery') ?>">See the gallery <?= icon('arrow', '', 18) ?></a>
+            <a class="link-arrow" href="<?= e(url('custom-cake-gallery')) ?>">See the gallery <?= icon('arrow', '', 18) ?></a>
         </div>
         <div class="photo-strip">
             <?php foreach ($photos as $photo): ?>
@@ -71,9 +71,10 @@ render('header', compact('page'));
 
 <section class="section section--compact">
     <div class="container">
-        <div class="stats">
+        <?php $showRating = reviews_shown('about'); ?>
+        <div class="stats<?= $showRating ? '' : ' stats--3' ?>">
             <div><strong><?= e(setting('store_founded')) ?></strong><span>Baking in Canberra since</span></div>
-            <div><strong><?= e(setting('google_rating')) ?>/5</strong><span>Google rating</span></div>
+            <?php if ($showRating): ?><div><strong><?= e(setting('google_rating')) ?>/5</strong><span>Google rating</span></div><?php endif; ?>
             <div><strong>100%</strong><span>Halal ingredients</span></div>
             <div><strong><?= (int) db_value('SELECT COUNT(*) FROM products WHERE is_active = 1') ?></strong><span>Cakes on our menu</span></div>
         </div>

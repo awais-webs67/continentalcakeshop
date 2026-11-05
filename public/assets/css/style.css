@@ -211,13 +211,18 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 .main-nav__list { display: flex; align-items: center; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .main-nav__list > li { position: relative; }
-.main-nav__list > li > a {
+.main-nav__list > li > a, .main-nav__btn {
     display: inline-flex; align-items: center; gap: 4px;
-    padding: 10px 16px; border-radius: 999px;
-    color: var(--white); font-family: var(--font-head); font-weight: 500; font-size: 16px; text-decoration: none;
+    padding: 10px 16px; border: 0; border-radius: 999px; background: none; cursor: pointer;
+    color: var(--white); font-family: var(--font-head); font-weight: 500; font-size: 16px; text-decoration: none; white-space: nowrap;
     transition: background-color .2s;
 }
-.main-nav__list > li > a:hover, .main-nav__list > li > a[aria-current="page"] { background: rgba(255, 255, 255, .16); }
+.main-nav__list > li > a:hover, .main-nav__list > li > a[aria-current="page"], .main-nav__btn:hover, .main-nav__btn[data-active] { background: rgba(255, 255, 255, .16); }
+/* Room for up to eight menu items between the logo and the buttons on smaller laptops. */
+@media (min-width: 1024px) and (max-width: 1279.98px) {
+    .main-nav__list { gap: 0; }
+    .main-nav__list > li > a, .main-nav__btn { padding: 10px 11px; font-size: 15px; }
+}
 .dropdown-caret { transition: transform .2s; }
 
 .dropdown {
@@ -225,6 +230,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
     min-width: 250px; padding: 8px;
     background: var(--white); border-radius: var(--radius); box-shadow: 0 18px 40px rgba(27, 27, 31, .16);
     opacity: 0; visibility: hidden; transition: opacity .2s, transform .2s, visibility .2s;
+    z-index: 20; /* above the chocolate drip under the header */
 }
 .dropdown::before { content: ""; position: absolute; left: 0; right: 0; top: -12px; height: 12px; }
 .dropdown ul { margin: 0; padding: 0; list-style: none; }
@@ -1167,7 +1173,8 @@ fieldset.field { margin: 0 0 18px; padding: 0; border: 0; min-width: 0; }
 .about-media img { width: 100%; border-radius: 26px; box-shadow: var(--shadow); aspect-ratio: 4 / 4.3; object-fit: cover; }
 
 .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; padding: 28px 16px; background: var(--brand-softer); border-radius: 28px; text-align: center; }
-@media (min-width: 768px) { .stats { grid-template-columns: repeat(4, 1fr); padding: 40px; } }
+@media (min-width: 768px) { .stats { grid-template-columns: repeat(4, 1fr); padding: 40px; } .stats--3 { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 767.98px) { .stats--3 > :last-child { grid-column: span 2; } }
 .stats strong { display: block; font-family: var(--font-head); font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 700; color: var(--brand); line-height: 1.1; }
 .stats span { color: var(--muted); font-size: 14px; }
 
@@ -1627,3 +1634,47 @@ body.has-buy-bar .whatsapp-fab { bottom: 88px; }
 /* Category tile names fit narrow tiles (tablets): slightly smaller and allowed to wrap */
 .tile__name { overflow-wrap: anywhere; hyphens: auto; }
 @media (min-width: 768px) and (max-width: 1099px) { .tile__name { font-size: 19px; } .tile--feature .tile__name { font-size: 28px; } .tile__body { left: 16px; right: 16px; bottom: 16px; } }
+
+/* ---------- Custom Cake Gallery (Pinterest style) ---------- */
+
+.page-hero__actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+.pin-filters { margin-bottom: 22px; }
+.pin-filters .chip { flex-shrink: 0; cursor: pointer; font: inherit; }
+.pin-filters .chip span { margin-left: 4px; opacity: .65; font-size: .85em; }
+.pin-grid { columns: 2; column-gap: 12px; }
+@media (min-width: 700px) { .pin-grid { columns: 3; column-gap: 16px; } }
+@media (min-width: 1024px) { .pin-grid { columns: 4; column-gap: 18px; } }
+@media (min-width: 1440px) { .pin-grid { columns: 5; } }
+.pin {
+    position: relative; margin: 0 0 12px; overflow: hidden; break-inside: avoid;
+    border-radius: 18px; background: #EDF3F1; box-shadow: var(--shadow-sm);
+    animation: pin-in .5s ease both;
+}
+@media (min-width: 700px) { .pin { margin-bottom: 16px; } }
+.pin[hidden] { display: none; }
+.pin__open { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; }
+.pin__open img { display: block; width: 100%; height: auto; aspect-ratio: var(--pin-shape, auto); object-fit: cover; transition: transform .6s ease; }
+.pin__caption {
+    display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 12px;
+    background: var(--white); color: var(--text); font-size: 13.5px; line-height: 1.4;
+}
+.pin__order { display: inline-flex; align-items: center; gap: 4px; color: var(--brand); font-weight: 600; font-size: 13px; text-decoration: none; }
+@media (hover: hover) and (min-width: 700px) {
+    /* Desktop: the text slides up over the photo on hover, like Pinterest. */
+    .pin__caption {
+        position: absolute; left: 0; right: 0; bottom: 0; padding: 40px 14px 14px;
+        background: linear-gradient(0deg, rgba(4, 38, 32, .9) 0%, rgba(4, 38, 32, .55) 55%, rgba(4, 38, 32, 0) 100%);
+        color: var(--white); opacity: 0; transform: translateY(10px); transition: opacity .25s, transform .25s; pointer-events: none;
+    }
+    .pin:hover .pin__caption, .pin:focus-within .pin__caption { opacity: 1; transform: none; pointer-events: auto; }
+    .pin:hover .pin__open img { transform: scale(1.04); }
+    .pin__order { align-self: flex-start; padding: 7px 12px; border-radius: 999px; background: var(--white); color: var(--brand); }
+}
+@keyframes pin-in { from { opacity: 0; transform: translateY(12px); } }
+@media (prefers-reduced-motion: reduce) { .pin { animation: none; } .pin__open img, .pin__caption { transition: none; } }
+.pin-empty { padding: 30px 0; color: var(--muted); text-align: center; }
+.pin-cta { margin-top: 36px; }
+.pin-box__body { display: grid; justify-items: center; gap: 14px; margin: 0; padding: 0 16px; }
+.pin-box__body figcaption { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 16px; max-width: 700px; color: rgba(255, 255, 255, .9); text-align: center; font-size: 15px; }
+.pin-box img { max-height: 76vh; }
+.gallery-more { margin: 8px 0 0; text-align: center; }

@@ -36,6 +36,8 @@ Read it before changing anything. For putting the site live, see [DEPLOY.md](DEP
 29. [Orders, pickups and kitchen tickets](#29-orders-pickups-and-kitchen-tickets)
 30. [Homepage categories and product photos](#30-homepage-categories-and-product-photos)
 31. [Going live: clear test data, search engine checks](#31-going-live-clear-test-data-search-engine-checks)
+32. [Shop front photo and search-ready new cakes](#32-shop-front-photo-and-search-ready-new-cakes)
+33. [Menu, review switches and the Custom Cake Gallery](#33-menu-review-switches-and-the-custom-cake-gallery)
 
 ## 1. How the code is organised
 
@@ -446,7 +448,7 @@ Before pushing:
 
 **Clear test data** (Admin > System check, owner only; `CLEARABLE_DATA` and `clear_shop_data()` in `src/backup.php`). Tick what to remove (orders, customer accounts, custom cake requests, messages, logs), type `DELETE` and confirm. A full backup is saved first and nothing is deleted if it fails; the menu, pages, settings, photos and staff logins are never touched. Tables that end up empty start their numbering again from 1, coupon use counts go back to 0, and payment screenshots and reference photos no longer used are removed. To undo, import the backup in phpMyAdmin.
 
-**One address per page.** Near-misses that reach the 404 page are sent to the usual address with a 301 (`tidy_path_redirect()` in `src/seo.php`): `/about/` to `/about`, `/SHOP` to `/shop`, `/index.php` to `/`. Old website addresses still go through `legacy_redirect_target()` first. Gallery pages on Custom Cakes (`?page=2`) have their own title and canonical address; search and sort versions of the shop are `noindex, follow`.
+**One address per page.** Near-misses that reach the 404 page are sent to the usual address with a 301 (`tidy_path_redirect()` in `src/seo.php`): `/about/` to `/about`, `/SHOP` to `/shop`, `/index.php` to `/`. Old website addresses still go through `legacy_redirect_target()` first. The gallery has one page of its own (`/custom-cake-gallery`); old `/custom-cakes?page=2` links go there with a 301; search and sort versions of the shop are `noindex, follow`.
 
 **Search text.** Every cake has a description of a few paragraphs (what it is, sizes, occasions, how to order), a focus keyword and photo alt text. When a cake has no meta description of its own, `product_default_description()` writes one under 160 characters ("Black Forest Torte, Midi or Full, from $44.95..."). Structured data: the shop (`Bakery`) on every page, `Product` with one offer per size, `BreadcrumbList`, `ItemList` on shop pages and `FAQPage`. Landing pages show gallery photos that fit their occasion first (`gallery_for_occasion()`).
 
@@ -463,3 +465,12 @@ Before pushing:
 
 A new cake with one photo scores 10/11; the last point is a second photo.
 
+## 33. Menu, review switches and the Custom Cake Gallery
+
+**Menu** (Admin > Website > Menu, `src/menu.php`, saved as JSON in the `nav_menu` setting, no table). Rename, reorder (arrows), make sub items (one level), open in a new tab, add or remove items, or go back to the standard menu. A link is a site page, a category, an Admin > Pages page, "No link" (a top item that only opens its drop down) or another web address (https only, or a site path; `javascript:` and the like are refused by `menu_clean_link()`). "All cake categories" is a sub item that lists every live category plus "View all cakes" by itself. Links to hidden categories are left out. Up to 8 top items and 15 sub items each. `nav_menu()` builds the menu for `templates/header.php` (desktop drop downs and the phone drawer, where "All cakes" comes first). Standard menu: Home, Our Range (all categories), Custom Cakes (Order a Custom Cake, Our Custom Cake Gallery), About Us, Contact. Renaming never changes a page address, so rankings stay; the shop page is still `/shop`, now titled "Our Range of Cakes".
+
+**Where reviews show** (Admin > Reviews, `reviews_shown()` and `REVIEW_PLACES` in `src/content.php`). A main switch (`reviews_enabled`) and one per place: homepage top banner (`reviews_show_hero`), homepage reviews section (the same flag as Admin > Homepage, stored in `home_sections`), cake pages (`reviews_show_product`) and the About page facts row (`reviews_show_about`, the row becomes three items). Stars only show when a Google rating is set.
+
+**Custom Cake Gallery** (`/custom-cake-gallery`, `public/custom-cake-gallery.php`). Every visible gallery photo on one page in Pinterest style columns (2 on phones, up to 5 on wide screens), filter buttons for the occasions that have photos (`GALLERY_FILTERS` and `gallery_tags()` read the captions), a large view with arrows, keys and swipe, and "Order one like this", which opens the custom cake form with that photo written into the description (`/custom-cakes?photo=ID`, `nofollow`). Structured data `ImageGallery` with `ImageObject` items (caption, size, credit), all photos in the sitemap. Old `/gallery`, `/cake-gallery` and `/custom-cakes?page=N` addresses go here with a 301.
+
+**Admin > Gallery.** Choose many photos at once: the page's script uploads them one by one, so a batch never passes the server's 16 MB request limit (`save_public_images()` handles a plain form). Photos keep their own shape (`store_image_file()` with height 0, trimmed only beyond 1:2 or 3:2). Occasion and description are optional; an empty description becomes "Birthday cake by The Continental Cake Shop, Canberra". "Where the photos show": switch for the photos at the bottom of the "Order a custom cake" page (`custom_show_gallery`), how many (`custom_gallery_count`), and the gallery page heading and intro (`gallery_title`, `gallery_intro`). Other places that use gallery photos crop them to 3:4 with CSS, so any shape works there.

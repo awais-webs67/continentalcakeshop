@@ -23,6 +23,7 @@ $nav = [
     ],
     'Website' => [
         ['homepage', 'Homepage', 'store', null],
+        ['menu', 'Menu', 'menu', null],
         ['popup', 'Promo popup', 'megaphone', null],
         ['pages', 'Pages', 'info', null],
         ['faqs', 'FAQs', 'search', null],

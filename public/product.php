@@ -20,7 +20,7 @@ $deliveryOn = setting_bool('delivery_enabled');
 
 $crumbs = [
     ['Home', url()],
-    ['Shop', url('shop')],
+    ['Our Range', url('shop')],
     [$product['category_name'], url('shop/' . $product['category_slug'])],
     [$product['name'], product_url($product)],
 ];
@@ -94,7 +94,7 @@ render('header', compact('page'));
                     <p class="product-info__price" data-price><?= $enquiry ? 'Price on request' : e(money($selected['price'])) ?></p>
                     <?php if (!$enquiry && count($sizes) > 1): ?><span class="product-info__sizes"><?= count($sizes) ?> sizes from <?= e(money(min(array_column($sizes, 'price')))) ?></span><?php endif; ?>
                 </div>
-                <?php if (setting('google_rating') !== ''): $stars = (float) setting('google_rating'); ?>
+                <?php if (reviews_shown('product')): $stars = (float) setting('google_rating'); ?>
                     <a class="product-rating" href="<?= e(setting('google_reviews_url') ?: url('about')) ?>"<?= setting('google_reviews_url') !== '' ? ' target="_blank" rel="noopener"' : '' ?>>
                         <span class="product-rating__stars" style="--rating:<?= e((string) $stars) ?>" aria-hidden="true">★★★★★</span>
                         <strong><?= e(setting('google_rating')) ?></strong>

@@ -950,3 +950,71 @@
         }, { passive: true });
     });
 })();
+
+/* Custom Cake Gallery: occasion filters and a large view with previous / next and swipe. */
+(function () {
+    var grid = document.querySelector('[data-pin-grid]');
+    if (!grid) return;
+    var pins = Array.prototype.slice.call(grid.querySelectorAll('[data-pin]'));
+    var empty = document.querySelector('[data-pin-empty]');
+    var chips = Array.prototype.slice.call(document.querySelectorAll('[data-pin-filters] [data-pin-filter]'));
+    var filter = function (tag) {
+        var shown = 0;
+        pins.forEach(function (pin) {
+            var on = !tag || (' ' + pin.getAttribute('data-tags') + ' ').indexOf(' ' + tag + ' ') !== -1;
+            pin.hidden = !on;
+            if (on) shown++;
+        });
+        chips.forEach(function (c) {
+            var active = c.getAttribute('data-pin-filter') === tag;
+            c.classList.toggle('is-active', active);
+            c.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+        if (empty) empty.hidden = shown > 0;
+    };
+    document.addEventListener('click', function (e) {
+        var chip = e.target.closest('[data-pin-filter]');
+        if (chip) filter(chip.getAttribute('data-pin-filter'));
+    });
+
+    var box = document.querySelector('[data-pin-box]');
+    if (!box || typeof box.showModal !== 'function') return;
+    var img = box.querySelector('[data-pin-img]');
+    var text = box.querySelector('[data-pin-text]');
+    var order = box.querySelector('[data-pin-order]');
+    var list = [], at = 0;
+    var show = function (i) {
+        at = (i + list.length) % list.length;
+        var btn = list[at].querySelector('[data-pin-open]');
+        var thumb = btn.querySelector('img');
+        img.src = btn.getAttribute('data-full');
+        img.alt = thumb.alt;
+        text.textContent = thumb.alt;
+        order.href = btn.getAttribute('data-order');
+    };
+    grid.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-pin-open]');
+        if (!btn) return;
+        list = pins.filter(function (p) { return !p.hidden; });
+        show(list.indexOf(btn.closest('[data-pin]')));
+        box.showModal();
+        document.documentElement.style.overflow = 'hidden';
+    });
+    box.addEventListener('close', function () { document.documentElement.style.overflow = ''; });
+    box.querySelector('[data-pin-close]').addEventListener('click', function () { box.close(); });
+    box.addEventListener('click', function (e) { if (e.target === box) box.close(); });
+    box.querySelector('[data-pin-prev]').addEventListener('click', function () { show(at - 1); });
+    box.querySelector('[data-pin-next]').addEventListener('click', function () { show(at + 1); });
+    box.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowLeft') show(at - 1);
+        if (e.key === 'ArrowRight') show(at + 1);
+    });
+    var startX = null;
+    box.addEventListener('touchstart', function (e) { startX = e.touches[0].clientX; }, { passive: true });
+    box.addEventListener('touchend', function (e) {
+        if (startX === null) return;
+        var dx = e.changedTouches[0].clientX - startX;
+        if (Math.abs(dx) > 40) show(at + (dx < 0 ? 1 : -1));
+        startX = null;
+    }, { passive: true });
+})();

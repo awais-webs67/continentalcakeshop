@@ -4,7 +4,23 @@ require_admin();
 if (is_post()) {
     $id = post_int('id');
     $action = input('action');
-    if ($action === 'save') {
+    if ($action === 'places') {
+        setting_save('reviews_enabled', input('reviews_enabled') === '1' ? '1' : '0');
+        foreach (array_keys(REVIEW_PLACES) as $place) {
+            $on = !empty($_POST['places'][$place]);
+            if ($place === 'home') {
+                // The homepage section keeps its place in the order; only its on/off flag changes.
+                $sections = [];
+                foreach (home_sections() as $key => $enabled) {
+                    $sections[] = ['key' => $key, 'on' => ($key === 'reviews' ? $on : $enabled) ? 1 : 0];
+                }
+                setting_save('home_sections', json_encode($sections));
+            } else {
+                setting_save('reviews_show_' . $place, $on ? '1' : '0');
+            }
+        }
+        flash('success', 'Saved where reviews show.');
+    } elseif ($action === 'save') {
         $data = [
             'author'     => str_limit(trim(input('author')), 120),
             'source'     => str_limit(trim(input('source', 'Google')), 40) ?: 'Google',

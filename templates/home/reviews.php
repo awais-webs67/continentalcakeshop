@@ -1,5 +1,5 @@
 <?php $reviews = db_all('SELECT * FROM reviews WHERE is_active = 1 ORDER BY sort_order, id LIMIT 4'); ?>
-<?php if ($reviews): ?>
+<?php if ($reviews && reviews_shown('home')): ?>
 <section class="section section--tint reviews">
     <div class="container">
         <div class="reviews__head">

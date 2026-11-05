@@ -17,11 +17,13 @@ $heroCake = db_one('SELECT * FROM gallery_images WHERE image = ?', [$heroImage])
                 <?php if (setting('hero_btn1_text') !== ''): ?><a class="btn btn--primary btn--lg" href="<?= e(popup_link(setting('hero_btn1_url', 'shop'))) ?>"><?= e(setting('hero_btn1_text')) ?> <?= icon('arrow', '', 18) ?></a><?php endif; ?>
                 <?php if (setting('hero_btn2_text') !== ''): ?><a class="btn btn--outline btn--lg" href="<?= e(popup_link(setting('hero_btn2_url', 'custom-cakes'))) ?>"><?= e(setting('hero_btn2_text')) ?></a><?php endif; ?>
             </div>
+            <?php if (reviews_shown('hero')): ?>
             <a class="hero__rating" href="<?= e(setting('google_reviews_url')) ?>" target="_blank" rel="noopener">
                 <?= google_logo(18) ?>
                 <?= rating_stars((float) setting('google_rating'), 16) ?>
                 <span><strong><?= e(setting('google_rating')) ?></strong> from <?= e(setting('google_review_count')) ?> Google reviews</span>
             </a>
+            <?php endif; ?>
         </div>
 
         <div class="hero__media">

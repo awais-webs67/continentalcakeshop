@@ -25,6 +25,7 @@ const ADMIN_ROUTES = [
     'addons'               => 'addons',
     'upload-image'         => 'upload-image',
     'homepage'             => 'homepage',
+    'menu'                 => 'menu',
     'popup'                => 'popup',
     'orders/print'         => 'order-print',
     'pickups'              => 'pickups',

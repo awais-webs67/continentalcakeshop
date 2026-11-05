@@ -95,23 +95,27 @@ $fieldError = static fn (string $f): string => isset($errors[$f]) ? '<p class="f
 $invalid = static fn (string $f): string => isset($errors[$f]) ? 'aria-invalid="true" aria-describedby="' . e($f) . '-error"' : '';
 $preset = old('occasion', input('occasion'));
 // Coming from an enquiry button on a product page: start the description with that cake.
+// The gallery used to have page 2, 3... here. It now has its own page, so old links go there.
+if ((int) input('page', '1') > 1) {
+    redirect('custom-cake-gallery', 301);
+}
+// Coming from "Order one like this" in the gallery: start the description with that photo.
+$photoId = (int) input('photo', '0');
+$askedPhoto = $photoId > 0 ? db_one('SELECT id, caption FROM gallery_images WHERE id = ? AND is_active = 1', [$photoId]) : null;
 $askedCake = input('cake') !== '' ? get_product_by_slug(input('cake')) : null;
-$detailsPreset = old('details', $askedCake ? 'I would like to enquire about the ' . $askedCake['name'] . '. ' : '');
-const GALLERY_PER_PAGE = 12;
+$detailsPreset = old('details', match (true) {
+    (bool) $askedCake => 'I would like to enquire about the ' . $askedCake['name'] . '. ',
+    (bool) $askedPhoto => 'I would like a cake like this one from your gallery: ' . $askedPhoto['caption'] . ' (photo #' . $askedPhoto['id'] . '). ',
+    default => '',
+});
 $galleryTotal = count_gallery();
-$galleryPages = max(1, (int) ceil($galleryTotal / GALLERY_PER_PAGE));
-$galleryPage = min($galleryPages, max(1, (int) input('page', '1')));
-$gallery = get_gallery(GALLERY_PER_PAGE, ($galleryPage - 1) * GALLERY_PER_PAGE);
+$gallery = setting('custom_show_gallery', '1') === '1' ? get_gallery((int) setting('custom_gallery_count', '8')) : [];
 
 $crumbs = [['Home', url()], ['Custom Cakes', url('custom-cakes')]];
-// Gallery page 2, 3... are their own pages for search engines, each with its own title.
-$pageSuffix = $galleryPage > 1 ? ' - Page ' . $galleryPage : '';
 $page = [
-    'title'       => 'Custom Cakes Canberra | Birthday & Wedding Cakes' . $pageSuffix,
-    'description' => $galleryPage > 1
-        ? 'More custom cakes we have made in Greenway, Canberra: birthday, wedding and baby shower cakes, page ' . $galleryPage . ' of our gallery. Send us your idea for a quote.'
-        : 'Custom birthday, wedding, engagement and baby shower cakes made in Greenway, Canberra. Send us your idea or a photo and get a quote. 100% Halal.',
-    'canonical'   => url('custom-cakes') . ($galleryPage > 1 ? '?page=' . $galleryPage : ''),
+    'title'       => 'Custom Cakes Canberra | Birthday & Wedding Cakes',
+    'description' => 'Custom birthday, wedding, engagement and baby shower cakes made in Greenway, Canberra. Send us your idea or a photo and get a quote. 100% Halal.',
+    'canonical'   => url('custom-cakes'),
     'schema'      => [breadcrumb_schema($crumbs)],
 ];
 render('header', compact('page'));
@@ -248,27 +252,15 @@ render('header', compact('page'));
                 <h2 class="section-title">Cakes we have made</h2>
                 <p class="section-sub">A few of the custom cakes we have baked for Canberra families.</p>
             </div>
-            <?php if (setting('social_pinterest')): ?>
-                <a class="link-arrow" href="<?= e(setting('social_pinterest')) ?>" target="_blank" rel="noopener">More on Pinterest <?= icon('arrow', '', 18) ?></a>
-            <?php endif; ?>
+            <a class="link-arrow" href="<?= e(url('custom-cake-gallery')) ?>">See all <?= $galleryTotal ?> in the gallery <?= icon('arrow', '', 18) ?></a>
         </div>
         <div class="gallery-grid">
             <?php foreach ($gallery as $photo): ?>
                 <figure><img src="<?= e(product_image_url($photo['image'])) ?>" alt="<?= e($photo['caption']) ?>" width="720" height="960" loading="lazy" decoding="async"></figure>
             <?php endforeach; ?>
         </div>
-        <?php if ($galleryPages > 1): ?>
-            <nav class="pagination" aria-label="Gallery pages">
-                <?php if ($galleryPage > 1): ?>
-                    <a class="pagination__step" href="<?= e(url('custom-cakes') . ($galleryPage > 2 ? '?page=' . ($galleryPage - 1) : '') . '#gallery') ?>" rel="prev">Previous</a>
-                <?php endif; ?>
-                <?php for ($i = 1; $i <= $galleryPages; $i++): ?>
-                    <a class="pagination__page <?= $i === $galleryPage ? 'is-current' : '' ?>" href="<?= e(url('custom-cakes') . ($i > 1 ? '?page=' . $i : '') . '#gallery') ?>" <?= $i === $galleryPage ? 'aria-current="page"' : '' ?>><?= $i ?></a>
-                <?php endfor; ?>
-                <?php if ($galleryPage < $galleryPages): ?>
-                    <a class="pagination__step" href="<?= e(url('custom-cakes') . '?page=' . ($galleryPage + 1) . '#gallery') ?>" rel="next">Next</a>
-                <?php endif; ?>
-            </nav>
+        <?php if ($galleryTotal > count($gallery)): ?>
+            <p class="gallery-more"><a class="btn btn--outline" href="<?= e(url('custom-cake-gallery')) ?>">View the full gallery <?= icon('arrow', '', 18) ?></a></p>
         <?php endif; ?>
     </div>
 </section>

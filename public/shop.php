@@ -15,7 +15,7 @@ $products = with_card_photos(get_products($category ? (int) $category['id'] : nu
 $categories = get_categories();
 
 $baseUrl = $category ? category_url($category) : url('shop');
-$crumbs = [['Home', url()], ['Shop', url('shop')]];
+$crumbs = [['Home', url()], ['Our Range', url('shop')]];
 if ($category) {
     $crumbs[] = [$category['name'], $baseUrl];
 }
@@ -43,7 +43,7 @@ render('header', compact('page'));
 <section class="page-hero">
     <div class="container">
         <?php render('partials/breadcrumbs', compact('crumbs')); ?>
-        <h1 class="page-title"><?= e($category['name'] ?? 'Shop Cakes') ?></h1>
+        <h1 class="page-title"><?= e($category['name'] ?? 'Our Range of Cakes') ?></h1>
         <?php if (!empty($category['description'])): ?>
             <div class="page-lead prose"><?= rich_text($category['description']) ?></div>
         <?php else: ?>

@@ -15,7 +15,7 @@ const ADMIN_SECTIONS = [
     'coupons'   => ['Coupons', ['coupons']],
     'products'  => ['Products, categories and extras', ['products', 'products/edit', 'products/import', 'categories', 'categories/edit', 'addons']],
     'gallery'   => ['Gallery and reviews', ['gallery', 'reviews']],
-    'content'   => ['Homepage, popup, pages, FAQs and SEO', ['homepage', 'popup', 'pages', 'pages/edit', 'faqs', 'upload-image', 'seo']],
+    'content'   => ['Homepage, menu, popup, pages, FAQs and SEO', ['homepage', 'menu', 'popup', 'pages', 'pages/edit', 'faqs', 'upload-image', 'seo']],
 ];
 // Settings hold the bank and PayID details, the email password and the Stripe keys, so only owners open them.
 const OWNER_ONLY_ROUTES = ['admins', 'system', 'settings'];
@@ -276,8 +276,49 @@ function save_public_image(string $field, string $folder, int $width, int $heigh
 }
 
 /**
+ * Like save_public_image, for an input with "multiple": saves every photo chosen in $field[].
+ * Returns [list of saved paths, list of errors].
+ */
+function save_public_images(string $field, string $folder, int $width, int $height, string $name = '', int $max = 30): array
+{
+    $files = $_FILES[$field] ?? null;
+    if (!$files || !is_array($files['name'] ?? null)) {
+        return [[], []];
+    }
+    $saved = [];
+    $errors = [];
+    foreach (array_keys($files['name']) as $i) {
+        if (($files['error'][$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            continue;
+        }
+        $label = (string) $files['name'][$i];
+        if (count($saved) >= $max) {
+            $errors[] = 'Up to ' . $max . ' photos at a time. Upload the rest next.';
+            break;
+        }
+        if ($files['error'][$i] !== UPLOAD_ERR_OK || !is_uploaded_file($files['tmp_name'][$i])) {
+            $errors[] = $label . ': did not upload. Try a smaller file (under 10 MB).';
+            continue;
+        }
+        if ($files['size'][$i] > 10 * 1024 * 1024) {
+            $errors[] = $label . ': please use a photo under 10 MB.';
+            continue;
+        }
+        [$path, $error] = store_image_file($files['tmp_name'][$i], $folder, $width, $height, $name);
+        if ($error) {
+            $errors[] = $label . ': ' . $error;
+        } else {
+            $saved[] = $path;
+        }
+    }
+    return [$saved, $errors];
+}
+
+/**
  * Crops a photo on disk to the target shape, scales it down and saves it as WebP in public/uploads/{folder}.
  * Used for uploads and for photos downloaded during a product import.
+ * A $height of 0 keeps the photo's own shape (for the Pinterest style gallery), only trimming
+ * very tall or very wide photos to between 1:2 and 3:2.
  *
  * @return array{0:?string,1:?string}
  */
@@ -306,7 +347,7 @@ function store_image_file(string $path, string $folder, int $width, int $height,
     // Centre crop to the target shape, then scale down.
     $sw = imagesx($source);
     $sh = imagesy($source);
-    $ratio = $width / $height;
+    $ratio = $height > 0 ? $width / $height : min(1.5, max(0.5, $sw / $sh));
     if ($sw / $sh > $ratio) {
         $cw = (int) round($sh * $ratio);
         $ch = $sh;

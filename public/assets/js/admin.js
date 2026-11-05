@@ -911,3 +911,117 @@ document.addEventListener('input', function (e) {
     sound.onChange(sync);
     sync();
 })();
+
+// Admin > Reviews: dim the per-place switches while the main switch is off.
+(function () {
+    var master = document.querySelector('[data-reviews-master]');
+    var list = document.querySelector('[data-reviews-places]');
+    if (!master || !list) return;
+    master.addEventListener('change', function () {
+        if (master.checked) list.removeAttribute('aria-disabled'); else list.setAttribute('aria-disabled', 'true');
+    });
+})();
+
+// Admin > Menu: reorder, make sub items, add and remove rows, custom web addresses.
+(function () {
+    var list = document.querySelector('[data-menu-list]');
+    var tpl = document.querySelector('[data-menu-template]');
+    if (!list || !tpl) return;
+    var next = list.children.length + 1;
+    var sync = function () {
+        Array.prototype.forEach.call(list.children, function (row, i) {
+            var sub = row.querySelector('[data-menu-sub]');
+            // The first row has nothing above it, so it is always a top item.
+            var isSub = i > 0 && sub.checked;
+            row.classList.toggle('menu-row--sub', isSub);
+            row.querySelector('[data-menu-level]').value = isSub ? '1' : '0';
+            sub.disabled = i === 0;
+        });
+    };
+    var wire = function (row) {
+        var select = row.querySelector('[data-menu-link]');
+        var url = row.querySelector('[data-menu-url]');
+        select.addEventListener('change', function () {
+            url.hidden = select.value !== '__custom';
+            if (!url.hidden) url.focus();
+            // A sensible name when the row is still empty.
+            var label = row.querySelector('input[name$="[label]"]');
+            if (label && label.value.trim() === '' && select.value !== '__custom') {
+                var text = select.options[select.selectedIndex].text.replace(/ \(.*\)$/, '');
+                if (select.value !== '') label.value = text;
+            }
+        });
+    };
+    Array.prototype.forEach.call(list.children, wire);
+    list.addEventListener('click', function (e) {
+        var move = e.target.closest('[data-menu-move]');
+        var remove = e.target.closest('[data-menu-remove]');
+        var row = e.target.closest('[data-menu-row]');
+        if (move && row) {
+            var dir = parseInt(move.getAttribute('data-menu-move'), 10);
+            var sibling = dir < 0 ? row.previousElementSibling : row.nextElementSibling;
+            if (sibling) list.insertBefore(row, dir < 0 ? sibling : sibling.nextElementSibling);
+            move.focus();
+            sync();
+        }
+        if (remove && row) {
+            row.remove();
+            sync();
+        }
+    });
+    list.addEventListener('change', function (e) { if (e.target.matches('[data-menu-sub]')) sync(); });
+    var add = document.querySelector('[data-menu-add]');
+    if (add) add.addEventListener('click', function () {
+        var holder = document.createElement('div');
+        holder.innerHTML = tpl.innerHTML.replace(/__i__/g, 'n' + (next++));
+        var row = holder.firstElementChild;
+        list.appendChild(row);
+        wire(row);
+        sync();
+        var label = row.querySelector('input[name$="[label]"]');
+        if (label) label.focus();
+    });
+    sync();
+})();
+
+// Admin > Gallery: upload many photos one at a time, so a big batch never passes the server's size limit.
+(function () {
+    var form = document.querySelector('[data-gallery-upload]');
+    if (!form || !window.fetch || !window.FormData) return;
+    var input = form.querySelector('input[type=file]');
+    var status = form.querySelector('[data-gallery-progress]');
+    var button = form.querySelector('button[type=submit]');
+    form.addEventListener('submit', function (e) {
+        var files = Array.prototype.slice.call(input.files || []);
+        if (!files.length) return;
+        e.preventDefault();
+        button.disabled = true;
+        status.hidden = false;
+        var done = 0, failed = [];
+        var sendNext = function (i) {
+            if (i >= files.length) {
+                if (failed.length) {
+                    status.textContent = done + ' of ' + files.length + ' added. Not added: ' + failed.join(' ');
+                    button.disabled = false;
+                    if (done) setTimeout(function () { location.href = location.pathname + '?added=' + done; }, 4000);
+                } else {
+                    location.href = location.pathname + '?added=' + done;
+                }
+                return;
+            }
+            status.textContent = 'Uploading photo ' + (i + 1) + ' of ' + files.length + '...';
+            var data = new FormData();
+            data.append('_token', form.querySelector('[name=_token]').value);
+            data.append('action', 'upload');
+            data.append('occasion', form.querySelector('[name=occasion]').value);
+            data.append('caption', form.querySelector('[name=caption]').value);
+            data.append('image', files[i]);
+            fetch(form.getAttribute('action') || location.href, { method: 'POST', body: data, headers: { 'X-Requested-With': 'fetch' }, credentials: 'same-origin' })
+                .then(function (r) { return r.json().catch(function () { return { ok: false, error: 'The server did not answer. The photo may be too big.' }; }); })
+                .then(function (res) { if (res.ok) done++; else failed.push(files[i].name + ' (' + (res.error || 'error') + ')'); })
+                .catch(function () { failed.push(files[i].name + ' (no connection)'); })
+                .then(function () { sendNext(i + 1); });
+        };
+        sendNext(0);
+    });
+})();

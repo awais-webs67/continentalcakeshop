@@ -11,12 +11,14 @@ header('Cache-Control: public, max-age=3600');
 
 $latestProduct = (string) db_value('SELECT MAX(updated_at) FROM products WHERE is_active = 1');
 $photo = static fn (?string $image, string $title): ?array => $image ? [product_image_url($image), $title] : null;
-$galleryPhotos = array_map(static fn ($g) => [product_image_url($g['image']), $g['caption']], get_gallery(30));
+$galleryPhotos = array_map(static fn ($g) => [product_image_url($g['image']), $g['caption']], get_gallery());
+$latestPhoto = (string) db_value('SELECT MAX(created_at) FROM gallery_images WHERE is_active = 1');
 
 $entries = [
     [url(), $latestProduct, 'daily', '1.0', array_filter([$photo(setting('hero_image'), setting('hero_title'))])],
     [url('shop'), $latestProduct, 'weekly', '0.9', []],
-    [url('custom-cakes'), null, 'weekly', '0.8', $galleryPhotos],
+    [url('custom-cakes'), null, 'weekly', '0.8', setting('custom_show_gallery', '1') === '1' ? array_slice($galleryPhotos, 0, (int) setting('custom_gallery_count', '8')) : []],
+    [url('custom-cake-gallery'), $latestPhoto ?: null, 'weekly', '0.8', $galleryPhotos],
     [url('about'), null, 'monthly', '0.5', [[shop_photo()['absolute'], setting('store_name') . ' shop front']]],
     [url('contact'), null, 'monthly', '0.6', []],
     [url('faq'), null, 'monthly', '0.6', []],
