@@ -28,9 +28,14 @@ if (is_post()) {
         'flavour'    => str_limit(input('flavour'), 120),
         'budget'     => str_limit(input('budget'), 40),
         'details'    => str_limit(input('details'), 3000),
+        // Two shops: the request goes to the one the customer chose.
+        'branch_id'  => valid_branch_id(input('branch_id')) ?? (multi_branch() ? null : (int) active_branches()[0]['id']),
     ];
 
     $errors = [];
+    if ($data['branch_id'] === null) {
+        $errors['branch_id'] = 'Please choose the shop for your cake.';
+    }
     if ($data['name'] === '') {
         $errors['name'] = 'Please enter your name.';
     }
@@ -64,6 +69,7 @@ if (is_post()) {
         }
     }
 
+    remember_branch($data['branch_id']);
     if ($errors) {
         remember_input($data + ['reference_image_token' => input('reference_image_token')]);
         $_SESSION['form_errors'] = $errors;
@@ -72,9 +78,9 @@ if (is_post()) {
     }
 
     db_run(
-        'INSERT INTO custom_requests (name, email, phone, occasion, event_date, fulfilment, servings, flavour, budget, details, reference_image)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [$data['name'], $data['email'], $data['phone'], $data['occasion'], $data['event_date'], $data['fulfilment'],
+        'INSERT INTO custom_requests (branch_id, name, email, phone, occasion, event_date, fulfilment, servings, flavour, budget, details, reference_image)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [$data['branch_id'], $data['name'], $data['email'], $data['phone'], $data['occasion'], $data['event_date'], $data['fulfilment'],
          (int) $data['servings'] . ' people', $data['flavour'] ?: null, $data['budget'] ?: null, $data['details'], $image]
     );
 
@@ -94,6 +100,8 @@ unset($_SESSION['form_errors']);
 $fieldError = static fn (string $f): string => isset($errors[$f]) ? '<p class="field-error" id="' . e($f) . '-error">' . e($errors[$f]) . '</p>' : '';
 $invalid = static fn (string $f): string => isset($errors[$f]) ? 'aria-invalid="true" aria-describedby="' . e($f) . '-error"' : '';
 $preset = old('occasion', input('occasion'));
+$multiBranch = multi_branch();
+$selectedBranch = valid_branch_id(old('branch_id', (string) (chosen_branch_id() ?? 0)));
 // Coming from an enquiry button on a product page: start the description with that cake.
 // The gallery used to have page 2, 3... here. It now has its own page, so old links go there.
 if ((int) input('page', '1') > 1) {
@@ -114,7 +122,7 @@ $gallery = setting('custom_show_gallery', '1') === '1' ? get_gallery((int) setti
 $crumbs = [['Home', url()], ['Custom Cakes', url('custom-cakes')]];
 $page = [
     'title'       => 'Custom Cakes Canberra | Birthday & Wedding Cakes',
-    'description' => 'Custom birthday, wedding, engagement and baby shower cakes made in Greenway, Canberra. Send us your idea or a photo and get a quote. 100% Halal.',
+    'description' => 'Custom birthday, wedding, engagement and baby shower cakes made in ' . shop_places() . ', Canberra. Send us your idea or a photo and get a quote. 100% Halal.',
     'canonical'   => url('custom-cakes'),
     'schema'      => [breadcrumb_schema($crumbs)],
 ];
@@ -171,11 +179,14 @@ render('header', compact('page'));
                     <?= $fieldError('event_date') ?>
                 </div>
             </div>
+            <?php if ($multiBranch): ?>
+                <?php render('partials/branch-picker', ['selected' => $selectedBranch, 'legend' => 'Which shop?', 'hint' => 'The shop you choose makes your cake and replies with the quote.', 'error' => $errors['branch_id'] ?? '']); ?>
+            <?php endif; ?>
             <?php if (setting_bool('delivery_enabled')): ?>
             <fieldset class="field">
                 <legend class="field-label">Pickup or delivery</legend>
                 <div class="choice-row">
-                    <label class="choice"><input type="radio" name="fulfilment" value="pickup" <?= old('fulfilment', 'pickup') === 'pickup' ? 'checked' : '' ?>> <span><?= icon('store', '', 18) ?> Pickup from Greenway</span></label>
+                    <label class="choice"><input type="radio" name="fulfilment" value="pickup" <?= old('fulfilment', 'pickup') === 'pickup' ? 'checked' : '' ?>> <span><?= icon('store', '', 18) ?> <?= $multiBranch ? 'Pickup from the shop' : 'Pickup from ' . e(active_branches()[0]['suburb']) ?></span></label>
                     <label class="choice"><input type="radio" name="fulfilment" value="delivery" <?= old('fulfilment') === 'delivery' ? 'checked' : '' ?>> <span><?= icon('truck', '', 18) ?> Delivery in Canberra</span></label>
                 </div>
             </fieldset>
@@ -220,7 +231,7 @@ render('header', compact('page'));
                 <ol class="steps steps--compact">
                     <li><span class="steps__num">1</span><div><strong>Send your idea</strong><span>Use the form, call us or visit the shop.</span></div></li>
                     <li><span class="steps__num">2</span><div><strong>We send a quote</strong><span>We reply with a price and options.</span></div></li>
-                    <li><span class="steps__num">3</span><div><strong>Enjoy your cake</strong><span>Pick it up from Greenway<?= setting_bool('delivery_enabled') ? ' or we deliver it' : '' ?> on your chosen day.</span></div></li>
+                    <li><span class="steps__num">3</span><div><strong>Enjoy your cake</strong><span>Pick it up from <?= $multiBranch ? 'your chosen shop' : e(active_branches()[0]['suburb']) ?><?= setting_bool('delivery_enabled') ? ' or we deliver it' : '' ?> on your chosen day.</span></div></li>
                 </ol>
             </div>
             <div class="info-card">

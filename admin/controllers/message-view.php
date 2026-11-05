@@ -16,6 +16,7 @@ if (!$thread) {
     flash('error', 'That conversation was not found.');
     redirect(admin_url('messages'));
 }
+require_branch_access($thread, 'messages');
 $self = admin_url('messages/view', ['id' => $thread['id']]);
 
 // The open conversation checks every few seconds for new customer messages.

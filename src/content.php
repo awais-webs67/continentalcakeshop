@@ -10,7 +10,7 @@ const POLICY_PAGES = ['privacy-policy', 'terms', 'refund-policy', 'allergens'];
 const CAKE_OCCASIONS = ['Birthday', 'Kids birthday', 'Wedding', 'Engagement', 'Baby shower', 'Gender reveal', 'Anniversary', 'Graduation', 'Corporate event', 'Other'];
 
 // Addresses the website already uses, so a page can never take one of them.
-const RESERVED_SLUGS = ['shop', 'cakes', 'order', 'messages', 'quote', 'cart', 'checkout', 'custom-cakes', 'custom-cake-gallery', 'about', 'contact', 'login', 'register',
+const RESERVED_SLUGS = ['shop', 'cakes', 'order', 'messages', 'quote', 'cart', 'checkout', 'custom-cakes', 'custom-cake-gallery', 'locations', 'about', 'contact', 'login', 'register',
     'logout', 'account', 'forgot-password', 'reset-password', 'verify-email', 'faq', 'api', 'admin', 'stripe-webhook', 'sitemap', 'robots', 'uploads', 'assets', '404', 'index', 'page'];
 
 function get_page(string $slug): ?array

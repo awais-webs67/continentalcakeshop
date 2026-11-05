@@ -2,6 +2,41 @@
 $todayKey = day_key(new DateTime());
 $mapQuery = rawurlencode(setting('store_name') . ', ' . store_address_line());
 ?>
+<?php if (multi_branch()): ?>
+<section class="section visit">
+    <div class="container visit__grid">
+        <div class="visit__info">
+            <h2 class="section-title"><?= e(setting('home_visit_title')) ?></h2>
+            <div class="visit__shops">
+                <?php foreach (active_branches() as $shop): ?>
+                    <div class="shop-card">
+                        <h3 class="shop-card__name"><?= icon('store', '', 20) ?> <a href="<?= e(branch_url($shop)) ?>"><?= e($shop['name']) ?> shop</a></h3>
+                        <p class="shop-card__addr"><?= e(branch_address_line($shop)) ?></p>
+                        <div class="shop-card__actions">
+                            <a class="btn btn--primary btn--sm" href="<?= e(branch_maps_url($shop)) ?>" target="_blank" rel="noopener"><?= icon('pin', '', 16) ?> Directions</a>
+                            <a class="btn btn--outline btn--sm" href="tel:<?= e(phone_e164(branch_phone($shop))) ?>"><?= icon('phone', '', 16) ?> <?= e(branch_phone($shop)) ?></a>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <div class="visit__hours info-card">
+            <h3>Opening hours <small>both shops</small></h3>
+            <table class="hours-table">
+                <caption class="sr-only">Opening hours</caption>
+                <tbody>
+                    <?php foreach (opening_hours() as $day => $slot): ?>
+                        <tr <?= $day === $todayKey ? 'class="is-today"' : '' ?>>
+                            <th scope="row"><?= e(DAY_NAMES[$day]) ?><?= $day === $todayKey ? ' <span>Today</span>' : '' ?></th>
+                            <td><?= $slot ? e(format_time($slot[0]) . ' to ' . format_time($slot[1])) : 'Closed' ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+<?php else: ?>
 <section class="section visit">
     <div class="container visit__grid">
         <div class="visit__info">
@@ -34,3 +69,4 @@ $mapQuery = rawurlencode(setting('store_name') . ', ' . store_address_line());
         </div>
     </div>
 </section>
+<?php endif; ?>

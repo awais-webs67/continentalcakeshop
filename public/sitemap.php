@@ -23,6 +23,13 @@ $entries = [
     [url('contact'), null, 'monthly', '0.6', []],
     [url('faq'), null, 'monthly', '0.6', []],
 ];
+// One page per open shop, with its photo, when there is more than one shop.
+if (multi_branch()) {
+    foreach (active_branches() as $shop) {
+        $shopPhoto = !empty($shop['photo']) ? product_image_url($shop['photo']) : ((int) $shop['is_main'] ? shop_photo()['absolute'] : null);
+        $entries[] = [branch_url($shop), $shop['updated_at'], 'monthly', '0.8', $shopPhoto ? [[$shopPhoto, setting('store_name') . ' ' . $shop['suburb']]] : []];
+    }
+}
 foreach (db_all('SELECT slug, title, type, updated_at FROM pages WHERE is_active = 1') as $content) {
     $entries[] = $content['type'] === 'landing'
         ? [url($content['slug']), $content['updated_at'], 'weekly', '0.8', array_map(static fn ($g) => [product_image_url($g['image']), $g['caption']], gallery_for_occasion($content['occasion'] ?? null, 8))]

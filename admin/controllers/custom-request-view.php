@@ -7,6 +7,7 @@ if (!$request) {
     flash('error', 'That request was not found.');
     redirect(admin_url('custom-requests'));
 }
+require_branch_access($request, 'custom-requests');
 $self = admin_url('custom-requests/view', ['id' => $request['id']]);
 
 if (is_post()) {

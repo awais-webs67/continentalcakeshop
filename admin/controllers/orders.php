@@ -28,7 +28,7 @@ $from = (string) ($_GET['from'] ?? '');
 $to = (string) ($_GET['to'] ?? '');
 $sort = in_array($_GET['sort'] ?? '', ['placed', 'date'], true) ? $_GET['sort'] : '';
 
-$where = [$views[$current][2]];
+$where = [$views[$current][2] . branch_sql('o.branch_id')];
 $params = [];
 if (isset(ORDER_STATUSES[$status])) {
     $where[] = 'o.order_status = ?';
@@ -71,7 +71,7 @@ $result = paginate(
 );
 $viewCounts = [];
 foreach ($views as $key => $v) {
-    $viewCounts[$key] = (int) db_value('SELECT COUNT(*) FROM orders o WHERE ' . $v[2]);
+    $viewCounts[$key] = (int) db_value('SELECT COUNT(*) FROM orders o WHERE (' . $v[2] . ')' . branch_sql('o.branch_id'));
 }
 $filtersOn = $status !== '' || $payment !== '' || $channel !== '' || $fulfilment !== '' || $from !== '' || $to !== '' || $sort !== '';
 

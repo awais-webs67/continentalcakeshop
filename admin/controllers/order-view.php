@@ -5,6 +5,7 @@ if (!$order) {
     flash('error', 'That order was not found.');
     redirect(admin_url('orders'));
 }
+require_branch_access($order, 'orders');
 $id = (int) $order['id'];
 $adminId = (int) $admin['id'];
 $self = admin_url('orders/view', ['id' => $id]);
@@ -221,6 +222,29 @@ if (is_post()) {
     if ($action === 'notes') {
         db_run('UPDATE orders SET admin_notes = ? WHERE id = ?', [str_limit(input('admin_notes'), 5000) ?: null, $id]);
         flash('success', 'Notes saved.');
+    }
+
+    // Hand the order to the other shop: it moves to that branch's panel and inbox, and a pickup
+    // customer is told the new address.
+    if ($action === 'move_branch' && ($to = get_branch(post_int('branch_id'))) && (int) $to['id'] !== (int) $order['branch_id']) {
+        $from = branch_name((int) $order['branch_id']);
+        db_run('UPDATE orders SET branch_id = ? WHERE id = ?', [$to['id'], $id]);
+        db_run('UPDATE threads SET branch_id = ? WHERE order_id = ?', [$to['id'], $id]);
+        log_order_event($id, 'note', 'Moved from ' . $from . ' to ' . $to['name'] . '.', $adminId);
+        $moved = get_order($id);
+        $notify = branch_notify_email((int) $to['id']);
+        if ($notify !== '') {
+            send_mail($notify, 'Order ' . $moved['order_number'] . ' moved to ' . $to['name'],
+                render_email('order-new-admin', ['order' => $moved, 'items' => get_order_items($id), 'title' => 'Order moved to ' . $to['name'] . ' from ' . $from, 'preheader' => $moved['customer_name'] . ', ' . order_when($moved)]),
+                null, $moved['customer_email']);
+        }
+        if (input('tell_customer') === '1' && !is_delivery($moved) && valid_email($moved['customer_email']) && $moved['order_status'] !== 'cancelled') {
+            send_order_update_email($moved, 'New pickup address', 'Your order will now be ready at our ' . $to['name'] . ' shop: ' . branch_address_line($to) . '. The date and time stay the same.');
+        }
+        flash('success', 'Order moved to ' . $to['name'] . '. Its staff have been emailed.');
+        if (!admin_sees_branch((int) $to['id'])) {
+            redirect(admin_url('orders'));
+        }
     }
 
     // Quick buttons on the order lists send staff back to the list they were on.

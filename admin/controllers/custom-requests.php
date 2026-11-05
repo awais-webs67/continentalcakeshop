@@ -3,7 +3,7 @@ require_admin();
 
 $status = (string) ($_GET['status'] ?? '');
 $q = trim((string) ($_GET['q'] ?? ''));
-$where = ['1 = 1'];
+$where = ['1 = 1' . branch_sql('branch_id')];
 $params = [];
 if (isset(CUSTOM_STATUSES[$status])) {
     $where[] = 'status = ?';
@@ -19,5 +19,5 @@ $result = paginate(
     "SELECT COUNT(*) FROM custom_requests WHERE {$whereSql}",
     $params
 );
-$counts = array_column(db_all('SELECT status, COUNT(*) AS n FROM custom_requests GROUP BY status'), 'n', 'status');
+$counts = array_column(db_all('SELECT status, COUNT(*) AS n FROM custom_requests WHERE 1 = 1' . branch_sql('branch_id') . ' GROUP BY status'), 'n', 'status');
 admin_view('custom-requests', compact('result', 'status', 'q', 'counts') + ['title' => 'Custom cake requests']);

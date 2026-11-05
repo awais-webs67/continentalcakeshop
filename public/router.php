@@ -33,6 +33,7 @@ $routes = [
     '#^/checkout$#'                 => ['checkout.php', []],
     '#^/custom-cakes$#'             => ['custom-cakes.php', []],
     '#^/custom-cake-gallery$#'      => ['custom-cake-gallery.php', []],
+    '#^/locations/([a-z0-9-]+)$#'   => ['location.php', ['slug']],
     '#^/about$#'                    => ['about.php', []],
     '#^/contact$#'                  => ['contact.php', []],
     '#^/login$#'                    => ['login.php', []],

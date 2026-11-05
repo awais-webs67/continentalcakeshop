@@ -11,6 +11,7 @@ if (!$thread) {
     not_found();
 }
 $self = thread_url($thread);
+$threadPhone = branch_phone(get_branch((int) $thread['branch_id']) ?? main_branch());
 
 // The open page checks every few seconds for replies (and sends without reloading).
 if (!is_post() && input('poll') === '1') {
@@ -91,7 +92,7 @@ render('header', compact('page'));
                 <p class="field-error chat__error" data-chat-error hidden></p>
             </form>
         </div>
-        <p class="chat-window__foot">Prefer to talk? Call us on <a href="tel:<?= e(setting('store_phone_e164')) ?>"><?= e(setting('store_phone')) ?></a><span class="chat-window__keys"> &middot; Enter sends, Shift+Enter adds a new line</span></p>
+        <p class="chat-window__foot">Prefer to talk? Call us on <a href="tel:<?= e(phone_e164($threadPhone)) ?>"><?= e($threadPhone) ?></a><span class="chat-window__keys"> &middot; Enter sends, Shift+Enter adds a new line</span></p>
     </div>
 </section>
 

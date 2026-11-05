@@ -32,9 +32,9 @@ function get_thread_messages(int $threadId): array
 function create_thread(string $subject, string $name, string $email, ?string $phone = null, array $links = []): array
 {
     db_run(
-        'INSERT INTO threads (token, subject, customer_name, customer_email, customer_phone, user_id, order_id, custom_request_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [bin2hex(random_bytes(16)), str_limit($subject, 160), $name, $email, $phone ?: null,
+        'INSERT INTO threads (branch_id, token, subject, customer_name, customer_email, customer_phone, user_id, order_id, custom_request_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [(int) ($links['branch_id'] ?? 0) ?: main_branch_id(), bin2hex(random_bytes(16)), str_limit($subject, 160), $name, $email, $phone ?: null,
          $links['user_id'] ?? null, $links['order_id'] ?? null, $links['custom_request_id'] ?? null]
     );
     return get_thread((int) db()->lastInsertId());
@@ -45,7 +45,7 @@ function order_thread(array $order): array
 {
     return db_one('SELECT * FROM threads WHERE order_id = ?', [$order['id']])
         ?? create_thread('Order ' . $order['order_number'], $order['customer_name'], $order['customer_email'], $order['customer_phone'],
-            ['order_id' => $order['id'], 'user_id' => $order['user_id']]);
+            ['order_id' => $order['id'], 'user_id' => $order['user_id'], 'branch_id' => $order['branch_id'] ?? null]);
 }
 
 /** The conversation for a custom cake request, created the first time it is needed. */
@@ -53,7 +53,7 @@ function custom_request_thread(array $request): array
 {
     return db_one('SELECT * FROM threads WHERE custom_request_id = ?', [$request['id']])
         ?? create_thread($request['occasion'] . ' cake request', $request['name'], $request['email'], $request['phone'],
-            ['custom_request_id' => $request['id'], 'user_id' => find_verified_user_by_email($request['email'])['id'] ?? null]);
+            ['custom_request_id' => $request['id'], 'user_id' => find_verified_user_by_email($request['email'])['id'] ?? null, 'branch_id' => $request['branch_id'] ?? null]);
 }
 
 /** Adds a message and marks the conversation unread for the other side. */
@@ -112,7 +112,7 @@ function chat_bubble_html(array $m, array $thread, string $view): string
 function customer_message(array $thread, string $body): void
 {
     add_thread_message($thread, 'customer', $body);
-    $notify = setting('order_notification_email');
+    $notify = branch_notify_email((int) ($thread['branch_id'] ?? 0));
     if ($notify !== '' && !thread_seen_live($thread, 'admin')) {
         send_mail(
             $notify,
@@ -131,13 +131,13 @@ function shop_message(array $thread, string $body, int $adminId): bool
     if (thread_seen_live($thread, 'customer')) {
         return true; // The customer has the chat open and sees the reply straight away.
     }
-    return send_mail(
+    return with_branch((int) ($thread['branch_id'] ?? 0) ?: null, static fn () => send_mail(
         $thread['customer_email'],
         'Re: ' . $thread['subject'] . ' - ' . setting('store_short_name'),
         render_email('message-customer', ['thread' => $thread, 'body' => $body, 'title' => 'A message from ' . setting('store_short_name'), 'preheader' => mb_substr($body, 0, 90), 'reply_url' => thread_url($thread)]),
         null,
         setting('store_email')
-    );
+    ));
 }
 
 /** Threads with unread customer messages, for the admin badge. */

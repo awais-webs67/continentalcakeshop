@@ -39,7 +39,7 @@ function mail_config(string $key, mixed $default = null): mixed
 function mail_from(): array
 {
     return [
-        (string) mail_config('from_address', config('mail_from', setting('store_email'))),
+        (string) mail_config('from_address', config('mail_from', setting_raw('store_email'))),
         (string) mail_config('from_name', setting('store_short_name')),
     ];
 }
@@ -91,6 +91,11 @@ function log_mail(string $to, string $subject, array $headers, string $body, str
         mkdir($dir, 0755, true);
     }
     $name = date('Ymd-His') . '-' . substr(preg_replace('/[^a-z0-9]+/i', '-', $to), 0, 40);
+    // Two emails to the same person in the same second must not overwrite each other.
+    $base = $name;
+    for ($n = 2; is_file("{$dir}/{$name}.eml"); $n++) {
+        $name = $base . '-' . $n;
+    }
     file_put_contents("{$dir}/{$name}.eml", "To: {$to}\r\nSubject: {$subject}\r\n" . implode("\r\n", $headers) . "\r\n\r\n" . $body);
     file_put_contents("{$dir}/{$name}.html", $html);
     return true;
@@ -207,13 +212,13 @@ function email_admin_url(string $path = ''): string
 /** The "Thank you for your order" email with the items, date and a link to the order. */
 function send_order_confirmation(array $order): bool
 {
-    return send_mail(
+    return with_branch((int) ($order['branch_id'] ?? 0) ?: null, static fn () => send_mail(
         $order['customer_email'],
         "Order {$order['order_number']} received - " . setting('store_short_name'),
         render_email('order-confirmation', ['order' => $order, 'items' => get_order_items((int) $order['id']), 'title' => 'Thank you for your order', 'preheader' => 'Order ' . $order['order_number'] . ' for ' . order_when($order), 'reply_url' => thread_url(order_thread($order))]),
         null,
         setting('store_email')
-    );
+    ));
 }
 
 /** Customer confirmation and shop notification for a new order. */
@@ -224,12 +229,14 @@ function send_order_emails(array $order): void
     if (setting_bool('send_customer_emails')) {
         send_order_confirmation($order);
     }
-    $notify = setting('order_notification_email');
+    // The shop's copy goes to the branch that makes the order.
+    $notify = branch_notify_email((int) ($order['branch_id'] ?? 0));
     if ($notify !== '') {
+        $branch = multi_branch() ? branch_name((int) $order['branch_id']) : '';
         send_mail(
             $notify,
-            "New order {$order['order_number']} - " . money($order['total']),
-            render_email('order-new-admin', ['order' => $order, 'items' => $items, 'title' => 'New online order', 'preheader' => $order['customer_name'] . ', ' . order_when($order)]),
+            "New order {$order['order_number']} - " . money($order['total']) . ($branch !== '' ? ' - ' . $branch : ''),
+            render_email('order-new-admin', ['order' => $order, 'items' => $items, 'title' => 'New online order' . ($branch !== '' ? ' for ' . $branch : ''), 'preheader' => $order['customer_name'] . ', ' . order_when($order)]),
             null,
             $order['customer_email']
         );
@@ -239,7 +246,7 @@ function send_order_emails(array $order): void
 /** Tells the customer about a change to their order (status or payment). */
 function send_order_update_email(array $order, string $headline, string $message): void
 {
-    send_mail(
+    with_branch((int) ($order['branch_id'] ?? 0) ?: null, static fn () => send_mail(
         $order['customer_email'],
         "Update on order {$order['order_number']} - " . setting('store_short_name'),
         render_email('order-update', [
@@ -250,11 +257,12 @@ function send_order_update_email(array $order, string $headline, string $message
         ]),
         null,
         setting('store_email')
-    );
+    ));
 }
 
 function send_custom_request_emails(array $request): void
 {
+    $previous = use_branch(get_branch((int) ($request['branch_id'] ?? 0)));
     send_mail(
         $request['email'],
         'We received your custom cake request - ' . setting('store_short_name'),
@@ -262,44 +270,45 @@ function send_custom_request_emails(array $request): void
         null,
         setting('store_email')
     );
-    $notify = setting('order_notification_email');
+    $notify = branch_notify_email((int) ($request['branch_id'] ?? 0));
     if ($notify !== '') {
         send_mail(
             $notify,
-            'Custom cake request: ' . $request['occasion'] . ' on ' . date('j M Y', strtotime($request['event_date'])),
+            'Custom cake request: ' . $request['occasion'] . ' on ' . date('j M Y', strtotime($request['event_date'])) . (multi_branch() ? ' - ' . branch_name((int) $request['branch_id']) : ''),
             render_email('custom-request-admin', ['request' => $request, 'title' => 'New custom cake request', 'preheader' => $request['name'] . ', ' . $request['occasion']]),
             null,
             $request['email']
         );
     }
+    use_branch($previous);
 }
 
 function send_custom_quote_email(array $request, string $message): bool
 {
-    return send_mail(
+    return with_branch((int) ($request['branch_id'] ?? 0) ?: null, static fn () => send_mail(
         $request['email'],
         'Your custom cake quote - ' . setting('store_short_name'),
         render_email('custom-quote', ['request' => $request, 'message' => $message, 'title' => 'Your custom cake quote', 'preheader' => $request['quoted_price'] ? 'Quote: ' . money($request['quoted_price']) : 'A reply about your custom cake', 'reply_url' => thread_url(custom_request_thread($request))]),
         null,
         setting('store_email')
-    );
+    ));
 }
 
 /** Confirms a contact form message to the customer, with the link to follow the conversation. */
 function send_contact_confirmation(array $thread, string $message): void
 {
-    send_mail(
+    with_branch((int) ($thread['branch_id'] ?? 0) ?: null, static fn () => send_mail(
         $thread['customer_email'],
         'We received your message - ' . setting('store_short_name'),
         render_email('contact-customer', ['thread' => $thread, 'message' => $message, 'title' => 'Thanks for your message', 'preheader' => 'We will reply soon.', 'reply_url' => thread_url($thread)]),
         null,
         setting('store_email')
-    );
+    ));
 }
 
 function send_contact_notification(array $data): void
 {
-    $notify = setting('order_notification_email');
+    $notify = branch_notify_email(isset($data['branch_id']) ? (int) $data['branch_id'] : null);
     if ($notify !== '') {
         send_mail(
             $notify,

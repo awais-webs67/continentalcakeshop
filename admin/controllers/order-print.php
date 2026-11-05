@@ -8,10 +8,10 @@ require_admin();
 
 $date = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($_GET['date'] ?? '')) ? $_GET['date'] : '';
 if ($date !== '') {
-    $orders = db_all("SELECT * FROM orders WHERE pickup_date = ? AND order_status <> 'cancelled' ORDER BY pickup_time IS NULL, pickup_time, id", [$date]);
+    $orders = db_all("SELECT * FROM orders WHERE pickup_date = ? AND order_status <> 'cancelled'" . branch_sql('branch_id') . ' ORDER BY pickup_time IS NULL, pickup_time, id', [$date]);
 } else {
     $one = get_order(query_int('id'));
-    $orders = $one ? [$one] : [];
+    $orders = $one && admin_sees_branch((int) $one['branch_id']) ? [$one] : [];
 }
 if (!$orders && $date === '') {
     http_response_code(404);
@@ -134,7 +134,7 @@ $title = $date !== '' ? 'Tickets for ' . date('D j M', strtotime($date)) : 'Tick
     <article class="ticket">
         <header class="t-head">
             <div>
-                <div class="t-shop"><?= e(setting('store_short_name')) ?> &middot; Kitchen ticket</div>
+                <div class="t-shop"><?= e(setting('store_short_name')) ?><?= count(branches()) > 1 ? ' &middot; <strong>' . e(strtoupper(branch_name((int) $order['branch_id']))) . '</strong>' : '' ?> &middot; Kitchen ticket</div>
                 <h1 class="t-number"><?= e($order['order_number']) ?></h1>
             </div>
             <span class="t-kind<?= $delivery ? ' t-kind--delivery' : '' ?>"><?= $delivery ? 'Delivery' : 'Pickup' ?></span>

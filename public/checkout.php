@@ -42,6 +42,9 @@ if (!$coupon && applied_coupon_code() !== '') {
 }
 $deliveryMin = (float) setting('delivery_min_order', '0');
 $user = current_user();
+// Two shops: the customer chooses which one makes (and hands over or delivers) the order.
+$multiBranch = multi_branch();
+$onlyBranchId = (int) active_branches()[0]['id'];
 
 // Each possible error: the name shown in the "please fix" list and the element it jumps to.
 $errorFields = [
@@ -49,6 +52,7 @@ $errorFields = [
     'email'             => ['Email', 'email'],
     'phone'             => ['Mobile number', 'phone'],
     'account_password'  => ['Password', 'account_password'],
+    'branch_id'         => ['Shop', 'branch-picker'],
     'fulfilment'        => ['Pickup or delivery', 'fulfilment-options'],
     'pickup_time'       => ['Pickup date and time', 'pickup_time'],
     'delivery_date'     => ['Delivery date', 'delivery_date'],
@@ -94,6 +98,7 @@ if (is_post()) {
         'notes'             => str_limit(input('notes'), 1000),
         'payment_proof'     => null,
         'user_id'           => $user['id'] ?? null,
+        'branch_id'         => valid_branch_id(input('branch_id')) ?? ($multiBranch ? null : $onlyBranchId),
     ];
     $createAccount = !$user && input('create_account') === '1';
     $accountPassword = (string) ($_POST['account_password'] ?? '');
@@ -107,6 +112,9 @@ if (is_post()) {
     }
     if (!valid_au_phone($data['phone'])) {
         $errors['phone'] = 'Please enter an Australian phone number, e.g. 0412 345 678.';
+    }
+    if ($data['branch_id'] === null) {
+        $errors['branch_id'] = 'Please choose the shop for your order.';
     }
     if (!in_array($data['fulfilment'], $fulfilmentOptions, true)) {
         $errors['fulfilment'] = 'Please choose pickup or delivery.';
@@ -123,14 +131,14 @@ if (is_post()) {
         } elseif (!delivery_postcode_allowed($data['delivery_postcode'])) {
             $errors['delivery_postcode'] = 'Sorry, we do not deliver to this postcode yet. Please choose pickup or call us.';
         }
-        if ($dateError = delivery_date_error($data['pickup_date'], $leadHours)) {
+        if ($dateError = delivery_date_error($data['pickup_date'], $leadHours, $data['branch_id'])) {
             $errors['delivery_date'] = $dateError;
         }
         if ($deliveryMin > 0 && $subtotal < $deliveryMin) {
             $errors['fulfilment'] = 'Delivery is available for orders of ' . money($deliveryMin) . ' or more.';
         }
         $data['pickup_time'] = '';
-    } elseif (!in_array($data['pickup_time'], pickup_slots($data['pickup_date'], $leadHours), true)) {
+    } elseif (!in_array($data['pickup_time'], pickup_slots($data['pickup_date'], $leadHours, $data['branch_id']), true)) {
         $errors['pickup_time'] = 'Please choose an available date and time.';
     }
     $method = $methods[$data['payment_method']] ?? null;
@@ -167,6 +175,7 @@ if (is_post()) {
         }
     }
 
+    remember_branch($data['branch_id']);
     if ($errors) {
         remember_input(array_diff_key($data, ['payment_proof' => true, 'user_id' => true]) + ['create_account' => $createAccount ? '1' : '', 'agree' => input('agree'), 'delivery_date' => input('delivery_date'), 'pickup_date' => input('pickup_date'), 'payment_proof_token' => input('payment_proof_token')]);
         $_SESSION['form_errors'] = $errors;
@@ -221,10 +230,12 @@ if (is_post()) {
 $errors = $_SESSION['form_errors'] ?? [];
 unset($_SESSION['form_errors']);
 
-$selectedDate = old('pickup_date', first_available_date($leadHours) ?? '');
-$firstDelivery = $deliveryEnabled ? first_delivery_date($leadHours) : null;
+$selectedBranch = valid_branch_id(old('branch_id', (string) (chosen_branch_id() ?? ($multiBranch ? 0 : $onlyBranchId))));
+$pickupBranch = $selectedBranch ? get_branch($selectedBranch) : null;
+$selectedDate = old('pickup_date', first_available_date($leadHours, $selectedBranch) ?? '');
+$firstDelivery = $deliveryEnabled ? first_delivery_date($leadHours, $selectedBranch) : null;
 $selectedDeliveryDate = old('delivery_date', $firstDelivery ?? '');
-$slots = $selectedDate !== '' ? pickup_slots($selectedDate, $leadHours) : [];
+$slots = $selectedDate !== '' ? pickup_slots($selectedDate, $leadHours, $selectedBranch) : [];
 $selectedFulfilment = old('fulfilment', $fulfilmentOptions[0] ?? 'pickup');
 $selectedMethod = old('payment_method', (string) array_key_first($methods));
 $totals = order_totals($subtotal, $selectedFulfilment, $coupon);
@@ -339,7 +350,12 @@ render('header', compact('page'));
                 </fieldset>
 
                 <fieldset class="checkout-step" id="step-fulfilment" data-step>
-                    <legend class="checkout-step__title"><span class="checkout-step__num"><b>2</b><?= icon('check', '', 16) ?></span> <?= count($fulfilmentOptions) > 1 ? 'Pickup or delivery' : ($fulfilmentOptions === ['delivery'] ? 'Delivery' : 'Pickup date and time') ?></legend>
+                    <legend class="checkout-step__title"><span class="checkout-step__num"><b>2</b><?= icon('check', '', 16) ?></span> <?= $multiBranch ? 'Shop, ' . (count($fulfilmentOptions) > 1 ? 'pickup or delivery' : ($fulfilmentOptions === ['delivery'] ? 'delivery' : 'pickup date and time')) : (count($fulfilmentOptions) > 1 ? 'Pickup or delivery' : ($fulfilmentOptions === ['delivery'] ? 'Delivery' : 'Pickup date and time')) ?></legend>
+                    <?php if ($multiBranch): ?>
+                        <?php render('partials/branch-picker', ['selected' => $selectedBranch, 'legend' => 'Which shop?', 'hint' => 'Your order is made at the shop you choose' . ($deliveryEnabled ? ', and picked up from there or delivered by them.' : ' and picked up from there.'), 'error' => $errors['branch_id'] ?? '']); ?>
+                    <?php else: ?>
+                        <input type="hidden" name="branch_id" value="<?= $onlyBranchId ?>">
+                    <?php endif; ?>
                     <?= $fieldError('fulfilment') ?>
 
                     <?php if (count($fulfilmentOptions) > 1): ?>
@@ -359,7 +375,7 @@ render('header', compact('page'));
 
                     <?php if ($pickupEnabled): ?>
                     <div class="fulfilment-panel" data-pickup-only <?= $selectedFulfilment === 'pickup' ? '' : 'hidden' ?>>
-                        <p class="pickup-address"><?= icon('store', '', 20) ?> <span>Pick up from <strong><?= e(store_address_line()) ?></strong></span></p>
+                        <p class="pickup-address"><?= icon('store', '', 20) ?> <span>Pick up from <strong data-pickup-address><?= e($pickupBranch ? ($multiBranch ? $pickupBranch['name'] . ' shop, ' : '') . branch_address_line($pickupBranch) : 'the shop you choose above') ?></strong></span></p>
                         <div class="field-row">
                             <div class="field">
                                 <label class="field-label" for="pickup_date">Pickup date</label>
@@ -544,7 +560,7 @@ render('header', compact('page'));
                 <ul class="summary-trust">
                     <li><?= icon('check', '', 16) ?> Secure checkout</li>
                     <li><?= icon('halal', '', 16) ?> 100% Halal</li>
-                    <li><?= icon('truck', '', 16) ?> <?= $deliveryEnabled ? 'Pickup or delivery' : 'Pickup in Greenway' ?></li>
+                    <li><?= icon('truck', '', 16) ?> <?= $deliveryEnabled ? 'Pickup or delivery' : ($multiBranch ? 'Pickup from ' . count(active_branches()) . ' shops' : 'Pickup in ' . e(active_branches()[0]['suburb'])) ?></li>
                 </ul>
                 <a class="link-arrow summary-card__back" href="<?= e(url('cart')) ?>">Edit cart</a>
             </aside>

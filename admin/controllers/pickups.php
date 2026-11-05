@@ -17,12 +17,13 @@ $typeSql = match ($type) {
     'pickup'   => " AND o.fulfilment <> 'delivery'",
     default    => '',
 };
-$select = 'SELECT o.*, ' . ORDER_SUMMARY_SQL . " AS summary FROM orders o WHERE o.order_status <> 'cancelled'";
+$branchSql = branch_sql('o.branch_id'); // a branch only sees its own pickups and deliveries
+$select = 'SELECT o.*, ' . ORDER_SUMMARY_SQL . " AS summary FROM orders o WHERE o.order_status <> 'cancelled'" . $branchSql;
 
 $counts = [
-    'today'   => (int) db_value("SELECT COUNT(*) FROM orders o WHERE o.order_status <> 'cancelled' AND o.pickup_date = ?", [$today]),
-    'advance' => (int) db_value("SELECT COUNT(*) FROM orders o WHERE o.order_status <> 'cancelled' AND o.pickup_date > ?", [$today]),
-    'past'    => (int) db_value("SELECT COUNT(*) FROM orders o WHERE o.order_status NOT IN ('cancelled', 'completed') AND o.pickup_date < ?", [$today]),
+    'today'   => (int) db_value("SELECT COUNT(*) FROM orders o WHERE o.order_status <> 'cancelled' AND o.pickup_date = ?" . $branchSql, [$today]),
+    'advance' => (int) db_value("SELECT COUNT(*) FROM orders o WHERE o.order_status <> 'cancelled' AND o.pickup_date > ?" . $branchSql, [$today]),
+    'past'    => (int) db_value("SELECT COUNT(*) FROM orders o WHERE o.order_status NOT IN ('cancelled', 'completed') AND o.pickup_date < ?" . $branchSql, [$today]),
 ];
 
 $byDay = [];
@@ -30,7 +31,7 @@ $stats = null;
 if ($tab === 'today') {
     $orders = db_all($select . ' AND o.pickup_date = ?' . $typeSql . ' ORDER BY o.pickup_time IS NOT NULL, o.pickup_time, o.id', [$today]);
     $byDay[$today] = $orders;
-    $all = db_all("SELECT * FROM orders o WHERE o.order_status <> 'cancelled' AND o.pickup_date = ?", [$today]);
+    $all = db_all("SELECT * FROM orders o WHERE o.order_status <> 'cancelled' AND o.pickup_date = ?" . $branchSql, [$today]);
     $stats = [
         'total'     => count($all),
         'pickup'    => count(array_filter($all, static fn ($o) => !is_delivery($o))),

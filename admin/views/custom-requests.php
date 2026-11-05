@@ -24,7 +24,7 @@
             <?php foreach ($result['rows'] as $r): ?>
                 <?php $days = (int) floor((strtotime($r['event_date']) - strtotime('today')) / 86400); ?>
                 <tr>
-                    <td><a class="row-link" href="<?= e(admin_url('custom-requests/view', ['id' => $r['id']])) ?>"><?= e($r['name']) ?></a><div class="muted"><?= e($r['phone']) ?></div></td>
+                    <td><a class="row-link" href="<?= e(admin_url('custom-requests/view', ['id' => $r['id']])) ?>"><?= e($r['name']) ?></a> <?= branch_tag((int) $r['branch_id']) ?><div class="muted"><?= e($r['phone']) ?></div></td>
                     <td><?= e($r['occasion']) ?><div class="muted"><?= e((string) $r['servings']) ?></div></td>
                     <td><?= e(date('D j M Y', strtotime($r['event_date']))) ?><div class="muted"><?= $days < 0 ? 'Date has passed' : ($days === 0 ? 'Today' : 'In ' . $days . ' day' . ($days === 1 ? '' : 's')) ?></div></td>
                     <td><?= e($r['budget'] ?: '-') ?><?php if ($r['quoted_price']): ?><div class="muted">Quoted <?= e(money($r['quoted_price'])) ?></div><?php endif; ?></td>

@@ -8,6 +8,8 @@ $errors = [];
 if (is_post()) {
     $data = [
         'channel'           => input('channel') === 'in_store' ? 'in_store' : 'phone',
+        // A branch login always takes orders for its own shop.
+        'branch_id'         => admin_branch_locked() ? admin_branch_id() : (get_branch(post_int('branch_id')) ? post_int('branch_id') : (admin_branch_id() ?? main_branch_id())),
         'name'              => str_limit(trim(input('name')), 120),
         'email'             => strtolower(str_limit(trim(input('email')), 190)),
         'phone'             => str_limit(trim(input('phone')), 40),

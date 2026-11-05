@@ -1,9 +1,11 @@
 <?php
 declare(strict_types=1);
 
-// Database migrations: SQL files in database/migrations/ that bring an older database up to date.
+// Database updates: numbered SQL files in src/updates/ that bring an older database up to date.
 // They run by themselves on the first visit, or from Admin > System check. A new site imports
-// database/database.sql instead, which already includes everything.
+// database/database.sql instead, which already includes everything. (They live with the code,
+// not in database/, so database/ only ever holds the one file to import.)
+const MIGRATIONS_DIR = BASE_PATH . '/src/updates';
 
 // Errors that only mean "this change is already in place".
 const MIGRATION_ALREADY_APPLIED = [1050, 1060, 1061, 1062, 1022, 1826];
@@ -55,7 +57,7 @@ function split_sql(string $sql): array
 
 function migration_files(): array
 {
-    $files = glob(BASE_PATH . '/database/migrations/*.sql') ?: [];
+    $files = glob(MIGRATIONS_DIR . '/*.sql') ?: [];
     sort($files);
     return $files;
 }
@@ -80,7 +82,7 @@ function run_migrations(?callable $progress = null): array
     $ran = [];
     foreach (pending_migrations() as $name) {
         $progress && $progress($name);
-        foreach (split_sql((string) file_get_contents(BASE_PATH . '/database/migrations/' . $name)) as $statement) {
+        foreach (split_sql((string) file_get_contents(MIGRATIONS_DIR . '/' . $name)) as $statement) {
             try {
                 db()->exec($statement);
             } catch (PDOException $e) {

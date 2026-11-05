@@ -4,13 +4,15 @@ declare(strict_types=1);
 // The morning email: a short plan for the day, sent before the shop opens. It also proves
 // every day that the website can send email. cron/run.php sends it; see DEPLOY.md.
 
-/** Everything the day's email needs, for one date. */
-function daily_summary_data(string $date): array
+/** Everything the day's email needs, for one date (and one branch, or every branch). */
+function daily_summary_data(string $date, ?int $branchId = null): array
 {
+    $b = $branchId ? ' AND branch_id = ' . $branchId : '';
+    $ob = $branchId ? ' AND o.branch_id = ' . $branchId : '';
     $orders = db_all(
         "SELECT o.*, (SELECT GROUP_CONCAT(CONCAT(i.quantity, ' x ', i.product_name, ' (', CONCAT_WS(', ', NULLIF(i.size_label, ''), i.options), ')') SEPARATOR ', ')
                       FROM order_items i WHERE i.order_id = o.id) AS summary
-         FROM orders o WHERE o.pickup_date = ? AND o.order_status <> 'cancelled'
+         FROM orders o WHERE o.pickup_date = ? AND o.order_status <> 'cancelled'{$ob}
          ORDER BY o.pickup_time IS NULL, o.pickup_time",
         [$date]
     );
@@ -19,13 +21,13 @@ function daily_summary_data(string $date): array
         'date'        => $date,
         'pickups'     => array_values(array_filter($orders, static fn ($o) => !is_delivery($o))),
         'deliveries'  => array_values(array_filter($orders, static fn ($o) => is_delivery($o))),
-        'to_verify'   => (int) db_value("SELECT COUNT(*) FROM orders WHERE payment_status = 'awaiting_verification'"),
-        'new_orders'  => (int) db_value("SELECT COUNT(*) FROM orders WHERE order_status = 'new'"),
-        'to_schedule' => (int) db_value("SELECT COUNT(*) FROM orders WHERE fulfilment = 'delivery' AND pickup_time IS NULL AND order_status NOT IN ('cancelled', 'completed')"),
-        'requests'    => db_all("SELECT * FROM custom_requests WHERE status IN ('new', 'quoted', 'confirmed') AND event_date BETWEEN ? AND ? ORDER BY event_date", [$date, date('Y-m-d', strtotime($date . ' +7 days'))]),
-        'unread'      => unread_thread_count(),
-        'tomorrow'    => (int) db_value("SELECT COUNT(*) FROM orders WHERE pickup_date = ? AND order_status <> 'cancelled'", [$tomorrow]),
-        'yesterday_sales' => (float) db_value("SELECT COALESCE(SUM(amount_paid - amount_refunded), 0) FROM orders WHERE order_status <> 'cancelled' AND DATE(created_at) = ?", [date('Y-m-d', strtotime($date . ' -1 day'))]),
+        'to_verify'   => (int) db_value("SELECT COUNT(*) FROM orders WHERE payment_status = 'awaiting_verification'{$b}"),
+        'new_orders'  => (int) db_value("SELECT COUNT(*) FROM orders WHERE order_status = 'new'{$b}"),
+        'to_schedule' => (int) db_value("SELECT COUNT(*) FROM orders WHERE fulfilment = 'delivery' AND pickup_time IS NULL AND order_status NOT IN ('cancelled', 'completed'){$b}"),
+        'requests'    => db_all("SELECT * FROM custom_requests WHERE status IN ('new', 'quoted', 'confirmed') AND event_date BETWEEN ? AND ?{$b} ORDER BY event_date", [$date, date('Y-m-d', strtotime($date . ' +7 days'))]),
+        'unread'      => $branchId ? (int) db_value("SELECT COUNT(*) FROM threads WHERE unread_admin = 1{$b}") : unread_thread_count(),
+        'tomorrow'    => (int) db_value("SELECT COUNT(*) FROM orders WHERE pickup_date = ? AND order_status <> 'cancelled'{$b}", [$tomorrow]),
+        'yesterday_sales' => (float) db_value("SELECT COALESCE(SUM(amount_paid - amount_refunded), 0) FROM orders WHERE order_status <> 'cancelled' AND DATE(created_at) = ?{$b}", [date('Y-m-d', strtotime($date . ' -1 day'))]),
     ];
 }
 
@@ -41,15 +43,31 @@ function send_daily_summary(string $date): bool
     if (!valid_email($to)) {
         return false;
     }
-    $data = daily_summary_data($date);
+    $sent = daily_summary_mail($to, $date, null);
+    // With two shops, each branch that has its own email also gets the plan for its own shop.
+    if (count(active_branches()) > 1) {
+        foreach (active_branches() as $branch) {
+            $branchTo = trim((string) $branch['email']);
+            if (valid_email($branchTo) && strcasecmp($branchTo, $to) !== 0) {
+                daily_summary_mail($branchTo, $date, (int) $branch['id']);
+            }
+        }
+    }
+    return $sent;
+}
+
+function daily_summary_mail(string $to, string $date, ?int $branchId): bool
+{
+    $data = daily_summary_data($date, $branchId);
     $count = count($data['pickups']) + count($data['deliveries']);
-    $subject = 'Today at the shop: ' . count($data['pickups']) . ' pickup' . (count($data['pickups']) === 1 ? '' : 's')
+    $where = $branchId ? branch_name($branchId) . ' shop' : (count(active_branches()) > 1 ? 'both shops' : 'the shop');
+    $subject = 'Today at ' . $where . ': ' . count($data['pickups']) . ' pickup' . (count($data['pickups']) === 1 ? '' : 's')
         . ', ' . count($data['deliveries']) . ' deliver' . (count($data['deliveries']) === 1 ? 'y' : 'ies')
         . ' - ' . date('D j M', strtotime($date));
-    return send_mail($to, $subject, render_email('daily-summary', $data + [
-        'title'     => 'Good morning! Here is ' . date('l', strtotime($date)),
+    return with_branch($branchId, static fn () => send_mail($to, $subject, render_email('daily-summary', $data + [
+        'title'     => 'Good morning! Here is ' . date('l', strtotime($date)) . ($branchId ? ' at ' . branch_name($branchId) : ''),
         'preheader' => $count ? $count . ' orders due today' : 'No orders due today',
-    ]));
+    ])));
 }
 
 /**
@@ -119,7 +137,7 @@ function orders_needing_reminder(DateTimeImmutable $now): array
 function send_order_reminder(array $order): bool
 {
     $what = is_delivery($order) ? 'delivery' : 'pickup';
-    return send_mail(
+    return with_branch((int) ($order['branch_id'] ?? 0) ?: null, static fn () => send_mail(
         $order['customer_email'],
         'Reminder: your cake ' . $what . ' is tomorrow - ' . setting('store_short_name'),
         render_email('order-reminder', [
@@ -129,7 +147,7 @@ function send_order_reminder(array $order): bool
         ]),
         null,
         setting('store_email')
-    );
+    ));
 }
 
 /** Sends tomorrow's reminders once the chosen hour has passed. */
@@ -187,13 +205,14 @@ function review_request_task(DateTimeImmutable $now): string
         if ($askedLately || !valid_email($order['customer_email'])) {
             continue;
         }
-        $ok = send_mail(
+        // Each branch has its own Google listing, so the customer reviews the shop they used.
+        $ok = with_branch((int) ($order['branch_id'] ?? 0) ?: null, static fn () => send_mail(
             $order['customer_email'],
             'How was your cake? - ' . setting('store_short_name'),
             render_email('review-request', ['order' => $order, 'title' => 'Thank you for choosing us', 'preheader' => 'Would you share a quick Google review?']),
             null,
             setting('store_email')
-        );
+        ));
         if ($ok) {
             log_order_event((int) $order['id'], 'email', 'Google review request emailed.');
             $sent++;

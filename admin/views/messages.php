@@ -23,7 +23,7 @@
                 <span class="message__avatar" style="background:<?= e(avatar_colour($t['customer_name'])) ?>"><?= e(mb_strtoupper(mb_substr($t['customer_name'], 0, 1))) ?></span>
                 <span class="inbox__main">
                     <span class="inbox__top"><strong><?= e($t['customer_name']) ?></strong><span class="muted"><?= e(time_ago($t['last_message_at'])) ?></span></span>
-                    <span class="inbox__subject"><?= e($t['subject']) ?><?= $t['status'] === 'closed' ? ' ' . status_badge('inactive', 'Closed') : '' ?></span>
+                    <span class="inbox__subject"><?= branch_tag((int) $t['branch_id']) ?> <?= e($t['subject']) ?><?= $t['status'] === 'closed' ? ' ' . status_badge('inactive', 'Closed') : '' ?></span>
                     <span class="inbox__preview"><?= $t['last_sender'] === 'shop' ? '<em>You:</em> ' : '' ?><?= e(mb_strimwidth((string) $t['last_body'], 0, 120, '...')) ?></span>
                 </span>
                 <?php if ($t['unread_admin']): ?><span class="badge badge--new">New</span><?php endif; ?>

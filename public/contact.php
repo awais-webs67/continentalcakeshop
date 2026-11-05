@@ -10,6 +10,7 @@ if (is_post()) {
         'email'   => str_limit(input('email'), 190),
         'phone'   => str_limit(input('phone'), 40),
         'message' => str_limit(input('message'), 3000),
+        'branch_id' => valid_branch_id(input('branch_id')) ?? (int) active_branches()[0]['id'],
     ];
     $errors = [];
     if ($data['name'] === '') {
@@ -35,7 +36,8 @@ if (is_post()) {
     }
 
     // Each message starts a conversation the customer can follow from the link in our email.
-    $thread = create_thread('Website message', $data['name'], $data['email'], $data['phone'], ['user_id' => current_user()['id'] ?? null]);
+    // The message goes to the shop the customer chose (the main shop when there is only one).
+    $thread = create_thread('Website message', $data['name'], $data['email'], $data['phone'], ['user_id' => current_user()['id'] ?? null, 'branch_id' => $data['branch_id']]);
     customer_message($thread, $data['message']);
     send_contact_confirmation($thread, $data['message']);
     forget_input();
@@ -49,10 +51,15 @@ $fieldError = static fn (string $f): string => isset($errors[$f]) ? '<p class="f
 $invalid = static fn (string $f): string => isset($errors[$f]) ? 'aria-invalid="true" aria-describedby="' . e($f) . '-error"' : '';
 
 $quickFaqs = array_slice(get_faqs(), 0, 4);
+$shops = active_branches();
+$multiBranch = count($shops) > 1;
+$selectedBranch = valid_branch_id(old('branch_id', (string) (chosen_branch_id() ?? 0)));
 $crumbs = [['Home', url()], ['Contact', url('contact')]];
 $page = [
     'title'       => 'Contact Us | ' . setting('store_name'),
-    'description' => 'Visit The Continental Cake Shop at ' . store_address_line() . ' or call ' . setting('store_phone') . '. Opening hours, directions and contact form.',
+    'description' => $multiBranch
+        ? 'Visit or call our cake shops in ' . implode(' and ', array_column($shops, 'suburb')) . ', Canberra. Addresses, phone numbers, opening hours, directions and contact form.'
+        : 'Visit The Continental Cake Shop at ' . store_address_line() . ' or call ' . setting('store_phone') . '. Opening hours, directions and contact form.',
     'canonical'   => url('contact'),
     'schema'      => [breadcrumb_schema($crumbs)],
 ];
@@ -70,12 +77,29 @@ render('header', compact('page'));
 <section class="section section--compact">
     <div class="container contact-layout">
         <div class="contact-details">
+            <?php if ($multiBranch): ?>
+                <?php // One card per shop: address, phone, directions and its own page. ?>
+                <?php foreach ($shops as $shop): ?>
+                    <div class="shop-card">
+                        <h2 class="shop-card__name"><?= icon('store', '', 20) ?> <?= e($shop['name']) ?> shop</h2>
+                        <p class="shop-card__addr"><?= e(branch_address_line($shop)) ?></p>
+                        <div class="shop-card__actions">
+                            <a class="btn btn--outline btn--sm" href="tel:<?= e(phone_e164(branch_phone($shop))) ?>"><?= icon('phone', '', 16) ?> <?= e(branch_phone($shop)) ?></a>
+                            <a class="btn btn--outline btn--sm" href="<?= e(branch_maps_url($shop)) ?>" target="_blank" rel="noopener"><?= icon('pin', '', 16) ?> Directions</a>
+                        </div>
+                        <a class="link-arrow" href="<?= e(branch_url($shop)) ?>">About the <?= e($shop['name']) ?> shop <?= icon('arrow', '', 16) ?></a>
+                    </div>
+                <?php endforeach; ?>
+            <?php else: ?>
             <a class="contact-tile" href="tel:<?= e(setting('store_phone_e164')) ?>"><?= icon('phone', '', 24) ?><span><strong>Call</strong><?= e(setting('store_phone')) ?></span></a>
+            <?php endif; ?>
             <?php if (whatsapp_url() !== ''): ?>
                 <a class="contact-tile" href="<?= e(whatsapp_url()) ?>" target="_blank" rel="noopener"><?= icon('whatsapp', '', 24) ?><span><strong>WhatsApp</strong>Chat with us</span></a>
             <?php endif; ?>
             <a class="contact-tile" href="mailto:<?= e(setting('store_email')) ?>"><?= icon('mail', '', 24) ?><span><strong>Email</strong><?= e(setting('store_email')) ?></span></a>
+            <?php if (!$multiBranch): ?>
             <a class="contact-tile" href="<?= e(store_maps_url()) ?>" target="_blank" rel="noopener"><?= icon('pin', '', 24) ?><span><strong>Visit</strong><?= e(store_address_line()) ?></span></a>
+            <?php endif; ?>
             <?php if ($quickFaqs): ?>
                 <div class="info-card">
                     <h2>Quick answers</h2>
@@ -118,6 +142,14 @@ render('header', compact('page'));
                     <input class="input" id="phone" name="phone" type="tel" autocomplete="tel" value="<?= e(old('phone')) ?>">
                 </div>
             </div>
+            <?php if ($multiBranch): ?>
+            <div class="field">
+                <label class="field-label" for="branch_id">Which shop is this about?</label>
+                <select class="input" id="branch_id" name="branch_id">
+                    <?php foreach ($shops as $shop): ?><option value="<?= (int) $shop['id'] ?>"<?= $selectedBranch === (int) $shop['id'] ? ' selected' : '' ?>><?= e($shop['name']) ?></option><?php endforeach; ?>
+                </select>
+            </div>
+            <?php endif; ?>
             <div class="field">
                 <label class="field-label" for="message">Message</label>
                 <textarea class="input" id="message" name="message" rows="5" required <?= $invalid('message') ?>><?= e(old('message')) ?></textarea>
@@ -126,10 +158,12 @@ render('header', compact('page'));
             <button class="btn btn--primary btn--lg" type="submit">Send Message <?= icon('arrow', '', 18) ?></button>
         </form>
     </div>
-    <div class="container">
+    <div class="container<?= $multiBranch ? ' shop-maps' : '' ?>">
+        <?php foreach ($multiBranch ? $shops : [main_branch()] as $shop): ?>
         <div class="visit__map visit__map--wide">
-            <iframe title="Map showing <?= e(setting('store_name')) ?>" src="https://www.google.com/maps?q=<?= e(rawurlencode(setting('store_name') . ', ' . store_address_line())) ?>&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+            <iframe title="Map showing <?= e(setting('store_name') . ($multiBranch ? ', ' . $shop['name'] : '')) ?>" src="https://www.google.com/maps?q=<?= e(rawurlencode(setting('store_name') . ', ' . branch_address_line($shop))) ?>&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
         </div>
+        <?php endforeach; ?>
     </div>
 </section>
 

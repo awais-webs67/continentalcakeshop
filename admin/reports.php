@@ -34,10 +34,10 @@ function report_summary(string $from, string $to): array
                 COALESCE(SUM(CASE WHEN payment_status <> 'refunded' AND total > amount_paid - amount_refunded THEN total - (amount_paid - amount_refunded) END), 0) AS unpaid,
                 COALESCE(SUM(CASE WHEN payment_status = 'refunded' THEN total END), 0) AS refunded,
                 SUM(fulfilment = 'delivery') AS deliveries, SUM(coupon_code IS NOT NULL) AS coupon_orders
-         FROM orders WHERE order_status <> 'cancelled' AND created_at BETWEEN ? AND ?",
+         FROM orders WHERE order_status <> 'cancelled' AND created_at BETWEEN ? AND ?" . branch_sql('branch_id'),
         $range
     );
-    $row['cancelled'] = (int) db_value("SELECT COUNT(*) FROM orders WHERE order_status = 'cancelled' AND created_at BETWEEN ? AND ?", $range);
+    $row['cancelled'] = (int) db_value("SELECT COUNT(*) FROM orders WHERE order_status = 'cancelled' AND created_at BETWEEN ? AND ?" . branch_sql('branch_id'), $range);
     $row['net'] = (float) $row['total'] - (float) $row['refunded'];
     $row['average'] = (int) $row['orders'] > 0 ? (float) $row['total'] / (int) $row['orders'] : 0.0;
     $row['gst'] = setting_bool('gst_registered') ? round($row['net'] / 11, 2) : null;
@@ -49,7 +49,7 @@ function report_by_day(string $from, string $to): array
     $rows = array_column(db_all(
         "SELECT DATE(created_at) AS day, COUNT(*) AS orders, SUM(total) AS total,
                 SUM(amount_paid - amount_refunded) AS paid
-         FROM orders WHERE order_status <> 'cancelled' AND created_at BETWEEN ? AND ? GROUP BY DATE(created_at)",
+         FROM orders WHERE order_status <> 'cancelled' AND created_at BETWEEN ? AND ?" . branch_sql('branch_id') . " GROUP BY DATE(created_at)",
         [$from . ' 00:00:00', $to . ' 23:59:59']
     ), null, 'day');
     // Every day in the range, including days without orders, for the chart.
@@ -66,7 +66,7 @@ function report_by_method(string $from, string $to): array
     return db_all(
         "SELECT payment_method, COUNT(*) AS orders, SUM(total) AS total,
                 SUM(amount_paid - amount_refunded) AS paid
-         FROM orders WHERE order_status <> 'cancelled' AND created_at BETWEEN ? AND ?
+         FROM orders WHERE order_status <> 'cancelled' AND created_at BETWEEN ? AND ?" . branch_sql('branch_id') . "
          GROUP BY payment_method ORDER BY total DESC",
         [$from . ' 00:00:00', $to . ' 23:59:59']
     );
@@ -79,7 +79,7 @@ function report_top_products(string $from, string $to, int $limit = 10): array
                 COALESCE(c.name, IF(i.addon_id IS NOT NULL, 'Extras', 'Removed products')) AS category
          FROM order_items i JOIN orders o ON o.id = i.order_id
          LEFT JOIN products p ON p.id = i.product_id LEFT JOIN categories c ON c.id = p.category_id
-         WHERE o.order_status <> 'cancelled' AND o.created_at BETWEEN ? AND ?
+         WHERE o.order_status <> 'cancelled' AND o.created_at BETWEEN ? AND ?" . branch_sql('o.branch_id') . "
          GROUP BY i.product_name, category ORDER BY revenue DESC LIMIT " . max(1, $limit),
         [$from . ' 00:00:00', $to . ' 23:59:59']
     );
@@ -91,7 +91,7 @@ function report_by_category(string $from, string $to): array
         "SELECT COALESCE(c.name, IF(i.addon_id IS NOT NULL, 'Extras', 'Removed products')) AS category, SUM(i.quantity) AS qty, SUM(i.line_total) AS revenue
          FROM order_items i JOIN orders o ON o.id = i.order_id
          LEFT JOIN products p ON p.id = i.product_id LEFT JOIN categories c ON c.id = p.category_id
-         WHERE o.order_status <> 'cancelled' AND o.created_at BETWEEN ? AND ?
+         WHERE o.order_status <> 'cancelled' AND o.created_at BETWEEN ? AND ?" . branch_sql('o.branch_id') . "
          GROUP BY category ORDER BY revenue DESC",
         [$from . ' 00:00:00', $to . ' 23:59:59']
     );

@@ -11,6 +11,8 @@ $isStaff = !empty($_SESSION['admin_id']) && db_value('SELECT 1 FROM admins WHERE
 if (!$order || (!$isStaff && !hash_equals($order['access_token'], input('t')))) {
     not_found();
 }
+// The invoice shows the address, phone and email of the shop that made the order.
+use_branch(get_branch((int) $order['branch_id']));
 header('X-Robots-Tag: noindex, nofollow');
 
 $items = get_order_items((int) $order['id']);

@@ -70,12 +70,12 @@ function create_order(array $data, array $items, ?array $coupon = null, ?array $
         $token = bin2hex(random_bytes(16));
         $pickupTime = ($data['pickup_time'] ?? '') !== '' ? substr($data['pickup_time'], 0, 5) . ':00' : null;
         db_run(
-            'INSERT INTO orders (order_number, user_id, channel, custom_request_id, access_token, customer_name, customer_email, customer_phone, fulfilment,
+            'INSERT INTO orders (branch_id, order_number, user_id, channel, custom_request_id, access_token, customer_name, customer_email, customer_phone, fulfilment,
                                  delivery_address, delivery_suburb, delivery_postcode, delivery_window, pickup_date, pickup_time,
                                  subtotal, delivery_fee, coupon_code, discount, total, payment_method, payment_status, payment_reference, payment_proof, notes)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
-                $number, $data['user_id'] ?? null, $channel, $data['custom_request_id'] ?? null, $token,
+                (int) ($data['branch_id'] ?? 0) ?: main_branch_id(), $number, $data['user_id'] ?? null, $channel, $data['custom_request_id'] ?? null, $token,
                 $data['name'], $data['email'], $data['phone'], $data['fulfilment'],
                 ($data['delivery_address'] ?? '') ?: null, ($data['delivery_suburb'] ?? '') ?: null, ($data['delivery_postcode'] ?? '') ?: null,
                 $data['fulfilment'] === 'delivery' && ($data['delivery_window'] ?? '') !== '' ? $data['delivery_window'] : null,
@@ -291,7 +291,12 @@ function order_item_detail(array $item): string
 function order_address(array $order): string
 {
     if (!is_delivery($order)) {
-        return store_address_line();
+        // Pickup: the address of the branch that has the order (with its name when there are two shops).
+        $branch = get_branch((int) ($order['branch_id'] ?? 0));
+        if (!$branch) {
+            return store_address_line();
+        }
+        return (multi_branch() ? $branch['name'] . ' shop, ' : '') . branch_address_line($branch);
     }
     $place = trim(($order['delivery_suburb'] ?? '') . ' ' . ($order['delivery_postcode'] ?? ''));
     return trim((string) $order['delivery_address'] . ($place !== '' ? ', ' . $place : ''));
@@ -357,7 +362,7 @@ function mark_order_paid(array $order, string $reference, ?float $amount = null)
         send_order_update_email($updated, $updated['payment_status'] === 'paid' ? 'Payment received' : 'Deposit received',
             'Thank you, we have received your payment of ' . money($amount) . '.'
             . (order_balance($updated) > 0 ? ' The balance of ' . money(order_balance($updated)) . ' is due before ' . (is_delivery($updated) ? 'delivery' : 'pickup') . '.' : ''));
-        $notify = setting('order_notification_email');
+        $notify = branch_notify_email((int) $updated['branch_id']);
         if ($notify !== '' && $updated['channel'] !== 'online') {
             send_mail($notify, 'Card payment ' . money($amount) . ' for ' . $updated['order_number'],
                 render_email('order-new-admin', ['order' => $updated, 'items' => get_order_items((int) $updated['id']), 'title' => 'Card payment received', 'preheader' => money($amount) . ' from ' . $updated['customer_name']]),

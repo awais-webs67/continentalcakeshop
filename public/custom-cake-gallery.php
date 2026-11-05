@@ -33,7 +33,7 @@ $orderLink = static fn (array $photo): string => url('custom-cakes') . '?photo='
 $crumbs = [['Home', url()], ['Custom Cakes', url('custom-cakes')], [$title, url('custom-cake-gallery')]];
 $page = [
     'title'       => 'Custom Cake Gallery Canberra | Birthday & Wedding Cakes',
-    'description' => 'See ' . count($photos) . ' custom cakes we have made in Greenway, Canberra: birthday, kids, wedding, engagement and baby shower cakes. 100% Halal. Order one like it.',
+    'description' => 'See ' . count($photos) . ' custom cakes we have made in ' . shop_places() . ', Canberra: birthday, kids, wedding, engagement and baby shower cakes. 100% Halal. Order one like it.',
     'canonical'   => url('custom-cake-gallery'),
     'schema'      => [breadcrumb_schema($crumbs), [
         '@context'    => 'https://schema.org',

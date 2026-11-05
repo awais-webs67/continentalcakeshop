@@ -11,14 +11,15 @@ header('Cache-Control: no-store');
 
 $date = input('date');
 $leadHours = cart_lead_hours(cart_items());
+$branchId = valid_branch_id(input('branch')); // each shop has its own bookings
 
 if (input('type') === 'delivery') {
-    $error = delivery_date_error($date, $leadHours);
+    $error = delivery_date_error($date, $leadHours, $branchId);
     echo json_encode(['date' => $date, 'available' => $error === null, 'message' => $error]);
     exit;
 }
 
-$slots = pickup_slots($date, $leadHours);
+$slots = pickup_slots($date, $leadHours, $branchId);
 echo json_encode([
     'date'  => $date,
     'slots' => array_map(static fn ($s) => ['value' => $s, 'label' => format_time($s)], $slots),

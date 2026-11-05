@@ -22,6 +22,17 @@ function settings_all(bool $refresh = false): array
 
 function setting(string $key, string $default = ''): string
 {
+    // While a page or email is about one branch's order, the shop's address, phone and
+    // reply email are that branch's (see use_branch() in src/branches.php).
+    if (!empty($GLOBALS['branch_context']) && ($branchValue = branch_setting_override($key)) !== null) {
+        return $branchValue;
+    }
+    return setting_raw($key, $default);
+}
+
+/** The saved value, never a branch's (for things that are always the main shop's, like the sender address). */
+function setting_raw(string $key, string $default = ''): string
+{
     $value = settings_all()[$key] ?? null;
     return ($value === null || $value === '') ? $default : (string) $value;
 }

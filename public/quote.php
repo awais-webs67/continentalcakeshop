@@ -11,6 +11,8 @@ if (!$request || (float) $request['quoted_price'] <= 0) {
     not_found();
 }
 $self = quote_url($request);
+$quoteBranch = get_branch((int) $request['branch_id']) ?? main_branch();
+$quotePhone = branch_phone($quoteBranch);
 $order = $request['order_id'] ? get_order((int) $request['order_id']) : null;
 // Once something is paid (or a screenshot is waiting to be checked) the order page takes over.
 if ($order && ((float) $order['amount_paid'] > 0 || $order['payment_status'] === 'awaiting_verification')) {
@@ -105,9 +107,9 @@ render('header', compact('page'));
 <section class="section section--compact">
     <div class="container">
         <?php if ($closed): ?>
-            <div class="alert alert--info">This quote is no longer open. Please call us on <a href="tel:<?= e(setting('store_phone_e164')) ?>"><?= e(setting('store_phone')) ?></a> and we will help.</div>
+            <div class="alert alert--info">This quote is no longer open. Please call us on <a href="tel:<?= e(phone_e164($quotePhone)) ?>"><?= e($quotePhone) ?></a> and we will help.</div>
         <?php elseif (!$methods): ?>
-            <div class="alert alert--info">Online payment is not available right now. Please call us on <a href="tel:<?= e(setting('store_phone_e164')) ?>"><?= e(setting('store_phone')) ?></a> to confirm your cake.</div>
+            <div class="alert alert--info">Online payment is not available right now. Please call us on <a href="tel:<?= e(phone_e164($quotePhone)) ?>"><?= e($quotePhone) ?></a> to confirm your cake.</div>
         <?php else: ?>
         <form class="checkout-layout" method="post" action="<?= e($self) ?>" enctype="multipart/form-data" data-checkout novalidate>
             <?= csrf_field() ?>

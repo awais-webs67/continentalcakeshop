@@ -72,6 +72,7 @@ CREATE TABLE `admins` (
   `password_hash` varchar(255) NOT NULL,
   `auth_version` int(10) unsigned NOT NULL DEFAULT 0,
   `role` enum('owner','staff') NOT NULL DEFAULT 'staff',
+  `branch_id` int(10) unsigned DEFAULT NULL COMMENT 'NULL = every branch',
   `permissions` text DEFAULT NULL COMMENT 'JSON list of admin sections a staff account may open; NULL = all',
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
   `failed_logins` int(10) unsigned NOT NULL DEFAULT 0,
@@ -103,6 +104,42 @@ CREATE TABLE `blocked_dates` (
 LOCK TABLES `blocked_dates` WRITE;
 /*!40000 ALTER TABLE `blocked_dates` DISABLE KEYS */;
 /*!40000 ALTER TABLE `blocked_dates` ENABLE KEYS */;
+UNLOCK TABLES;
+DROP TABLE IF EXISTS `branches`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `branches` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `slug` varchar(60) NOT NULL COMMENT 'Web address of the branch page: /locations/{slug}',
+  `name` varchar(80) NOT NULL COMMENT 'Short name customers see, e.g. Greenway',
+  `street` varchar(120) NOT NULL DEFAULT '',
+  `suburb` varchar(80) NOT NULL DEFAULT '',
+  `state` varchar(10) NOT NULL DEFAULT 'ACT',
+  `postcode` varchar(10) NOT NULL DEFAULT '',
+  `phone` varchar(40) NOT NULL DEFAULT '',
+  `email` varchar(190) NOT NULL DEFAULT '' COMMENT 'Orders, custom cake requests and messages for this branch are emailed here',
+  `latitude` varchar(12) NOT NULL DEFAULT '',
+  `longitude` varchar(12) NOT NULL DEFAULT '',
+  `maps_url` varchar(500) NOT NULL DEFAULT '' COMMENT 'Google Business Profile or Google Maps link',
+  `reviews_url` varchar(500) NOT NULL DEFAULT '' COMMENT 'Google review link of this branch, used in the review request email',
+  `intro` text DEFAULT NULL COMMENT 'Text on the branch page',
+  `photo` varchar(255) DEFAULT NULL COMMENT 'Path inside public/uploads',
+  `is_main` tinyint(1) NOT NULL DEFAULT 0,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Shown to customers',
+  `sort_order` int(11) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_branches_slug` (`slug`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `branches` WRITE;
+/*!40000 ALTER TABLE `branches` DISABLE KEYS */;
+INSERT INTO `branches` VALUES
+(1,'greenway','Greenway','Shop 4, 38 Reed St N','Greenway','ACT','2900','02 6293 9578','','-35.418923','149.065858','','https://www.google.com/maps/search/?api=1&query=The+Continental+Cake+Shop+Canberra+Greenway',NULL,NULL,1,1,1,'2026-11-06 09:00:00','2026-11-06 09:00:00'),
+(2,'wright','Wright','','Wright','ACT','2611','','','-35.3222','149.0347','','',NULL,NULL,0,0,2,'2026-11-06 09:00:00','2026-11-06 09:00:00');
+/*!40000 ALTER TABLE `branches` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `categories`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -188,6 +225,7 @@ DROP TABLE IF EXISTS `custom_requests`;
 /*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `custom_requests` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `branch_id` int(10) unsigned NOT NULL DEFAULT 1,
   `name` varchar(120) NOT NULL,
   `email` varchar(190) NOT NULL,
   `phone` varchar(40) NOT NULL,
@@ -209,7 +247,8 @@ CREATE TABLE `custom_requests` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_custom_quote_token` (`quote_token`),
-  KEY `idx_custom_status` (`status`,`event_date`)
+  KEY `idx_custom_status` (`status`,`event_date`),
+  KEY `idx_custom_branch` (`branch_id`,`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -377,6 +416,7 @@ DROP TABLE IF EXISTS `orders`;
 /*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `orders` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `branch_id` int(10) unsigned NOT NULL DEFAULT 1 COMMENT 'The shop that makes and hands over the order',
   `order_number` varchar(30) NOT NULL,
   `user_id` int(10) unsigned DEFAULT NULL,
   `channel` varchar(20) NOT NULL DEFAULT 'online' COMMENT 'online, phone, in_store or quote',
@@ -420,6 +460,7 @@ CREATE TABLE `orders` (
   KEY `idx_orders_stripe` (`stripe_session_id`),
   KEY `idx_orders_user` (`user_id`,`created_at`),
   KEY `idx_orders_custom` (`custom_request_id`),
+  KEY `idx_orders_branch` (`branch_id`,`pickup_date`),
   CONSTRAINT `fk_orders_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -785,7 +826,8 @@ INSERT INTO `schema_migrations` VALUES
 ('021_security.sql','2026-10-22 04:37:24'),
 ('022_catalogue_refresh.sql','2026-10-22 07:28:45'),
 ('023_seo_descriptions.sql','2026-10-22 07:32:57'),
-('024_menu_cleanup_seo.sql','2026-10-22 08:30:00');
+('024_menu_cleanup_seo.sql','2026-10-22 08:30:00'),
+('025_branches.sql','2026-11-06 09:00:00');
 /*!40000 ALTER TABLE `schema_migrations` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `settings`;
@@ -956,6 +998,7 @@ DROP TABLE IF EXISTS `threads`;
 /*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `threads` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `branch_id` int(10) unsigned NOT NULL DEFAULT 1,
   `token` char(32) NOT NULL,
   `subject` varchar(160) NOT NULL,
   `customer_name` varchar(120) NOT NULL,
@@ -978,6 +1021,7 @@ CREATE TABLE `threads` (
   KEY `idx_threads_inbox` (`status`,`last_message_at`),
   KEY `idx_threads_email` (`customer_email`),
   KEY `fk_threads_user` (`user_id`),
+  KEY `idx_threads_branch` (`branch_id`,`status`),
   CONSTRAINT `fk_threads_custom` FOREIGN KEY (`custom_request_id`) REFERENCES `custom_requests` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_threads_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_threads_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL

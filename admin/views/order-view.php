@@ -170,6 +170,25 @@
     </div>
 
     <div class="stack">
+        <?php if (count(branches()) > 1): $orderBranch = get_branch((int) $order['branch_id']); ?>
+        <section class="card" id="branch">
+            <div class="card__head"><h2>Branch</h2><span class="branch-tag branch-tag--lg"><?= icon('pin', '', 14) ?> <?= e($orderBranch['name'] ?? 'Unknown') ?></span></div>
+            <div class="card__body form-stack">
+                <p class="hint" style="margin:0"><?= is_delivery($order) ? 'Made and delivered by this shop.' : 'The customer collects from ' . e($orderBranch ? branch_address_line($orderBranch) : '') . '.' ?></p>
+                <?php if ($order['order_status'] !== 'completed'): ?>
+                <details class="edit-toggle">
+                    <summary class="link-btn">Move to another branch</summary>
+                    <form method="post" class="form-stack" style="margin-top:12px" data-confirm="Move this order to the other branch? Its staff will be emailed.">
+                        <?= csrf_field() ?><input type="hidden" name="action" value="move_branch">
+                        <label class="field"><span>Move to</span><select class="input" name="branch_id"><?php foreach (branches() as $b): if ((int) $b['id'] === (int) $order['branch_id']) continue; ?><option value="<?= (int) $b['id'] ?>"><?= e($b['name']) ?><?= $b['is_active'] ? '' : ' (hidden)' ?></option><?php endforeach; ?></select></label>
+                        <?php if (!is_delivery($order)): ?><label class="inline-check"><input type="checkbox" name="tell_customer" value="1" checked> Email the customer the new pickup address</label><?php endif; ?>
+                        <button class="btn btn--secondary btn--sm" type="submit">Move order</button>
+                    </form>
+                </details>
+                <?php endif; ?>
+            </div>
+        </section>
+        <?php endif; ?>
         <section class="card">
             <div class="card__head"><h2>Order status</h2></div>
             <form class="card__body form-stack" method="post">

@@ -17,11 +17,17 @@ $fulfilment = old('fulfilment', 'pickup');
                     <label class="field span-2"><span>Name</span><input class="input" name="name" maxlength="120" value="<?= e(old('name')) ?>" required <?= invalid_attr($errors, 'name') ?>></label>
                     <label class="field"><span>Phone</span><input class="input" type="tel" name="phone" maxlength="40" value="<?= e(old('phone')) ?>" <?= invalid_attr($errors, 'phone') ?>></label>
                     <label class="field"><span>Email <small>optional, for the confirmation</small></span><input class="input" type="email" name="email" maxlength="190" value="<?= e(old('email')) ?>" <?= invalid_attr($errors, 'email') ?>></label>
-                    <label class="field span-2"><span>Order taken</span>
+                    <label class="field<?= count(branches()) > 1 && !admin_branch_locked() ? '' : ' span-2' ?>"><span>Order taken</span>
                         <select class="input" name="channel">
                             <option value="phone" <?= selected(old('channel', 'phone') === 'phone') ?>>By phone</option>
                             <option value="in_store" <?= selected(old('channel') === 'in_store') ?>>In the shop</option>
                         </select></label>
+                    <?php if (count(branches()) > 1 && !admin_branch_locked()): $newBranch = (int) old('branch_id', (string) (admin_branch_id() ?? main_branch_id())); ?>
+                    <label class="field"><span>Branch</span>
+                        <select class="input" name="branch_id">
+                            <?php foreach (branches() as $b): ?><option value="<?= (int) $b['id'] ?>" <?= selected($newBranch === (int) $b['id']) ?>><?= e($b['name']) ?></option><?php endforeach; ?>
+                        </select></label>
+                    <?php endif; ?>
                 </div>
             </section>
 

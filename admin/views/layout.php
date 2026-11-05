@@ -38,6 +38,7 @@ foreach ($nav as $group => $links) {
     }
 }
 if ($admin['role'] === 'owner') {
+    $nav['Website'][] = ['branches', 'Branches', 'pin', null];
     $nav['Website'][] = ['settings', 'Settings', 'pen', null];
     $nav['Website'][] = ['admins', 'Staff accounts', 'user', null];
     $nav['Website'][] = ['system', 'System check', 'check', null];
@@ -80,12 +81,16 @@ $bottomNav = array_values(array_filter([
     admin_can('products', $admin) ? ['products', 'Products', 'cake', 0] : (admin_can('custom', $admin) ? ['custom-requests', 'Requests', 'gift', $badges['custom'], 'custom'] : null),
 ]));
 $alertCount = array_sum(array_map(static fn ($a) => (int) $a[2], $alerts));
+// Branch menu: owners choose a branch or all of them; a branch account always sees its own.
+$branchList = branches();
+$viewBranch = admin_branch_id($admin);
+$branchLocked = admin_branch_locked($admin);
 ?>
 <aside class="sidebar" data-sidebar>
     <div class="sidebar__top">
         <a class="sidebar__brand" href="<?= e(admin_url()) ?>">
             <img src="<?= e(asset('img/logo.svg')) ?>" alt="" width="42" height="42">
-            <span><strong><?= e(setting('store_short_name')) ?></strong><small>Admin panel</small></span>
+            <span><strong><?= e(setting('store_short_name')) ?></strong><small><?= $branchLocked ? e(branch_name($viewBranch)) . ' branch' : 'Admin panel' ?></small></span>
         </a>
         <button class="sidebar__close" type="button" data-sidebar-close aria-label="Close menu"><?= icon('close', '', 20) ?></button>
     </div>
@@ -127,6 +132,21 @@ $alertCount = array_sum(array_map(static fn ($a) => (int) $a[2], $alerts));
         </form>
         <?php endif; ?>
         <div class="topbar__actions">
+            <?php if (count($branchList) > 1): ?>
+                <?php if ($branchLocked): ?>
+                    <span class="branch-switch branch-switch--locked" title="Your account sees this branch"><?= icon('pin', '', 16) ?> <?= e(branch_name($viewBranch)) ?></span>
+                <?php else: ?>
+                    <form class="branch-switch" method="post" action="<?= e(admin_url('branch-view')) ?>">
+                        <?= csrf_field() ?><input type="hidden" name="_back" value="<?= e(admin_url(admin_back_path())) ?>">
+                        <?= icon('pin', '', 16) ?>
+                        <label class="sr-only" for="branch-switch">Show branch</label>
+                        <select id="branch-switch" name="branch" data-auto-submit>
+                            <option value="0">All shops</option>
+                            <?php foreach ($branchList as $b): ?><option value="<?= (int) $b['id'] ?>" <?= selected($viewBranch === (int) $b['id']) ?>><?= e($b['name']) ?></option><?php endforeach; ?>
+                        </select>
+                    </form>
+                <?php endif; ?>
+            <?php endif; ?>
             <?php if ($quickAdd): ?>
             <details class="dropdown">
                 <summary class="btn btn--primary btn--sm topbar__new"><?= icon('plus', '', 17) ?> <span>New</span></summary>

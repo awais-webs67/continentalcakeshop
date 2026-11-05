@@ -1,6 +1,6 @@
 <?php /** @var array $admins @var array $admin */ ?>
 <div class="page-head">
-    <div><h1>Staff accounts</h1><p>People who can log in to this admin panel. Choose what each staff member can open. Only owners can change staff accounts and run the system check.</p></div>
+    <div><h1>Staff accounts</h1><p>People who can log in to this admin panel. Choose what each staff member can open<?= count(branches()) > 1 ? ' and which branch they work for: a branch login only sees that branch\'s orders, requests and messages' : '' ?>. Only owners can change staff accounts, branches and the system check.</p></div>
 </div>
 <?php if (!empty($sharedEmails)): ?>
     <div class="alert alert--warning">
@@ -20,7 +20,8 @@
                 <tr>
                     <td><strong><?= e($a['name']) ?></strong><?= $self ? ' <span class="muted">(you)</span>' : '' ?><div class="muted"><?= e($a['email']) ?></div></td>
                     <td><?= status_badge($a['role'], ADMIN_ROLES[$a['role']]) ?><?= $a['is_active'] ? '' : ' ' . status_badge('inactive', 'Disabled') ?>
-                        <div class="muted"><?= $a['role'] === 'owner' ? 'Everything' : e(implode(', ', array_map(static fn ($k) => ADMIN_SECTIONS[$k][0], admin_permissions($a))) ?: 'Dashboard only') ?></div></td>
+                        <div class="muted"><?= $a['role'] === 'owner' ? 'Everything' : e(implode(', ', array_map(static fn ($k) => ADMIN_SECTIONS[$k][0], admin_permissions($a))) ?: 'Dashboard only') ?></div>
+                        <?php if (count(branches()) > 1): ?><div class="muted"><?= icon('pin', '', 13) ?> <?= $a['role'] !== 'owner' && $a['branch_id'] ? e(branch_name((int) $a['branch_id'])) . ' branch only' : 'Every branch' ?></div><?php endif; ?></td>
                     <td class="muted"><?= $a['last_login_at'] ? e(time_ago($a['last_login_at'])) : 'Never' ?></td>
                     <td class="num">
                         <?php if ($self): ?>
@@ -36,11 +37,14 @@
                                     <?php if ($a['role'] === 'staff'): ?>
                                     <form method="post" class="form-stack" style="gap:6px">
                                         <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $a['id'] ?>"><input type="hidden" name="action" value="permissions">
+                                        <?php if (count(branches()) > 1): ?>
+                                        <label class="field"><span>Branch</span><select class="input" name="branch_id"><option value="0">Every branch</option><?php foreach (branches() as $b): ?><option value="<?= (int) $b['id'] ?>" <?= selected((int) $a['branch_id'] === (int) $b['id']) ?>><?= e($b['name']) ?> only</option><?php endforeach; ?></select></label>
+                                        <?php endif; ?>
                                         <span class="label">Can open</span>
                                         <?php $allowed = admin_permissions($a); foreach (ADMIN_SECTIONS as $key => [$label]): ?>
                                             <label class="inline-check"><input type="checkbox" name="permissions[]" value="<?= e($key) ?>" <?= checked(in_array($key, $allowed, true)) ?>> <?= e($label) ?></label>
                                         <?php endforeach; ?>
-                                        <button class="btn btn--secondary btn--sm" type="submit">Save access</button>
+                                        <button class="btn btn--secondary btn--sm" type="submit">Save branch and access</button>
                                     </form>
                                     <?php endif; ?>
                                     <form method="post" class="form-stack" style="gap:8px">
@@ -61,7 +65,7 @@
             </tbody>
         </table></div>
     </section>
-    <section class="card">
+    <section class="card" id="add-staff">
         <div class="card__head"><h2>Add a staff member</h2></div>
         <form class="card__body form-stack" method="post">
             <?= csrf_field() ?><input type="hidden" name="action" value="create">
@@ -70,6 +74,9 @@
             <label class="field"><span>Password <small>at least 10 characters</small></span><input class="input" type="password" name="password" minlength="10" required autocomplete="new-password"></label>
             <label class="field"><span>Role</span><select class="input" name="role" data-role-select><?php foreach (ADMIN_ROLES as $key => $label): ?><option value="<?= e($key) ?>" <?= selected($key === 'staff') ?>><?= e($label) ?></option><?php endforeach; ?></select></label>
             <fieldset class="field" data-staff-permissions style="border:0;padding:0;margin:0">
+                <?php if (count(branches()) > 1): ?>
+                    <label class="field"><span>Branch <small>a branch login only sees that branch</small></span><select class="input" name="branch_id"><option value="0">Every branch</option><?php foreach (branches() as $b): ?><option value="<?= (int) $b['id'] ?>"><?= e($b['name']) ?> only</option><?php endforeach; ?></select></label>
+                <?php endif; ?>
                 <span class="label">Staff can open</span>
                 <?php foreach (ADMIN_SECTIONS as $key => [$label]): ?>
                     <label class="inline-check"><input type="checkbox" name="permissions[]" value="<?= e($key) ?>" <?= checked(in_array($key, ['orders', 'custom', 'messages', 'customers'], true)) ?>> <?= e($label) ?></label>

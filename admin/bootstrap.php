@@ -18,7 +18,7 @@ const ADMIN_SECTIONS = [
     'content'   => ['Homepage, menu, popup, pages, FAQs and SEO', ['homepage', 'menu', 'popup', 'pages', 'pages/edit', 'faqs', 'upload-image', 'seo']],
 ];
 // Settings hold the bank and PayID details, the email password and the Stripe keys, so only owners open them.
-const OWNER_ONLY_ROUTES = ['admins', 'system', 'settings'];
+const OWNER_ONLY_ROUTES = ['admins', 'system', 'settings', 'branches'];
 
 const CUSTOM_STATUSES = ['new' => 'New', 'quoted' => 'Quoted', 'confirmed' => 'Confirmed', 'closed' => 'Closed'];
 
@@ -31,7 +31,7 @@ function current_admin(): ?array
     static $admin = false;
     if ($admin === false) {
         $id = (int) ($_SESSION['admin_id'] ?? 0);
-        $admin = $id ? db_one('SELECT id, name, email, role, permissions, auth_version FROM admins WHERE id = ? AND is_active = 1', [$id]) : null;
+        $admin = $id ? db_one('SELECT id, name, email, role, branch_id, permissions, auth_version FROM admins WHERE id = ? AND is_active = 1', [$id]) : null;
         // A password change or reset signs out every other session.
         if ($admin && (int) $admin['auth_version'] !== (int) ($_SESSION['admin_auth'] ?? 0)) {
             $admin = null;
@@ -57,6 +57,65 @@ function require_admin(?string $role = null): array
         redirect(admin_url());
     }
     return $admin;
+}
+
+// ---------------------------------------------------------------------------
+// Branches in the admin panel
+// ---------------------------------------------------------------------------
+// A staff account with a branch only ever sees that branch's orders, pickups, custom cake
+// requests, messages and sales. Owners (the super admin) and staff without a branch see every
+// branch and can narrow the panel to one with the switch at the top.
+
+/** The branch the panel is showing, or null for every branch. */
+function admin_branch_id(?array $admin = null): ?int
+{
+    $admin ??= current_admin();
+    if (!$admin) {
+        return null;
+    }
+    if (admin_branch_locked($admin)) {
+        return (int) $admin['branch_id'];
+    }
+    $view = (int) ($_SESSION['admin_branch_view'] ?? 0);
+    return $view && get_branch($view) ? $view : null;
+}
+
+/** True for a staff account that belongs to one branch. */
+function admin_branch_locked(?array $admin = null): bool
+{
+    $admin ??= current_admin();
+    return $admin !== null && $admin['role'] !== 'owner' && !empty($admin['branch_id']) && get_branch((int) $admin['branch_id']) !== null;
+}
+
+/** " AND o.branch_id = 2" while the panel shows one branch, otherwise "". Safe to put in SQL. */
+function branch_sql(string $column = 'branch_id'): string
+{
+    $id = admin_branch_id();
+    return $id ? ' AND ' . $column . ' = ' . $id : '';
+}
+
+/** False when the record belongs to a branch the signed-in account may not see. */
+function admin_sees_branch(?int $branchId): bool
+{
+    return !admin_branch_locked() || (int) $branchId === admin_branch_id();
+}
+
+/** Stops a branch account opening another branch's order, request or message by its link. */
+function require_branch_access(?array $record, string $back): void
+{
+    if ($record && !admin_sees_branch((int) ($record['branch_id'] ?? 0))) {
+        flash('error', 'That belongs to the ' . branch_name((int) $record['branch_id']) . ' branch.');
+        redirect(admin_url($back));
+    }
+}
+
+/** Small branch label for lists, only when there is more than one shop. */
+function branch_tag(?int $branchId): string
+{
+    if (count(branches()) < 2 || admin_branch_id() !== null) {
+        return '';
+    }
+    return '<span class="branch-tag">' . e(branch_name($branchId)) . '</span>';
 }
 
 /** Sections a staff account may open. Owners can open everything. */
@@ -568,11 +627,12 @@ function save_product_photos(int $productId, string $name): string
 function admin_badges(): array
 {
     static $badges = null;
+    $b = branch_sql('branch_id'); // a branch account only counts its own
     return $badges ??= [
-        'orders'   => (int) db_value("SELECT COUNT(*) FROM orders WHERE order_status = 'new' OR (fulfilment = 'delivery' AND pickup_time IS NULL AND order_status NOT IN ('cancelled', 'completed'))"),
-        'payments' => (int) db_value("SELECT COUNT(*) FROM orders WHERE payment_status = 'awaiting_verification'"),
-        'custom'   => (int) db_value("SELECT COUNT(*) FROM custom_requests WHERE status = 'new'"),
-        'messages' => unread_thread_count(),
+        'orders'   => (int) db_value("SELECT COUNT(*) FROM orders WHERE (order_status = 'new' OR (fulfilment = 'delivery' AND pickup_time IS NULL AND order_status NOT IN ('cancelled', 'completed'))){$b}"),
+        'payments' => (int) db_value("SELECT COUNT(*) FROM orders WHERE payment_status = 'awaiting_verification'{$b}"),
+        'custom'   => (int) db_value("SELECT COUNT(*) FROM custom_requests WHERE status = 'new'{$b}"),
+        'messages' => $b === '' ? unread_thread_count() : (int) db_value("SELECT COUNT(*) FROM threads WHERE unread_admin = 1{$b}"),
     ];
 }
 /**
@@ -589,19 +649,22 @@ function admin_live_state(array $admin): array
         'custom'   => $can('custom') ? $badges['custom'] : 0,
     ];
     $counts['alerts'] = array_sum($counts);
+    // Sounds and pop-ups only for the branch on screen: Wright staff never hear Greenway's orders.
+    $w = ' WHERE 1 = 1' . branch_sql('branch_id');
     $stamp = md5(json_encode([
         $counts,
-        db_one('SELECT COUNT(*) AS n, MAX(id) AS id, MAX(updated_at) AS changed FROM orders'),
-        db_value('SELECT MAX(id) FROM payments'),
-        db_one('SELECT MAX(last_message_at) AS last, SUM(unread_admin) AS unread, SUM(status = \'open\') AS open FROM threads'),
-        db_one('SELECT COUNT(*) AS n, MAX(id) AS id, SUM(status = \'new\') AS fresh FROM custom_requests'),
+        admin_branch_id(),
+        db_one('SELECT COUNT(*) AS n, MAX(id) AS id, MAX(updated_at) AS changed FROM orders' . $w),
+        db_value('SELECT MAX(p.id) FROM payments p JOIN orders o ON o.id = p.order_id WHERE 1 = 1' . branch_sql('o.branch_id')),
+        db_one('SELECT MAX(last_message_at) AS last, SUM(unread_admin) AS unread, SUM(status = \'open\') AS open FROM threads' . $w),
+        db_one('SELECT COUNT(*) AS n, MAX(id) AS id, SUM(status = \'new\') AS fresh FROM custom_requests' . $w),
     ]));
     return [
         'counts'  => $counts,
         'stamp'   => $stamp,
-        'order'   => $can('orders') ? db_one('SELECT id, order_number, customer_name, total, channel, TIMESTAMPDIFF(SECOND, created_at, NOW()) AS age FROM orders ORDER BY id DESC LIMIT 1') : null,
-        'message' => $can('messages') ? db_one("SELECT m.id, m.thread_id, t.customer_name, LEFT(m.body, 140) AS body, TIMESTAMPDIFF(SECOND, m.created_at, NOW()) AS age FROM thread_messages m JOIN threads t ON t.id = m.thread_id WHERE m.sender = 'customer' ORDER BY m.id DESC LIMIT 1") : null,
-        'request' => $can('custom') ? db_one('SELECT id, name, occasion, TIMESTAMPDIFF(SECOND, created_at, NOW()) AS age FROM custom_requests ORDER BY id DESC LIMIT 1') : null,
+        'order'   => $can('orders') ? db_one('SELECT id, order_number, customer_name, total, channel, TIMESTAMPDIFF(SECOND, created_at, NOW()) AS age FROM orders' . $w . ' ORDER BY id DESC LIMIT 1') : null,
+        'message' => $can('messages') ? db_one("SELECT m.id, m.thread_id, t.customer_name, LEFT(m.body, 140) AS body, TIMESTAMPDIFF(SECOND, m.created_at, NOW()) AS age FROM thread_messages m JOIN threads t ON t.id = m.thread_id WHERE m.sender = 'customer'" . branch_sql('t.branch_id') . ' ORDER BY m.id DESC LIMIT 1') : null,
+        'request' => $can('custom') ? db_one('SELECT id, name, occasion, TIMESTAMPDIFF(SECOND, created_at, NOW()) AS age FROM custom_requests' . $w . ' ORDER BY id DESC LIMIT 1') : null,
     ];
 }
 

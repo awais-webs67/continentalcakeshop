@@ -84,6 +84,32 @@ function local_business_schema(): array
     if (setting('store_abn') !== '') {
         $schema['taxID'] = 'ABN ' . setting('store_abn');
     }
+    // The other shops are their own Bakery entries (on their branch pages), linked to this one.
+    if (empty($GLOBALS['branch_context']) && count(active_branches()) > 1) {
+        $schema['subOrganization'] = array_values(array_map(
+            static fn ($b) => ['@id' => branch_url($b) . '#bakery'],
+            array_filter(active_branches(), static fn ($b) => !(int) $b['is_main'])
+        ));
+    }
+    return $schema;
+}
+
+/** The Bakery entry for one branch page: the shop's own address, phone and map, part of the main business. */
+function branch_business_schema(array $branch): array
+{
+    if ((int) $branch['is_main']) {
+        return local_business_schema();
+    }
+    $schema = with_branch((int) $branch['id'], static fn () => local_business_schema());
+    $schema['@id'] = branch_url($branch) . '#bakery';
+    $schema['name'] = setting('store_short_name') . ' ' . $branch['name'];
+    $schema['url'] = branch_url($branch);
+    $schema['hasMap'] = branch_maps_url($branch);
+    if (!empty($branch['photo'])) {
+        $schema['image'] = product_image_url($branch['photo']);
+    }
+    $schema['parentOrganization'] = ['@id' => url('#bakery')];
+    unset($schema['subOrganization']);
     return $schema;
 }
 
@@ -160,6 +186,7 @@ const LEGACY_REDIRECTS = [
     'custom-cakes-gallery'               => 'custom-cake-gallery',
     'about-us'                           => 'about',
     'contact-us'                         => 'contact',
+    'locations'                          => 'contact',
     'home'                               => '',
 ];
 
@@ -291,7 +318,7 @@ function product_default_description(array $product, array $sizes): string
         ? strtolower((string) ($sizes[0]['servings'] ?: $sizes[0]['label']))
         : implode(', ', array_slice($labels, 0, -1)) . ' or ' . end($labels);
     $text = sprintf(
-        '%s Canberra: %s, from %s. 100%% Halal, made fresh in Greenway. Order online for pickup%s.',
+        '%s Canberra: %s, from %s. 100%% Halal, made fresh in ' . shop_places() . '. Order online for pickup%s.',
         $product['name'], $sizeText, money(min(array_map(static fn ($s) => (float) $s['price'], $sizes))),
         setting_bool('delivery_enabled') ? ' or delivery across Canberra' : ' in Canberra'
     );

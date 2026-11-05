@@ -4,7 +4,7 @@ require_admin();
 // Inbox of conversations with customers (contact form, orders and custom cake requests).
 $filter = (string) ($_GET['filter'] ?? '');
 $q = trim((string) ($_GET['q'] ?? ''));
-$where = ['t.last_message_at IS NOT NULL'];
+$where = ['t.last_message_at IS NOT NULL' . branch_sql('t.branch_id')];
 $params = [];
 match ($filter) {
     'unread' => $where[] = 't.unread_admin = 1',
@@ -25,5 +25,5 @@ $result = paginate(
     "SELECT COUNT(*) FROM threads t WHERE {$whereSql}",
     $params
 );
-$unread = unread_thread_count();
+$unread = (int) db_value('SELECT COUNT(*) FROM threads t WHERE t.unread_admin = 1' . branch_sql('t.branch_id'));
 admin_view('messages', compact('result', 'filter', 'q', 'unread') + ['title' => 'Messages']);

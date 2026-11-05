@@ -15,7 +15,7 @@ $socials = array_filter([
             <a href="<?= e(url()) ?>" class="footer-brand__logo">
                 <img src="<?= e(asset('img/logo.svg')) ?>" alt="<?= e(setting('store_name')) ?>" width="72" height="72" loading="lazy">
             </a>
-            <p>Fresh cakes made in our Greenway shop since <?= e(setting('store_founded')) ?>. 100% Halal ingredients.</p>
+            <p>Fresh cakes made in our <?= e(shop_places()) ?> shop<?= multi_branch() ? 's' : '' ?> since <?= e(setting('store_founded')) ?>. 100% Halal ingredients.</p>
             <ul class="footer-inline footer-inline--brand">
                 <li><a href="<?= e(url('about')) ?>">About Us</a></li>
                 <li><a href="<?= e(url('contact')) ?>">Contact</a></li>
@@ -39,8 +39,15 @@ $socials = array_filter([
         <div class="footer-col">
             <h2>Visit Us</h2>
             <ul class="footer-links">
+                <?php if (multi_branch()): ?>
+                    <?php // Every shop's name, address and phone on every page: what Google matches with each Business Profile. ?>
+                    <?php foreach (active_branches() as $shop): ?>
+                        <li class="footer-shop"><a href="<?= e(branch_url($shop)) ?>"><strong><?= e($shop['name']) ?>:</strong> <?= e(branch_address_line($shop)) ?></a> <a href="tel:<?= e(phone_e164(branch_phone($shop))) ?>"><?= e(branch_phone($shop)) ?></a></li>
+                    <?php endforeach; ?>
+                <?php else: ?>
                 <li><a href="<?= e(store_maps_url()) ?>" target="_blank" rel="noopener"><?= e(store_address_line()) ?></a></li>
                 <li><a href="tel:<?= e(setting('store_phone_e164')) ?>"><?= e(setting('store_phone')) ?></a></li>
+                <?php endif; ?>
                 <?php foreach (opening_hours_grouped(true) as $row): ?>
                     <li><?= e($row['days']) ?>: <?= e($row['hours']) ?></li>
                 <?php endforeach; ?>

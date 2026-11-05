@@ -7,6 +7,8 @@ $order = get_order_by_number(input('number'));
 if (!$order || !hash_equals($order['access_token'], input('t'))) {
     not_found();
 }
+// The shop that has this order (its address and phone are shown below).
+$orderBranch = get_branch((int) $order['branch_id']) ?? main_branch();
 
 // Customer chose to retry a card payment that was cancelled or failed.
 if (is_post() && input('action') === 'pay' && $order['payment_method'] === PAYMENT_STRIPE && order_balance($order) > 0 && $order['order_status'] !== 'cancelled') {
@@ -75,8 +77,8 @@ render('header', compact('page'));
                         <p class="order-box__note"><?= icon('clock', '', 18) ?> We will email you the delivery time before the day<?= ($order['delivery_window'] ?? 'any') !== 'any' && $order['delivery_window'] ? ', keeping to your preferred time (' . e(delivery_window_label($order['delivery_window'])) . ') where we can' : '' ?>.</p>
                     <?php endif; ?>
                 <?php else: ?>
-                    <p><?= icon('store', '', 18) ?> <?= e(store_address_line()) ?></p>
-                    <a class="link-arrow" href="<?= e(store_maps_url()) ?>" target="_blank" rel="noopener">Get directions <?= icon('arrow', '', 16) ?></a>
+                    <p><?= icon('store', '', 18) ?> <?= e((multi_branch() ? $orderBranch['name'] . ' shop, ' : '') . branch_address_line($orderBranch)) ?></p>
+                    <a class="link-arrow" href="<?= e(branch_maps_url($orderBranch)) ?>" target="_blank" rel="noopener">Get directions <?= icon('arrow', '', 16) ?></a>
                 <?php endif; ?>
             </div>
             <div class="order-box">
@@ -126,7 +128,7 @@ render('header', compact('page'));
             <p>Need to change something or have a question?</p>
             <div class="order-help__actions">
                 <a class="btn btn--primary" href="<?= e(thread_url(order_thread($order))) ?>"><?= icon('mail', '', 18) ?> Message us about this order</a>
-                <a class="btn btn--outline" href="tel:<?= e(setting('store_phone_e164')) ?>"><?= icon('phone', '', 18) ?> <?= e(setting('store_phone')) ?></a>
+                <a class="btn btn--outline" href="tel:<?= e(phone_e164(branch_phone($orderBranch))) ?>"><?= icon('phone', '', 18) ?> <?= e(branch_phone($orderBranch)) ?></a>
             </div>
         </div>
     </div>

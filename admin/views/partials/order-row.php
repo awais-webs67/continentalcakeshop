@@ -29,6 +29,7 @@ $overdue = $o['pickup_date'] < date('Y-m-d') && !in_array($o['order_status'], ['
         <p class="order-row__items"><?= e((string) ($o['summary'] ?: 'No items')) ?></p>
         <div class="order-row__tags">
             <span class="tag tag--<?= $delivery ? 'delivery' : 'pickup' ?>"><?= icon($delivery ? 'truck' : 'store', '', 13) ?> <?= $delivery ? e('Delivery' . ($o['delivery_suburb'] ? ' · ' . $o['delivery_suburb'] : '')) : 'Pickup' ?></span>
+            <?= branch_tag(isset($o['branch_id']) ? (int) $o['branch_id'] : null) ?>
             <?= status_badge($o['order_status'], order_status_label($o)) ?>
             <?= status_badge($o['payment_status'], PAYMENT_STATUSES[$o['payment_status']]) ?>
             <?php if (($o['channel'] ?? 'online') !== 'online'): ?><span class="tag"><?= e(ORDER_CHANNELS[$o['channel']] ?? $o['channel']) ?></span><?php endif; ?>

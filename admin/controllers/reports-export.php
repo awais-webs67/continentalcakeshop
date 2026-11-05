@@ -26,7 +26,7 @@ switch ((string) ($_GET['type'] ?? 'orders')) {
             "SELECT order_number, created_at, customer_name, customer_email, customer_phone, fulfilment, pickup_date,
                     TIME_FORMAT(pickup_time, '%H:%i'), CONCAT_WS(', ', delivery_address, delivery_suburb, delivery_postcode),
                     subtotal, discount, coupon_code, delivery_fee, total, payment_method, payment_status, payment_reference, order_status
-             FROM orders WHERE created_at BETWEEN ? AND ? ORDER BY created_at, id",
+             FROM orders WHERE created_at BETWEEN ? AND ?" . branch_sql('branch_id') . ' ORDER BY created_at, id',
             $range
         );
         send_csv($name('orders'), ['Order', 'Placed', 'Customer', 'Email', 'Phone', 'Pickup or delivery', 'Date', 'Time', 'Delivery address',

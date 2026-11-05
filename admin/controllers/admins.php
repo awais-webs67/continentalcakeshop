@@ -3,6 +3,8 @@ $admin = require_admin('owner');
 
 /** Sections ticked in the form, stored as JSON. */
 $postedPermissions = static fn (): string => json_encode(array_values(array_intersect((array) ($_POST['permissions'] ?? []), array_keys(ADMIN_SECTIONS))));
+/** The branch chosen for a staff account; null = every branch. */
+$postedBranch = static fn (): ?int => get_branch(post_int('branch_id')) ? post_int('branch_id') : null;
 
 if (is_post()) {
     $action = input('action');
@@ -23,7 +25,7 @@ if (is_post()) {
         } elseif (email_used_by_customer($email)) {
             flash('error', CUSTOMER_EMAIL_TAKEN);
         } else {
-            db_run('INSERT INTO admins (name, email, password_hash, role, permissions) VALUES (?, ?, ?, ?, ?)', [$name, $email, password_hash($password, PASSWORD_DEFAULT), $role, $role === 'staff' ? $postedPermissions() : null]);
+            db_run('INSERT INTO admins (name, email, password_hash, role, branch_id, permissions) VALUES (?, ?, ?, ?, ?, ?)', [$name, $email, password_hash($password, PASSWORD_DEFAULT), $role, $role === 'staff' ? $postedBranch() : null, $role === 'staff' ? $postedPermissions() : null]);
             flash('success', $name . ' can now log in at ' . admin_url('login') . '. Share the password with them in person.');
         }
     } elseif ($target && (int) $target['id'] === (int) $admin['id']) {
@@ -43,7 +45,7 @@ if (is_post()) {
             flash('success', $target['name'] . ' is now ' . strtolower(ADMIN_ROLES[input('role')]) . '.');
         }
     } elseif ($target && $action === 'permissions') {
-        db_run('UPDATE admins SET permissions = ? WHERE id = ?', [$postedPermissions(), $target['id']]);
+        db_run('UPDATE admins SET permissions = ?, branch_id = ? WHERE id = ?', [$postedPermissions(), $postedBranch(), $target['id']]);
         flash('success', 'Access for ' . $target['name'] . ' saved.');
     } elseif ($target && $action === 'password') {
         $password = (string) ($_POST['password'] ?? '');
@@ -57,7 +59,7 @@ if (is_post()) {
     redirect(admin_url('admins'));
 }
 
-$admins = db_all('SELECT id, name, email, role, permissions, is_active, last_login_at, created_at FROM admins ORDER BY role, name');
+$admins = db_all('SELECT id, name, email, role, branch_id, permissions, is_active, last_login_at, created_at FROM admins ORDER BY role, name');
 // Accounts made before staff and customer emails were kept apart.
 $sharedEmails = db_all('SELECT a.email, u.id AS user_id FROM admins a JOIN users u ON u.email = a.email');
 admin_view('admins', compact('admins', 'sharedEmails') + ['title' => 'Staff accounts']);

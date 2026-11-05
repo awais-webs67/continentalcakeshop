@@ -103,7 +103,7 @@ render('header', compact('page'));
                 <?php endif; ?>
                 <ul class="product-badges">
                     <li><?= icon('halal', '', 16) ?> 100% Halal</li>
-                    <li><?= icon('cake', '', 16) ?> Baked fresh in Greenway</li>
+                    <li><?= icon('cake', '', 16) ?> Baked fresh in <?= e(shop_places()) ?></li>
                     <?php if ((int) $product['allow_message'] === 1): ?><li><?= icon('pen', '', 16) ?> Free writing</li><?php endif; ?>
                     <?php if (array_filter($options, static fn ($o) => stripos($o['name'], 'egg') !== false)): ?><li><?= icon('leaf', '', 16) ?> Eggless option</li><?php endif; ?>
                 </ul>
