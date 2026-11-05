@@ -38,9 +38,16 @@ function mail_config(string $key, mixed $default = null): mixed
 
 function mail_from(): array
 {
+    // One sending address for every shop (best for not landing in spam). With two shops the
+    // sender name says which shop wrote, e.g. "The Continental Cake Shop Wright".
+    $name = (string) mail_config('from_name', setting('store_short_name'));
+    $branch = $GLOBALS['branch_context'] ?? null;
+    if ($branch && multi_branch() && stripos($name, (string) $branch['name']) === false) {
+        $name .= ' ' . $branch['name'];
+    }
     return [
         (string) mail_config('from_address', config('mail_from', setting_raw('store_email'))),
-        (string) mail_config('from_name', setting('store_short_name')),
+        $name,
     ];
 }
 

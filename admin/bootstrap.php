@@ -93,6 +93,16 @@ function admin_account_type(array $admin): string
     return !empty($admin['branch_id']) && $admin['permissions'] === null ? 'manager' : 'staff';
 }
 
+/** "Owner", "Branch manager, Wright" or "Staff, Wright": how a login is named in the panel. */
+function admin_account_label(array $admin): string
+{
+    $label = ['owner' => 'Owner', 'manager' => 'Branch manager', 'staff' => 'Staff'][admin_account_type($admin)];
+    if ($admin['role'] !== 'owner' && !empty($admin['branch_id']) && count(branches()) > 1) {
+        $label .= ', ' . branch_name((int) $admin['branch_id']);
+    }
+    return $label;
+}
+
 function admin_is_manager(array $admin): bool
 {
     return admin_account_type($admin) === 'manager';

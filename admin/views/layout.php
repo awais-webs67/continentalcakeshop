@@ -114,7 +114,7 @@ $branchLocked = admin_branch_locked($admin);
         <a class="sidebar__site" href="<?= e(url()) ?>" target="_blank" rel="noopener"><?= icon('store', '', 17) ?> <span>View website</span> <?= icon('arrow', 'sidebar__site-arrow', 15) ?></a>
         <div class="sidebar__user">
             <a class="sidebar__avatar" href="<?= e(admin_url('account')) ?>" style="background:<?= e(avatar_colour($admin['name'])) ?>"><?= e(mb_strtoupper(mb_substr($admin['name'], 0, 1))) ?></a>
-            <a class="sidebar__who" href="<?= e(admin_url('account')) ?>"><strong><?= e($admin['name']) ?></strong><span><?= e(ADMIN_ROLES[$admin['role']]) ?></span></a>
+            <a class="sidebar__who" href="<?= e(admin_url('account')) ?>"><strong><?= e($admin['name']) ?></strong><span><?= e(admin_account_label($admin)) ?></span></a>
             <form method="post" action="<?= e(admin_url('logout')) ?>">
                 <?= csrf_field() ?>
                 <button type="submit" class="icon-button icon-button--dark" title="Log out" aria-label="Log out"><?= icon('logout', '', 18) ?></button>
