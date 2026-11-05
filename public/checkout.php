@@ -353,8 +353,6 @@ render('header', compact('page'));
                     <legend class="checkout-step__title"><span class="checkout-step__num"><b>2</b><?= icon('check', '', 16) ?></span> <?= count($fulfilmentOptions) > 1 ? 'Pickup or delivery' : ($fulfilmentOptions === ['delivery'] ? 'Delivery' : 'Pickup date and time') ?></legend>
                     <?php if ($multiBranch): ?>
                         <?php render('partials/branch-picker', ['selected' => $selectedBranch, 'legend' => 'Which shop?', 'error' => $errors['branch_id'] ?? '']); ?>
-                    <?php else: ?>
-                        <input type="hidden" name="branch_id" value="<?= $onlyBranchId ?>">
                     <?php endif; ?>
                     <?= $fieldError('fulfilment') ?>
 
@@ -440,6 +438,7 @@ render('header', compact('page'));
                     </div>
                     <?php endif; ?>
 
+                    <?php if (!$multiBranch): ?><input type="hidden" name="branch_id" value="<?= $onlyBranchId ?>"><?php endif; ?>
                     <p class="field-help"><?= icon('info', '', 16) ?> Please order at least <?= e(notice_label($leadHours)) ?> ahead. You can book up to <?= (int) setting('max_advance_days', '60') ?> days in advance.<?= $closedDays ? ' We are closed on ' . e(implode(', ', $closedDays)) . '.' : '' ?></p>
                 </fieldset>
 

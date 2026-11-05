@@ -1084,8 +1084,24 @@ select.input { appearance: none; padding-right: 36px; background-image: url("dat
 .btn--block { width: 100%; justify-content: center; }
 
 /* Staff accounts */
-.staff-access { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.staff-access__pages { margin-top: 6px; max-width: 360px; font-size: 13px; }
-.row-menu__panel--wide { width: min(320px, calc(100vw - 32px)); max-height: 70vh; overflow-y: auto; }
+.staff-list { margin: 0; padding: 0; list-style: none; }
+.staff-item { padding: 16px 20px; border-top: 1px solid var(--line); }
+.staff-item:first-child { border-top: 0; }
+.staff-item.is-off { background: #FAFBFB; }
+.staff-item__row { display: flex; align-items: flex-start; gap: 12px; }
+.staff-item__avatar { display: grid; place-items: center; flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; color: #fff; font-weight: 700; }
+.staff-item__who { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; }
+.staff-item__who > strong, .staff-item__who > .muted { overflow-wrap: anywhere; }
+.staff-access { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
+.staff-item__seen { font-size: 12.5px; }
+.staff-access__pages { margin: 6px 0 0; font-size: 13px; }
+.staff-item__btn { flex-shrink: 0; }
+.staff-item__manage { margin: 10px 0 0 52px; }
+.staff-item__manage > summary { list-style: none; cursor: pointer; }
+.staff-item__manage > summary::-webkit-details-marker { display: none; }
+.staff-item__manage[open] > summary { background: var(--bg); }
+.staff-item__panel { display: grid; gap: 20px; margin-top: 12px; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: #FAFBFB; }
+@media (min-width: 900px) { .staff-item__panel { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); } }
+@media (max-width: 560px) { .staff-item { padding: 14px 16px; } .staff-item__manage { margin-left: 0; } }
 .access-pages { display: grid; gap: 6px; margin: 0; padding: 0; border: 0; }
 .access-pages[hidden], [data-access-branch][hidden] { display: none; }

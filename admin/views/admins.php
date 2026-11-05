@@ -43,50 +43,53 @@ $accessFields = static function (string $type, ?int $branchId, array $pages) use
 <?php endif; ?>
 <div class="grid-main">
     <section class="card">
-        <div class="table-wrap"><table class="table staff-table">
-            <thead><tr><th>Name</th><th>Access</th><th>Last login</th><th class="num">Actions</th></tr></thead>
-            <tbody>
+        <div class="card__head"><h2>Logins</h2><span class="hint"><?= count($admins) ?> account<?= count($admins) === 1 ? '' : 's' ?></span></div>
+        <ul class="staff-list">
             <?php foreach ($admins as $a): $self = (int) $a['id'] === (int) $admin['id']; $type = admin_account_type($a); ?>
-                <tr>
-                    <td><strong><?= e($a['name']) ?></strong><?= $self ? ' <span class="muted">(you)</span>' : '' ?><div class="muted"><?= e($a['email']) ?></div></td>
-                    <td>
-                        <div class="staff-access">
-                            <?= status_badge($type === 'owner' ? 'owner' : ($type === 'manager' ? 'active' : 'staff'), ACCOUNT_TYPES[$type][0]) ?>
-                            <?php if ($multi): ?><span class="branch-tag"><?= icon('pin', '', 12) ?> <?= $type !== 'owner' && $a['branch_id'] ? e(branch_name((int) $a['branch_id'])) : 'Every shop' ?></span><?php endif; ?>
-                            <?= $a['is_active'] ? '' : status_badge('inactive', 'Disabled') ?>
+                <li class="staff-item<?= $a['is_active'] ? '' : ' is-off' ?>">
+                    <div class="staff-item__row">
+                        <span class="staff-item__avatar" style="background:<?= e(avatar_colour($a['name'])) ?>" aria-hidden="true"><?= e(mb_strtoupper(mb_substr($a['name'], 0, 1))) ?></span>
+                        <div class="staff-item__who">
+                            <strong><?= e($a['name']) ?><?= $self ? ' <span class="muted">(you)</span>' : '' ?></strong>
+                            <span class="muted"><?= e($a['email']) ?></span>
+                            <div class="staff-access">
+                                <?= status_badge($type === 'owner' ? 'owner' : ($type === 'manager' ? 'active' : 'staff'), ACCOUNT_TYPES[$type][0]) ?>
+                                <?php if ($multi): ?><span class="branch-tag"><?= icon('pin', '', 12) ?> <?= $type !== 'owner' && $a['branch_id'] ? e(branch_name((int) $a['branch_id'])) : 'Every shop' ?></span><?php endif; ?>
+                                <?= $a['is_active'] ? '' : status_badge('inactive', 'Disabled') ?>
+                                <span class="muted staff-item__seen"><?= $a['last_login_at'] ? 'Last login ' . e(time_ago($a['last_login_at'])) : 'Never logged in' ?></span>
+                            </div>
+                            <?php if ($type === 'staff'): ?><p class="muted staff-access__pages"><?= e(implode(', ', array_map(static fn ($k) => ADMIN_SECTIONS[$k][0], admin_permissions($a))) ?: 'Dashboard only') ?></p><?php endif; ?>
                         </div>
-                        <?php if ($type === 'staff'): ?><div class="muted staff-access__pages"><?= e(implode(', ', array_map(static fn ($k) => ADMIN_SECTIONS[$k][0], admin_permissions($a))) ?: 'Dashboard only') ?></div><?php endif; ?>
-                    </td>
-                    <td class="muted"><?= $a['last_login_at'] ? e(time_ago($a['last_login_at'])) : 'Never' ?></td>
-                    <td class="num">
                         <?php if ($self): ?>
-                            <a class="link-btn" href="<?= e(admin_url('account')) ?>">My account</a>
-                        <?php else: ?>
-                            <details class="row-menu">
-                                <summary class="link-btn">Manage</summary>
-                                <div class="row-menu__panel row-menu__panel--wide">
-                                    <form method="post" class="form-stack" style="gap:10px" data-access-form>
-                                        <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $a['id'] ?>"><input type="hidden" name="action" value="access">
-                                        <?php $accessFields($type, $a['branch_id'] ? (int) $a['branch_id'] : null, admin_permissions($a)); ?>
-                                        <button class="btn btn--secondary btn--sm" type="submit">Save access</button>
-                                    </form>
+                            <a class="btn btn--secondary btn--sm staff-item__btn" href="<?= e(admin_url('account')) ?>">My account</a>
+                        <?php endif; ?>
+                    </div>
+                    <?php if (!$self): ?>
+                        <details class="staff-item__manage">
+                            <summary class="btn btn--secondary btn--sm"><?= icon('pen', '', 15) ?> Manage</summary>
+                            <div class="staff-item__panel">
+                                <form method="post" class="form-stack staff-item__access" data-access-form>
+                                    <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $a['id'] ?>"><input type="hidden" name="action" value="access">
+                                    <?php $accessFields($type, $a['branch_id'] ? (int) $a['branch_id'] : null, admin_permissions($a)); ?>
+                                    <div><button class="btn btn--primary btn--sm" type="submit"><?= icon('check', '', 15) ?> Save access</button></div>
+                                </form>
+                                <div class="form-stack staff-item__side">
                                     <form method="post" class="form-stack" style="gap:8px">
                                         <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $a['id'] ?>"><input type="hidden" name="action" value="password">
                                         <label class="field"><span>New password</span><input class="input" type="password" name="password" minlength="10" autocomplete="new-password" required></label>
-                                        <button class="btn btn--secondary btn--sm" type="submit">Set password</button>
+                                        <div><button class="btn btn--secondary btn--sm" type="submit">Set password</button></div>
                                     </form>
                                     <form method="post" <?= $a['is_active'] ? 'data-confirm="Stop ' . e($a['name']) . ' from logging in?"' : '' ?>>
                                         <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $a['id'] ?>"><input type="hidden" name="action" value="toggle">
                                         <button class="btn btn--sm <?= $a['is_active'] ? 'btn--danger' : 'btn--success' ?>" type="submit"><?= $a['is_active'] ? 'Disable login' : 'Enable login' ?></button>
                                     </form>
                                 </div>
-                            </details>
-                        <?php endif; ?>
-                    </td>
-                </tr>
+                            </div>
+                        </details>
+                    <?php endif; ?>
+                </li>
             <?php endforeach; ?>
-            </tbody>
-        </table></div>
+        </ul>
     </section>
     <section class="card" id="add-staff">
         <div class="card__head"><h2>Add a login</h2></div>

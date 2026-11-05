@@ -923,7 +923,8 @@ select.input {
 .checkout-step { margin: 0 0 18px; padding: 22px 18px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--white); min-width: 0; }
 @media (min-width: 640px) { .checkout-step { padding: 28px; } }
 .checkout-step__title { display: flex; align-items: center; gap: 10px; float: left; width: 100%; margin-bottom: 20px; padding: 0; font-family: var(--font-head); font-weight: 600; font-size: 20px; color: var(--ink); }
-.checkout-step__title + * { clear: both; }
+/* Everything after the floated step title starts below it (also when a hidden field comes first). */
+.checkout-step__title ~ * { clear: both; }
 .checkout-step__title span { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; background: var(--brand); color: var(--white); font-size: 14px; }
 
 .pickup-address { display: flex; gap: 10px; align-items: flex-start; padding: 14px 16px; margin-bottom: 18px; background: var(--brand-softer); border-radius: 12px; }
