@@ -45,6 +45,7 @@ $user = current_user();
 // Two shops: the customer chooses which one makes (and hands over or delivers) the order.
 $multiBranch = multi_branch();
 $onlyBranchId = (int) active_branches()[0]['id'];
+$shopStep = $multiBranch ? 1 : 0; // the shop choice is step 2, so later steps move up one
 
 // Each possible error: the name shown in the "please fix" list and the element it jumps to.
 $errorFields = [
@@ -349,11 +350,15 @@ render('header', compact('page'));
                     <?php endif; ?>
                 </fieldset>
 
+                <?php if ($multiBranch): ?>
+                <fieldset class="checkout-step" id="step-shop" data-step>
+                    <legend class="checkout-step__title"><span class="checkout-step__num"><b>2</b><?= icon('check', '', 16) ?></span> Choose your shop <small class="checkout-step__req">Required</small></legend>
+                    <?php render('partials/branch-picker', ['selected' => $selectedBranch, 'legend' => '', 'error' => $errors['branch_id'] ?? '', 'style' => 'tiles']); ?>
+                </fieldset>
+                <?php endif; ?>
+
                 <fieldset class="checkout-step" id="step-fulfilment" data-step>
-                    <legend class="checkout-step__title"><span class="checkout-step__num"><b>2</b><?= icon('check', '', 16) ?></span> <?= count($fulfilmentOptions) > 1 ? 'Pickup or delivery' : ($fulfilmentOptions === ['delivery'] ? 'Delivery' : 'Pickup date and time') ?></legend>
-                    <?php if ($multiBranch): ?>
-                        <?php render('partials/branch-picker', ['selected' => $selectedBranch, 'legend' => 'Which shop?', 'error' => $errors['branch_id'] ?? '']); ?>
-                    <?php endif; ?>
+                    <legend class="checkout-step__title"><span class="checkout-step__num"><b><?= 2 + $shopStep ?></b><?= icon('check', '', 16) ?></span> <?= count($fulfilmentOptions) > 1 ? 'Pickup or delivery' : ($fulfilmentOptions === ['delivery'] ? 'Delivery' : 'Pickup date and time') ?></legend>
                     <?= $fieldError('fulfilment') ?>
 
                     <?php if (count($fulfilmentOptions) > 1): ?>
@@ -443,7 +448,7 @@ render('header', compact('page'));
                 </fieldset>
 
                 <fieldset class="checkout-step" id="step-payment" data-step>
-                    <legend class="checkout-step__title"><span class="checkout-step__num"><b>3</b><?= icon('check', '', 16) ?></span> Payment</legend>
+                    <legend class="checkout-step__title"><span class="checkout-step__num"><b><?= 3 + $shopStep ?></b><?= icon('check', '', 16) ?></span> Payment</legend>
                     <?= $fieldError('payment_method') ?>
                     <div class="option-cards" id="payment-options" tabindex="-1">
                         <?php foreach ($methods as $key => $method): ?>
@@ -487,7 +492,7 @@ render('header', compact('page'));
                 </fieldset>
 
                 <fieldset class="checkout-step" id="step-confirm" data-step>
-                    <legend class="checkout-step__title"><span class="checkout-step__num"><b>4</b><?= icon('check', '', 16) ?></span> Anything else?</legend>
+                    <legend class="checkout-step__title"><span class="checkout-step__num"><b><?= 4 + $shopStep ?></b><?= icon('check', '', 16) ?></span> Anything else?</legend>
                     <div class="field">
                         <label class="field-label" for="notes">Order notes <span class="field-hint">Optional</span></label>
                         <textarea class="input" id="notes" name="notes" rows="3" maxlength="1000" placeholder="Allergies, candles, delivery instructions or anything we should know"><?= e(old('notes')) ?></textarea>

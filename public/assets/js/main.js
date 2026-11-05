@@ -537,6 +537,8 @@
               when: function () { var c = $('[data-create-account]', checkout); return !!c && c.checked; },
               ok: function () { var el = field('account_password'); return el.value.length >= (parseInt(el.getAttribute('minlength'), 10) || 8); },
               msg: function () { return 'Please choose a password of at least ' + (field('account_password').getAttribute('minlength') || 8) + ' characters.'; } },
+            { key: 'branch_id', target: 'branch-picker', label: 'Shop', msg: 'Please choose the shop for your order.',
+              when: function () { return !!$('[data-branch]', checkout); }, ok: function () { return !!$('[data-branch]:checked', checkout); } },
             { key: 'fulfilment', target: 'fulfilment-options', label: 'Pickup or delivery', msg: 'Please choose pickup or delivery.',
               when: function () { return !!$('[data-fulfilment]', checkout); }, ok: function () { return !!$('[data-fulfilment]:checked', checkout); } },
             { key: 'pickup_time', target: 'pickup_time', label: 'Pickup date and time',
@@ -591,7 +593,7 @@
             if (!el) return;
             if (bad) { el.setAttribute('aria-invalid', 'true'); el.setAttribute('aria-describedby', key + '-error'); }
             else if (el.getAttribute('aria-invalid')) { el.removeAttribute('aria-invalid'); }
-            var card = el.closest('.file-drop') || (el.classList.contains('option-cards') ? el : null);
+            var card = el.closest('.file-drop') || (el.classList.contains('option-cards') || el.classList.contains('shop-tiles') ? el : null);
             if (card) card.classList.toggle('is-invalid', bad);
         };
 

@@ -1,26 +1,33 @@
 <?php
 /**
- * "Which shop?": a simple choice between the shops, by name only. Shown at checkout and on the
- * custom cake form when two or more shops are open to customers.
+ * "Which shop?": a required choice between the shops, by name only.
+ * 'tiles' = its own checkout step; 'pills' = a row on the custom cake form.
  *
  * @var ?int   $selected  branch already chosen
- * @var string $legend    heading of the group
+ * @var string $legend    heading of the group ('' when the step title already says it)
  * @var string $error     error message for this field, if any
- * @var string $style     'cards' (checkout, matches the pickup or delivery cards) or 'pills' (forms)
+ * @var string $style     'tiles' or 'pills'
  */
 $selected ??= null;
 $legend ??= 'Which shop?';
 $error ??= '';
-$style ??= 'cards';
+$style ??= 'tiles';
 ?>
-<fieldset class="field shop-choice" id="branch-picker" tabindex="-1" <?= $error !== '' ? 'aria-describedby="branch_id-error"' : '' ?>>
-    <legend class="field-label"><?= e($legend) ?></legend>
-    <div class="<?= $style === 'pills' ? 'choice-row' : 'option-cards option-cards--shops' ?>">
+<fieldset class="field shop-choice shop-choice--<?= e($style) ?>" <?= $error !== '' ? 'aria-describedby="branch_id-error"' : '' ?>>
+    <?php if ($legend !== ''): ?><legend class="field-label"><?= e($legend) ?> <span class="field-hint">Required</span></legend><?php else: ?><legend class="sr-only">Choose your shop</legend><?php endif; ?>
+    <div class="<?= $style === 'pills' ? 'choice-row' : 'shop-tiles' ?><?= $error !== '' ? ' is-invalid' : '' ?>" id="branch-picker" tabindex="-1">
         <?php foreach (active_branches() as $b): ?>
-            <label class="<?= $style === 'pills' ? 'choice' : 'option-card' ?>">
+            <label class="<?= $style === 'pills' ? 'choice' : 'shop-tile' ?>">
                 <input type="radio" name="branch_id" value="<?= (int) $b['id'] ?>" <?= $selected === (int) $b['id'] ? 'checked' : '' ?> required
                        data-branch data-name="<?= e($b['name']) ?>" data-address="<?= e(branch_address_line($b)) ?>">
-                <span<?= $style === 'pills' ? '' : ' class="option-card__box"' ?>><?= icon('store', '', 20) ?> <strong><?= e($b['name']) ?></strong></span>
+                <?php if ($style === 'pills'): ?>
+                    <span><?= icon('store', '', 20) ?> <strong><?= e($b['name']) ?></strong></span>
+                <?php else: ?>
+                    <span class="shop-tile__box">
+                        <span class="shop-tile__icon"><?= icon('store', '', 22) ?></span>
+                        <strong><?= e($b['name']) ?></strong>
+                    </span>
+                <?php endif; ?>
             </label>
         <?php endforeach; ?>
     </div>

@@ -1680,21 +1680,45 @@ body.has-buy-bar .whatsapp-fab { bottom: 88px; }
 .pin-box img { max-height: 76vh; }
 .gallery-more { margin: 8px 0 0; text-align: center; }
 
-/* ---------- Which shop? (checkout and custom cake form): shop names only ---------- */
+/* ---------- Which shop? (own checkout step, and the custom cake form) ---------- */
 
-.shop-choice { min-width: 0; margin: 0 0 18px; padding: 0; border: 0; }
+.shop-choice { min-width: 0; margin: 0; padding: 0; border: 0; }
+.shop-choice--pills { margin-bottom: 18px; }
 .shop-choice > .field-label { display: block; padding: 0; margin-bottom: 8px; }
-.option-cards--shops { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 0; }
-.option-cards--shops .option-card__box { align-items: center; gap: 10px; min-height: 58px; padding: 14px 44px 14px 16px; }
-.option-cards--shops .option-card__box strong { font-size: 16px; min-width: 0; overflow-wrap: break-word; }
-@media (max-width: 480px) {
-    .option-cards--shops { gap: 10px; }
-    .option-cards--shops .option-card__box { padding: 12px 38px 12px 14px; min-height: 54px; }
-    .option-cards--shops .option-card__box > .icon { display: none; }
-    .option-cards--shops .option-card__box::after { right: 12px; }
-}
-.option-cards--shops .option-card__box::after { top: 50%; margin-top: -10px; }
 .shop-choice .choice-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.checkout-step__title .checkout-step__req { margin-left: auto; padding: 3px 10px; border-radius: 999px; background: var(--brand-softer); color: var(--brand); font: 600 12px var(--font-body); letter-spacing: .02em; }
+.checkout-step.is-done .checkout-step__title .checkout-step__req { display: none; }
+.shop-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; border-radius: 16px; }
+.shop-tile { position: relative; display: block; min-width: 0; cursor: pointer; }
+.shop-tile input { position: absolute; opacity: 0; pointer-events: none; }
+.shop-tile__box {
+    position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    min-height: 118px; padding: 18px 12px; border: 1.5px solid var(--line); border-radius: 16px; background: var(--white);
+    text-align: center; transition: border-color .2s, background-color .2s, box-shadow .2s, transform .2s;
+}
+.shop-tile__icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--brand-softer); color: var(--brand); transition: background-color .2s, color .2s; }
+.shop-tile__box strong { font-family: var(--font-head); font-size: 18px; font-weight: 600; color: var(--ink); overflow-wrap: break-word; max-width: 100%; }
+/* The tick in the corner once chosen. */
+.shop-tile__box::after {
+    content: ""; position: absolute; top: 12px; right: 12px; width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid #C9D6D2; background: var(--white) no-repeat center / 12px;
+    transition: border-color .2s, background-color .2s;
+}
+.shop-tile:hover .shop-tile__box { border-color: var(--brand-line); transform: translateY(-1px); }
+.shop-tile input:checked + .shop-tile__box { border-color: var(--brand); background: var(--brand-softer); box-shadow: 0 8px 22px rgba(14, 84, 71, .1); }
+.shop-tile input:checked + .shop-tile__box .shop-tile__icon { background: var(--brand); color: var(--white); }
+.shop-tile input:checked + .shop-tile__box::after {
+    border-color: var(--brand); background-color: var(--brand);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+}
+.shop-tile input:focus-visible + .shop-tile__box { outline: 3px solid rgba(30, 155, 130, .45); outline-offset: 2px; }
+.shop-tiles.is-invalid .shop-tile__box { border-color: #E3A6A6; }
+@media (max-width: 480px) {
+    .shop-tiles { gap: 10px; }
+    .shop-tile__box { min-height: 104px; padding: 16px 8px; }
+    .shop-tile__icon { width: 42px; height: 42px; }
+    .shop-tile__box strong { font-size: 16px; }
+}
 .pickup-address[hidden] { display: none; }
 
 /* Contact page with two shops */
@@ -1739,3 +1763,4 @@ body.has-buy-bar .whatsapp-fab { bottom: 88px; }
 .visit__shops .shop-card__name a:hover { color: var(--brand); }
 .visit__hours h3 { display: flex; align-items: baseline; gap: 8px; font-size: 19px; }
 .visit__hours h3 small { font: 500 13px var(--font-body); color: var(--muted); }
+.checkout-step .shop-choice--tiles { margin-bottom: 0; }
