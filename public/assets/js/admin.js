@@ -1042,3 +1042,27 @@ document.addEventListener('input', function (e) {
         sendNext(0);
     });
 })();
+
+// Forms that show parts only for one choice: data-show-if="field:value" (a radio group or a select).
+// Admin > Branches > Email (own account, "Other" provider) and Payments (own details).
+(function () {
+    document.querySelectorAll('[data-reveal-form]').forEach(function (form) {
+        var parts = form.querySelectorAll('[data-show-if]');
+        var root = form.closest('.branch-form') || form;
+        var current = function (name) {
+            var field = root.querySelector('[name="' + name + '"]:checked') || root.querySelector('select[name="' + name + '"]');
+            return field ? field.value : '';
+        };
+        var sync = function () {
+            parts.forEach(function (el) {
+                var rule = el.getAttribute('data-show-if').split(':');
+                el.hidden = current(rule[0]) !== rule[1];
+            });
+            var provider = root.querySelector('[data-provider]');
+            var help = root.querySelector('[data-provider-help]');
+            if (provider && help) help.textContent = provider.options[provider.selectedIndex].getAttribute('data-help') || '';
+        };
+        form.addEventListener('change', sync);
+        sync();
+    });
+})();

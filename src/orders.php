@@ -364,9 +364,9 @@ function mark_order_paid(array $order, string $reference, ?float $amount = null)
             . (order_balance($updated) > 0 ? ' The balance of ' . money(order_balance($updated)) . ' is due before ' . (is_delivery($updated) ? 'delivery' : 'pickup') . '.' : ''));
         $notify = branch_notify_email((int) $updated['branch_id']);
         if ($notify !== '' && $updated['channel'] !== 'online') {
-            send_mail($notify, 'Card payment ' . money($amount) . ' for ' . $updated['order_number'],
+            send_branch_mail((int) $updated['branch_id'], $notify, 'Card payment ' . money($amount) . ' for ' . $updated['order_number'],
                 render_email('order-new-admin', ['order' => $updated, 'items' => get_order_items((int) $updated['id']), 'title' => 'Card payment received', 'preheader' => money($amount) . ' from ' . $updated['customer_name']]),
-                null, $updated['customer_email']);
+                $updated['customer_email']);
         }
     }
 }

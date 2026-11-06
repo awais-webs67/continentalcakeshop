@@ -18,7 +18,7 @@ $order = $request['order_id'] ? get_order((int) $request['order_id']) : null;
 if ($order && ((float) $order['amount_paid'] > 0 || $order['payment_status'] === 'awaiting_verification')) {
     redirect(order_url($order));
 }
-$methods = available_payment_methods();
+$methods = with_branch((int) $request['branch_id'], static fn () => available_payment_methods());
 $price = round((float) $request['quoted_price'], 2);
 $deposit = quote_deposit($request);
 $hasDeposit = $deposit < $price - 0.004;

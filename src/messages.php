@@ -114,11 +114,11 @@ function customer_message(array $thread, string $body): void
     add_thread_message($thread, 'customer', $body);
     $notify = branch_notify_email((int) ($thread['branch_id'] ?? 0));
     if ($notify !== '' && !thread_seen_live($thread, 'admin')) {
-        send_mail(
+        send_branch_mail(
+            (int) ($thread['branch_id'] ?? 0),
             $notify,
             'New message from ' . $thread['customer_name'] . ': ' . $thread['subject'],
             render_email('message-admin', ['thread' => $thread, 'body' => $body, 'title' => 'New message from ' . $thread['customer_name'], 'preheader' => mb_substr($body, 0, 90)]),
-            null,
             $thread['customer_email']
         );
     }

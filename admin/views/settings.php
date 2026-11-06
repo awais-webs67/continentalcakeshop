@@ -108,6 +108,16 @@ $mask = static function (string $key): string {
     </div>
 
 <?php elseif ($tab === 'payments'): ?>
+    <?php if (count(branches()) > 1): ?>
+    <div class="card__body shared-note">
+        <p><strong>These are the shared payment details.</strong> A shop can have its own in Branches &gt; shop &gt; Payments:</p>
+        <ul>
+            <?php foreach (branches() as $navShop): $sid = (int) $navShop['id']; ?>
+                <li><a href="<?= e(admin_url('branches', ['id' => $sid, 'tab' => 'payments'])) ?>"><?= e($navShop['name']) ?></a>: <?= branch_uses_own($sid, 'payments') ? 'its own payment details' : 'these shared details' ?></li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
+    <?php endif; ?>
     <div class="card__body">
         <p class="hint">A payment method shows at checkout only when it is switched on <strong>and</strong> its details are filled in.</p>
         <?= field_error($errors, 'payments') ?>
@@ -187,8 +197,18 @@ $mask = static function (string $key): string {
     </div>
 
 <?php elseif ($tab === 'emails'): ?>
+    <?php if (count(branches()) > 1): ?>
+    <div class="card__body shared-note">
+        <p><strong>This is the shared email account and the shared defaults.</strong> Each shop's own account, order alerts, inbox and automatic emails are in Branches:</p>
+        <ul>
+            <?php foreach (branches() as $navShop): $sid = (int) $navShop['id']; ?>
+                <li><a href="<?= e(admin_url('branches', ['id' => $sid, 'tab' => 'email'])) ?>"><?= e($navShop['name']) ?></a>: <?= branch_uses_own($sid, 'email') ? 'own account ' . e(branch_account_email($sid) ?: '(not finished)') : 'this shared account' ?>, alerts to <?= e(branch_notify_email($sid) ?: 'nobody') ?></li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
+    <?php endif; ?>
     <div class="card__body form-stack">
-        <label class="field"><span>Send new order alerts to</span><input class="input" type="email" name="order_notification_email" value="<?= $v('order_notification_email') ?>"></label>
+        <label class="field"><span>Send new order alerts to<?= count(branches()) > 1 ? ' <small>for shops without their own alerts address</small>' : '' ?></span><input class="input" type="email" name="order_notification_email" value="<?= $v('order_notification_email') ?>"></label>
         <?= field_error($errors, 'order_notification_email') ?>
         <p class="hint" style="margin-top:-6px">New orders, custom cake requests and contact messages are emailed here. Leave empty to turn alerts off.</p>
         <label class="switch"><input type="checkbox" name="send_customer_emails" value="1" <?= $on('send_customer_emails') ?>><span class="switch__track"></span><span>Email customers their order confirmation and updates</span></label>
@@ -196,7 +216,7 @@ $mask = static function (string $key): string {
     </div>
     <div class="card__body form-stack" style="border-top:1px solid var(--line)">
         <h3 class="label">Morning email</h3>
-        <label class="switch"><input type="checkbox" name="daily_email_enabled" value="1" <?= $on('daily_email_enabled') ?>><span class="switch__track"></span><span>Send a plan for the day before the shop opens</span></label>
+        <label class="switch"><input type="checkbox" name="daily_email_enabled" value="1" <?= $on('daily_email_enabled') ?>><span class="switch__track"></span><span>Send <?= count(branches()) > 1 ? 'the owner' : '' ?> a plan for the day before the shop opens<?= count(branches()) > 1 ? '<small>Covers every shop. Each shop\'s own plan is switched on in its Email tab.</small>' : '' ?></span></label>
         <p class="hint" style="margin-top:-6px">Today's pickups and deliveries, payments to check, deliveries without a time, custom cakes this week and unread messages. It arrives every open day, so you also know straight away if email stops working.</p>
         <div class="form-grid">
             <label class="field"><span>Send to <small>empty = the order alerts address</small></span><input class="input" type="email" name="daily_email_to" value="<?= $v('daily_email_to') ?>" placeholder="<?= $v('order_notification_email') ?>"></label>
@@ -204,7 +224,7 @@ $mask = static function (string $key): string {
         </div>
         <?= field_error($errors, 'daily_email_to') ?>
         <?php $cronRun = setting('cron_last_run'); ?>
-        <h3 class="label" style="margin-top:12px">Reminders and reviews</h3>
+        <h3 class="label" style="margin-top:12px">Reminders and reviews<?= count(branches()) > 1 ? ' <small class="muted">(defaults; each shop can change them in its Email tab)</small>' : '' ?></h3>
         <label class="switch"><input type="checkbox" name="reminder_email_enabled" value="1" <?= $on('reminder_email_enabled') ?>><span class="switch__track"></span><span>Remind customers the day before pickup or delivery<small>With the time, address, anything still to pay and a link to the order</small></span></label>
         <label class="switch"><input type="checkbox" name="review_email_enabled" value="1" <?= $on('review_email_enabled') ?>><span class="switch__track"></span><span>Ask for a Google review after an order is completed<small><?= filter_var(setting('google_reviews_url'), FILTER_VALIDATE_URL) ? 'Uses your Google reviews link. Each customer is asked at most once every 4 months.' : 'Add your Google reviews link in Homepage &gt; Google reviews first.' ?></small></span></label>
         <div class="form-grid">

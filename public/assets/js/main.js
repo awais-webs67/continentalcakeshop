@@ -416,6 +416,24 @@
                 if (!radio.checked) return;
                 if (pickupAddress) pickupAddress.textContent = radio.getAttribute('data-name') + ' shop, ' + radio.getAttribute('data-address');
                 if (pickupLine) pickupLine.hidden = false;
+                // A shop with its own payment details: show its ways to pay only.
+                var options = $$('.payment-option[data-for-branch]', checkout);
+                if (options.length) {
+                    var firstShown = null, anyChecked = false;
+                    options.forEach(function (opt) {
+                        var mine = opt.getAttribute('data-for-branch') === radio.value;
+                        var input = $('[data-payment-method]', opt);
+                        opt.hidden = !mine;
+                        input.disabled = !mine;
+                        if (!mine) input.checked = false;
+                        if (mine && !firstShown) firstShown = input;
+                        if (mine && input.checked) anyChecked = true;
+                    });
+                    if (!anyChecked && firstShown) firstShown.checked = true;
+                    var wait = $('[data-payments-wait]', checkout);
+                    if (wait) wait.hidden = true;
+                    if (firstShown) firstShown.dispatchEvent(new Event('change', { bubbles: true }));
+                }
                 loadSlots();
                 if (deliveryDate && deliveryDate.value) deliveryDate.dispatchEvent(new Event('change'));
             });

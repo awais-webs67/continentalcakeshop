@@ -80,7 +80,7 @@ if (is_post()) {
             flash('success', 'Password changed for ' . $target['name'] . '.');
         }
     }
-    redirect(admin_url('admins'));
+    admin_back('admins');
 }
 
 $admins = db_all('SELECT id, name, email, role, branch_id, permissions, is_active, last_login_at, created_at FROM admins ORDER BY role, name');

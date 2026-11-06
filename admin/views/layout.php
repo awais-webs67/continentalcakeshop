@@ -37,12 +37,7 @@ foreach ($nav as $group => $links) {
         unset($nav[$group]);
     }
 }
-// A branch manager's own shop details, right under the dashboard.
-if (admin_branch_locked($admin) && admin_is_manager($admin) && isset($nav['Shop'])) {
-    array_splice($nav['Shop'], 1, 0, [['my-shop', 'My shop', 'pin', null]]);
-}
 if ($admin['role'] === 'owner') {
-    $nav['Website'][] = ['branches', 'Branches', 'pin', null];
     $nav['Website'][] = ['settings', 'Settings', 'pen', null];
     $nav['Website'][] = ['admins', 'Staff accounts', 'user', null];
     $nav['Website'][] = ['system', 'System check', 'check', null];
@@ -109,6 +104,23 @@ $branchLocked = admin_branch_locked($admin);
                 </a>
             <?php endforeach; ?>
         <?php endforeach; ?>
+        <?php if ($admin['role'] === 'owner'): $openBranch = $section === 'branches' ? query_int('id') : 0; ?>
+            <p class="sidebar__group">Branches</p>
+            <details class="sidebar__tree" <?= $section === 'branches' ? 'open' : '' ?>>
+                <summary class="<?= $section === 'branches' && !$openBranch ? 'is-active' : '' ?>">
+                    <span class="sidebar__icon"><?= icon('pin', '', 18) ?></span>
+                    <span>All branches</span>
+                    <span class="sidebar__caret"><?= icon('down', '', 15) ?></span>
+                </summary>
+                <div class="sidebar__sub">
+                    <a href="<?= e(admin_url('branches')) ?>" class="<?= $section === 'branches' && !$openBranch && !isset($_GET['new']) ? 'is-active' : '' ?>">Overview</a>
+                    <?php foreach ($branchList as $navBranch): ?>
+                        <a href="<?= e(admin_url('branches', ['id' => $navBranch['id']])) ?>" class="<?= $openBranch === (int) $navBranch['id'] ? 'is-active' : '' ?>"><span class="sidebar__dot<?= $navBranch['is_active'] ? ' is-live' : '' ?>"></span><?= e($navBranch['name']) ?></a>
+                    <?php endforeach; ?>
+                    <a href="<?= e(admin_url('branches', ['new' => 1])) ?>" class="sidebar__add<?= isset($_GET['new']) && $section === 'branches' ? ' is-active' : '' ?>"><?= icon('plus', '', 14) ?> Add a branch</a>
+                </div>
+            </details>
+        <?php endif; ?>
     </nav>
     <div class="sidebar__foot">
         <a class="sidebar__site" href="<?= e(url()) ?>" target="_blank" rel="noopener"><?= icon('store', '', 17) ?> <span>View website</span> <?= icon('arrow', 'sidebar__site-arrow', 15) ?></a>

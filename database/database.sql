@@ -105,6 +105,16 @@ LOCK TABLES `blocked_dates` WRITE;
 /*!40000 ALTER TABLE `blocked_dates` DISABLE KEYS */;
 /*!40000 ALTER TABLE `blocked_dates` ENABLE KEYS */;
 UNLOCK TABLES;
+DROP TABLE IF EXISTS `branch_settings`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `branch_settings` (
+  `branch_id` int(10) unsigned NOT NULL,
+  `setting_key` varchar(80) NOT NULL,
+  `setting_value` text DEFAULT NULL,
+  PRIMARY KEY (`branch_id`,`setting_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `branches`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -827,7 +837,8 @@ INSERT INTO `schema_migrations` VALUES
 ('022_catalogue_refresh.sql','2026-10-22 07:28:45'),
 ('023_seo_descriptions.sql','2026-10-22 07:32:57'),
 ('024_menu_cleanup_seo.sql','2026-10-22 08:30:00'),
-('025_branches.sql','2026-11-06 09:00:00');
+('025_branches.sql','2026-11-06 09:00:00'),
+('026_branch_settings.sql','2026-11-06 12:00:00');
 /*!40000 ALTER TABLE `schema_migrations` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `settings`;

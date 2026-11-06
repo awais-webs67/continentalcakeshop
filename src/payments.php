@@ -108,7 +108,13 @@ function stripe_request(string $method, string $path, array $params = []): array
  * Creates a Stripe Checkout session for an order and returns the hosted payment URL.
  * Normally it charges what is still owed. $amount charges a set part instead (a deposit).
  */
+/** stripe_create_checkout with the order's shop, so a shop with its own Stripe account uses its own keys. */
 function stripe_create_checkout(array $order, array $items, ?float $amount = null, string $label = ''): string
+{
+    return with_branch((int) ($order['branch_id'] ?? 0) ?: null, static fn () => stripe_create_checkout_for_shop($order, $items, $amount, $label));
+}
+
+function stripe_create_checkout_for_shop(array $order, array $items, ?float $amount = null, string $label = ''): string
 {
     $due = round($amount ?? order_balance($order), 2);
     if ($due <= 0) {
@@ -175,7 +181,13 @@ function stripe_create_checkout(array $order, array $items, ?float $amount = nul
 }
 
 /** Checks a returning Checkout session with Stripe and marks the order paid if it is. */
+/** stripe_confirm_session with the order's shop, so a shop with its own Stripe account uses its own keys. */
 function stripe_confirm_session(array $order, string $sessionId): bool
+{
+    return with_branch((int) ($order['branch_id'] ?? 0) ?: null, static fn () => stripe_confirm_session_for_shop($order, $sessionId));
+}
+
+function stripe_confirm_session_for_shop(array $order, string $sessionId): bool
 {
     if ($order['payment_status'] === 'paid' && order_balance($order) <= 0) {
         return true;
@@ -225,7 +237,13 @@ function stripe_verify_webhook(string $payload, string $header, string $secret, 
  * Refunds $amount of the card payments on an order through Stripe, newest payment first
  * (a deposit and a balance are two payments). Each refund is recorded. Returns the refund ids.
  */
+/** stripe_refund with the order's shop, so a shop with its own Stripe account uses its own keys. */
 function stripe_refund(array $order, float $amount, ?int $adminId = null): array
+{
+    return with_branch((int) ($order['branch_id'] ?? 0) ?: null, static fn () => stripe_refund_for_shop($order, $amount, $adminId));
+}
+
+function stripe_refund_for_shop(array $order, float $amount, ?int $adminId = null): array
 {
     $amount = round($amount, 2);
     $payments = db_all(
@@ -273,7 +291,13 @@ function stripe_refund(array $order, float $amount, ?int $adminId = null): array
 }
 
 /** Refunds made in the Stripe dashboard are copied onto the order (each refund only once). */
+/** stripe_sync_refunds with the order's shop (its own Stripe keys, if it has them). */
 function stripe_sync_refunds(array $order, string $chargeId): void
+{
+    with_branch((int) ($order['branch_id'] ?? 0) ?: null, static fn () => stripe_sync_refunds_for_shop($order, $chargeId));
+}
+
+function stripe_sync_refunds_for_shop(array $order, string $chargeId): void
 {
     $refunds = stripe_request('GET', 'refunds?charge=' . rawurlencode($chargeId) . '&limit=100');
     foreach ($refunds['data'] ?? [] as $refund) {

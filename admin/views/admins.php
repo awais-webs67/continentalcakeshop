@@ -2,7 +2,7 @@
 $multi = count(branches()) > 1;
 const ACCOUNT_TYPES = [
     'owner'   => ['Owner', 'Every shop and every page, including branches, staff, settings and system check.'],
-    'manager' => ['Branch manager', 'The whole admin panel for one shop: its orders, pickups, requests, messages, sales, cakes and My shop.'],
+    'manager' => ['Branch manager', 'The whole admin panel for one shop: its orders, pickups, requests, messages, sales and cakes. Shop settings stay with the owner.'],
     'staff'   => ['Staff', 'Only the pages you tick, for one shop or every shop.'],
 ];
 // The account type, branch and pages fields, used in the add form and in each account's Manage panel.

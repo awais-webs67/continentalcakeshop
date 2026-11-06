@@ -76,6 +76,7 @@ require __DIR__ . '/daily.php';
 require __DIR__ . '/backup.php';
 require __DIR__ . '/content.php';
 require __DIR__ . '/branches.php';
+require __DIR__ . '/inbox.php';
 require __DIR__ . '/menu.php';
 require __DIR__ . '/seo.php';
 require __DIR__ . '/icons.php';

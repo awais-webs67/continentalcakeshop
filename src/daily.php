@@ -37,19 +37,23 @@ function daily_email_recipient(): string
     return valid_email($to) ? $to : setting('order_notification_email');
 }
 
-function send_daily_summary(string $date): bool
+/**
+ * The owner's morning email (every shop, Settings > Emails) and, with two shops, each shop's
+ * own plan (Admin > Branches > shop > Email > Morning plan, on unless switched off).
+ */
+function send_daily_summary(string $date, bool $owner = true): bool
 {
     $to = daily_email_recipient();
-    if (!valid_email($to)) {
-        return false;
-    }
-    $sent = daily_summary_mail($to, $date, null);
-    // With two shops, each branch that has its own email also gets the plan for its own shop.
+    $sent = $owner && valid_email($to) && daily_summary_mail($to, $date, null);
     if (count(active_branches()) > 1) {
         foreach (active_branches() as $branch) {
-            $branchTo = trim((string) $branch['email']);
-            if (valid_email($branchTo) && strcasecmp($branchTo, $to) !== 0) {
-                daily_summary_mail($branchTo, $date, (int) $branch['id']);
+            $id = (int) $branch['id'];
+            if (branch_setting($id, 'daily_branch_enabled') === '0') {
+                continue;
+            }
+            $branchTo = (string) branch_setting($id, 'daily_branch_to') ?: branch_notify_email($id);
+            if (valid_email($branchTo) && !($owner && strcasecmp($branchTo, $to) === 0)) {
+                $sent = daily_summary_mail($branchTo, $date, $id) || $sent;
             }
         }
     }
@@ -79,7 +83,7 @@ function run_scheduled_tasks(?DateTimeImmutable $now = null): string
     $now ??= new DateTimeImmutable();
     setting_save('cron_last_run', $now->format('Y-m-d H:i:s'));
     $report = [];
-    foreach (['morning_email_task', 'reminder_email_task', 'review_request_task', 'backup_task', 'cleanup_task'] as $job) {
+    foreach (['morning_email_task', 'reminder_email_task', 'review_request_task', 'inbox_task', 'backup_task', 'cleanup_task'] as $job) {
         if (!function_exists($job)) {
             continue;
         }
@@ -96,7 +100,8 @@ function run_scheduled_tasks(?DateTimeImmutable $now = null): string
 /** The morning email, once a day, the chosen number of minutes before opening, on open days. */
 function morning_email_task(DateTimeImmutable $now): string
 {
-    if (setting('daily_email_enabled', '1') !== '1') {
+    $ownerOn = setting('daily_email_enabled', '1') === '1';
+    if (!$ownerOn && count(active_branches()) < 2) {
         return 'Morning email is switched off.';
     }
     $today = $now->format('Y-m-d');
@@ -111,7 +116,7 @@ function morning_email_task(DateTimeImmutable $now): string
     if ($now < $sendAt) {
         return 'Morning email due at ' . $sendAt->format('g:ia') . '.';
     }
-    if (send_daily_summary($today)) {
+    if (send_daily_summary($today, $ownerOn)) {
         setting_save('daily_email_last_sent', $today);
         return 'Morning email sent to ' . daily_email_recipient() . '.';
     }
@@ -122,13 +127,28 @@ function morning_email_task(DateTimeImmutable $now): string
 // Reminder the day before pickup or delivery
 // ---------------------------------------------------------------------------
 
+/** The shops for which $test (run as that shop) is true, as an SQL list of ids ('0' when none). */
+function branch_ids_where(callable $test): string
+{
+    $ids = [];
+    foreach (branches() as $branch) {
+        if (with_branch((int) $branch['id'], $test)) {
+            $ids[] = (int) $branch['id'];
+        }
+    }
+    return $ids ? implode(',', $ids) : '0';
+}
+
 /** Orders that get tomorrow's reminder (not cancelled or finished, with an email, not reminded yet). */
 function orders_needing_reminder(DateTimeImmutable $now): array
 {
+    // Only shops with reminders on (Admin > Branches > shop > Email), so a shop that switched
+    // them off never holds up the other shop's reminders.
+    $shops = branch_ids_where(static fn () => setting('reminder_email_enabled', '1') === '1');
     return db_all(
         "SELECT * FROM orders
          WHERE pickup_date = ? AND reminder_sent_at IS NULL AND customer_email <> ''
-           AND order_status NOT IN ('cancelled', 'completed') AND created_at < ?
+           AND order_status NOT IN ('cancelled', 'completed') AND created_at < ? AND branch_id IN ({$shops})
          ORDER BY id LIMIT 50",
         [$now->modify('+1 day')->format('Y-m-d'), $now->modify('-3 hours')->format('Y-m-d H:i:s')]
     );
@@ -153,9 +173,6 @@ function send_order_reminder(array $order): bool
 /** Sends tomorrow's reminders once the chosen hour has passed. */
 function reminder_email_task(DateTimeImmutable $now): string
 {
-    if (setting('reminder_email_enabled', '1') !== '1') {
-        return 'Reminders are switched off.';
-    }
     if ((int) $now->format('G') < min(23, max(0, (int) setting('reminder_send_hour', '10')))) {
         return 'Reminders go out at ' . format_time(sprintf('%02d:00', (int) setting('reminder_send_hour', '10'))) . '.';
     }
@@ -183,19 +200,24 @@ function review_requests_enabled(): bool
 /** Asks happy customers for a Google review, once, a while after their order was completed. */
 function review_request_task(DateTimeImmutable $now): string
 {
-    if (!review_requests_enabled()) {
-        return 'Review requests are off (or no Google reviews link in Settings > Homepage).';
-    }
-    $delay = min(240, max(1, (int) setting('review_delay_hours', '20')));
+    // Each shop has its own switch, Google review link and delay: only shops with requests on are
+    // read (so one that is off never holds up the other), from the shortest delay; each order then
+    // waits for its own shop's delay.
+    $shops = branch_ids_where('review_requests_enabled');
+    $delay = 1;
     $orders = db_all(
         "SELECT * FROM orders
          WHERE order_status = 'completed' AND review_requested_at IS NULL AND customer_email <> ''
-           AND completed_at <= ? AND completed_at >= ? AND payment_status <> 'refunded'
-         ORDER BY id LIMIT 30",
+           AND completed_at <= ? AND completed_at >= ? AND payment_status <> 'refunded' AND branch_id IN ({$shops})
+         ORDER BY completed_at, id LIMIT 200",
         [$now->modify("-{$delay} hours")->format('Y-m-d H:i:s'), $now->modify('-14 days')->format('Y-m-d H:i:s')]
     );
     $sent = 0;
     foreach ($orders as $order) {
+        [$on, $wait] = with_branch((int) ($order['branch_id'] ?? 0) ?: null, static fn () => [review_requests_enabled(), min(240, max(1, (int) setting('review_delay_hours', '20')))]);
+        if (!$on || strtotime((string) $order['completed_at']) > $now->modify("-{$wait} hours")->getTimestamp()) {
+            continue; // off for this shop, or not yet time
+        }
         db_run('UPDATE orders SET review_requested_at = NOW() WHERE id = ? AND review_requested_at IS NULL', [$order['id']]);
         // Regular customers are asked at most once every 120 days.
         $askedLately = db_value(

@@ -28,7 +28,6 @@ const ADMIN_ROUTES = [
     'menu'                 => 'menu',
     'branches'             => 'branches',
     'branch-view'          => 'branch-view',
-    'my-shop'              => 'my-shop',
     'popup'                => 'popup',
     'orders/print'         => 'order-print',
     'pickups'              => 'pickups',

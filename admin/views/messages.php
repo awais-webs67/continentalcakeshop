@@ -1,6 +1,6 @@
 <?php /** @var array $result @var string $filter @var string $q @var int $unread */ ?>
 <div class="page-head">
-    <div><h1>Messages</h1><p>Conversations with customers. They write from the contact page, their order page or the "Reply to us" button in our emails.</p></div>
+    <div><h1>Messages</h1><p>Conversations with customers. They write from the contact page, their order page, the "Reply to us" button in our emails, or by email to a shop whose inbox is on (Branches &gt; shop &gt; Email).</p></div>
 </div>
 <section class="card">
     <nav class="tabs" data-live="tabs">

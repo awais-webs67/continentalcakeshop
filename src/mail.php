@@ -108,6 +108,12 @@ function log_mail(string $to, string $subject, array $headers, string $body, str
     return true;
 }
 
+/** Sends as one shop: through its own email account when it has one, else the shared account. */
+function send_branch_mail(?int $branchId, string $to, string $subject, string $html, ?string $replyTo = null): bool
+{
+    return with_branch($branchId ?: null, static fn () => send_mail($to, $subject, $html, null, $replyTo));
+}
+
 /** Minimal SMTP client: SSL (port 465) or STARTTLS (port 587), with AUTH LOGIN. */
 function smtp_send(string $from, string $to, string $subject, array $headers, string $body): bool
 {
@@ -240,11 +246,11 @@ function send_order_emails(array $order): void
     $notify = branch_notify_email((int) ($order['branch_id'] ?? 0));
     if ($notify !== '') {
         $branch = multi_branch() ? branch_name((int) $order['branch_id']) : '';
-        send_mail(
+        send_branch_mail(
+            (int) ($order['branch_id'] ?? 0),
             $notify,
             "New order {$order['order_number']} - " . money($order['total']) . ($branch !== '' ? ' - ' . $branch : ''),
             render_email('order-new-admin', ['order' => $order, 'items' => $items, 'title' => 'New online order' . ($branch !== '' ? ' for ' . $branch : ''), 'preheader' => $order['customer_name'] . ', ' . order_when($order)]),
-            null,
             $order['customer_email']
         );
     }
@@ -317,11 +323,11 @@ function send_contact_notification(array $data): void
 {
     $notify = branch_notify_email(isset($data['branch_id']) ? (int) $data['branch_id'] : null);
     if ($notify !== '') {
-        send_mail(
+        send_branch_mail(
+            isset($data['branch_id']) ? (int) $data['branch_id'] : null,
             $notify,
             'Website message from ' . $data['name'],
             render_email('contact-admin', ['data' => $data, 'title' => 'New message from the website', 'preheader' => mb_substr($data['message'], 0, 90)]),
-            null,
             $data['email']
         );
     }

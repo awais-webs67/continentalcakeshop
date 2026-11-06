@@ -11,9 +11,15 @@ require dirname(__DIR__) . '/src/bootstrap.php';
 // signing secret in Admin > Settings > Payments.
 
 $payload = (string) file_get_contents('php://input');
-$secret = setting('stripe_webhook_secret');
+// The shared signing secret, and those of shops with their own Stripe account.
+$secrets = array_filter(array_merge([setting('stripe_webhook_secret')], array_map(
+    static fn ($b) => branch_uses_own((int) $b['id'], 'payments') ? (string) branch_setting((int) $b['id'], 'stripe_webhook_secret') : '',
+    branches()
+)));
+$signature = $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? '';
+$verified = array_filter($secrets, static fn ($secret) => stripe_verify_webhook($payload, $signature, $secret));
 
-if ($secret === '' || !stripe_verify_webhook($payload, $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? '', $secret)) {
+if (!$verified) {
     http_response_code(400);
     exit('Invalid signature');
 }

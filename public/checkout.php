@@ -46,6 +46,16 @@ $user = current_user();
 $multiBranch = multi_branch();
 $onlyBranchId = (int) active_branches()[0]['id'];
 $shopStep = $multiBranch ? 1 : 0; // the shop choice is step 2, so later steps move up one
+// Ways to pay for each shop. They differ only when a shop has its own payment details
+// (Admin > Branches > Payments); then the payment step shows the chosen shop's.
+$branchMethods = [];
+foreach (active_branches() as $shop) {
+    $branchMethods[(int) $shop['id']] = with_branch((int) $shop['id'], static fn () => available_payment_methods());
+}
+$paymentsDiffer = count(array_unique(array_map('serialize', $branchMethods))) > 1;
+if ($paymentsDiffer) {
+    $methods = array_merge(...array_values($branchMethods)); // only to know if any way to pay is live
+}
 
 // Each possible error: the name shown in the "please fix" list and the element it jumps to.
 $errorFields = [
@@ -101,6 +111,9 @@ if (is_post()) {
         'user_id'           => $user['id'] ?? null,
         'branch_id'         => valid_branch_id(input('branch_id')) ?? ($multiBranch ? null : $onlyBranchId),
     ];
+    if ($paymentsDiffer) {
+        $methods = $data['branch_id'] ? $branchMethods[$data['branch_id']] : [];
+    }
     $createAccount = !$user && input('create_account') === '1';
     $accountPassword = (string) ($_POST['account_password'] ?? '');
 
@@ -238,7 +251,11 @@ $firstDelivery = $deliveryEnabled ? first_delivery_date($leadHours, $selectedBra
 $selectedDeliveryDate = old('delivery_date', $firstDelivery ?? '');
 $slots = $selectedDate !== '' ? pickup_slots($selectedDate, $leadHours, $selectedBranch) : [];
 $selectedFulfilment = old('fulfilment', $fulfilmentOptions[0] ?? 'pickup');
-$selectedMethod = old('payment_method', (string) array_key_first($methods));
+$visibleMethods = $paymentsDiffer ? ($selectedBranch ? $branchMethods[$selectedBranch] : []) : $methods;
+$selectedMethod = old('payment_method', (string) array_key_first($visibleMethods));
+if (!isset($visibleMethods[$selectedMethod])) {
+    $selectedMethod = (string) array_key_first($visibleMethods);
+}
 $totals = order_totals($subtotal, $selectedFulfilment, $coupon);
 $closedDays = array_map(static fn ($d) => DAY_NAMES[$d], closed_week_days());
 
@@ -450,11 +467,13 @@ render('header', compact('page'));
                 <fieldset class="checkout-step" id="step-payment" data-step>
                     <legend class="checkout-step__title"><span class="checkout-step__num"><b><?= 3 + $shopStep ?></b><?= icon('check', '', 16) ?></span> Payment</legend>
                     <?= $fieldError('payment_method') ?>
+                    <?php if ($paymentsDiffer): ?><p class="field-help payments-wait" data-payments-wait <?= $selectedBranch ? 'hidden' : '' ?>><?= icon('info', '', 16) ?> Choose your shop above to see how to pay.</p><?php endif; ?>
                     <div class="option-cards" id="payment-options" tabindex="-1">
-                        <?php foreach ($methods as $key => $method): ?>
-                            <div class="payment-option">
+                        <?php foreach ($paymentsDiffer ? $branchMethods : [0 => $methods] as $payShop => $shopMethods): $shown = !$payShop || $payShop === $selectedBranch; ?>
+                        <?php foreach ($shopMethods as $key => $method): ?>
+                            <div class="payment-option" <?= $payShop ? 'data-for-branch="' . (int) $payShop . '"' . ($shown ? '' : ' hidden') : '' ?>>
                                 <label class="option-card">
-                                    <input type="radio" name="payment_method" value="<?= e($key) ?>" <?= $selectedMethod === $key ? 'checked' : '' ?> data-payment-method data-needs-proof="<?= $method['needs_proof'] ? '1' : '0' ?>">
+                                    <input type="radio" name="payment_method" value="<?= e($key) ?>" <?= $shown && $selectedMethod === $key ? 'checked' : '' ?> <?= $shown ? '' : 'disabled' ?> data-payment-method data-needs-proof="<?= $method['needs_proof'] ? '1' : '0' ?>">
                                     <span class="option-card__box">
                                         <?= icon($key === PAYMENT_STRIPE ? 'card' : 'upload', '', 22) ?>
                                         <span><strong><?= e($method['label']) ?></strong><span><?= e($method['description']) ?></span></span>
@@ -476,9 +495,10 @@ render('header', compact('page'));
                                 <?php endif; ?>
                             </div>
                         <?php endforeach; ?>
+                        <?php endforeach; ?>
                     </div>
 
-                    <div class="proof-fields" data-proof-fields <?= ($methods[$selectedMethod]['needs_proof'] ?? false) ? '' : 'hidden' ?>>
+                    <div class="proof-fields" data-proof-fields <?= ($visibleMethods[$selectedMethod]['needs_proof'] ?? false) ? '' : 'hidden' ?>>
                         <div class="field">
                             <label class="field-label" for="payment_proof">Payment screenshot</label>
                             <?php render('partials/upload-field', ['field' => 'payment_proof', 'purpose' => 'payment', 'accept' => 'image/jpeg,image/png,image/webp,image/heic,application/pdf', 'hint' => 'Tap to upload a screenshot or PDF (max 10 MB)', 'invalid' => $invalid('payment_proof')]); ?>

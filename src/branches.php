@@ -18,7 +18,6 @@ const BRANCH_SETTING_FIELDS = [
     'store_state'    => 'state',
     'store_postcode' => 'postcode',
     'store_phone'    => 'phone',
-    'store_email'    => 'email',
     'store_latitude' => 'latitude',
     'store_longitude' => 'longitude',
     'google_reviews_url' => 'reviews_url',
@@ -133,12 +132,79 @@ function phone_e164(string $phone): string
     return $digits !== '' ? '+61' . ltrim(str_starts_with($digits, '61') ? substr($digits, 2) : $digits, '0') : '';
 }
 
-/** Where the shop's copy of a new order, custom request or message goes for this branch. */
+/**
+ * Where the shop's copy of a new order, custom request or message goes for this branch:
+ * the address typed under "Order alerts go to", else the branch's own email account,
+ * else the shared alerts address in Settings > Emails.
+ */
 function branch_notify_email(?int $branchId): string
 {
     $branch = $branchId ? get_branch($branchId) : null;
     $email = trim((string) ($branch['email'] ?? ''));
-    return valid_email($email) ? $email : setting_raw('order_notification_email');
+    if (valid_email($email)) {
+        return $email;
+    }
+    $own = $branchId ? branch_account_email($branchId) : '';
+    return $own !== '' ? $own : setting_raw('order_notification_email');
+}
+
+// ---------------------------------------------------------------------------
+// A shop's own settings (table branch_settings), used instead of the shared ones
+// ---------------------------------------------------------------------------
+// Groups switch on together: a shop either uses the shared email account or its own, the
+// shared payment details or its own. Automatic emails can be set per shop one by one.
+
+// The email account: used for sending, and read for the shop's inbox in Messages.
+const BRANCH_EMAIL_KEYS = ['mail_driver', 'mail_from_address', 'mail_from_name', 'smtp_host', 'smtp_port', 'smtp_encryption', 'smtp_username', 'smtp_password_encrypted'];
+// Payment details: the labels and notes customers read stay shared.
+const BRANCH_PAYMENT_KEYS = ['payment_stripe_enabled', 'payment_payid_enabled', 'payment_bank_enabled', 'payid_identifier', 'payid_account_name', 'bank_account_name', 'bank_bsb', 'bank_account_number', 'stripe_publishable_key', 'stripe_secret_key', 'stripe_webhook_secret'];
+// Automatic emails to customers: a shop's own choice, or the shared one until it has one.
+const BRANCH_OWN_KEYS = ['reminder_email_enabled', 'review_email_enabled', 'review_delay_hours'];
+
+function branch_settings_all(bool $refresh = false): array
+{
+    static $cache = null;
+    if ($cache === null || $refresh) {
+        $cache = [];
+        try {
+            foreach (db_all('SELECT branch_id, setting_key, setting_value FROM branch_settings') as $row) {
+                $cache[(int) $row['branch_id']][$row['setting_key']] = $row['setting_value'];
+            }
+        } catch (PDOException) {
+            // before the database update has run
+        }
+    }
+    return $cache;
+}
+
+/** A shop's own value, or null when it has none. */
+function branch_setting(int $branchId, string $key): ?string
+{
+    return branch_settings_all()[$branchId][$key] ?? null;
+}
+
+function branch_setting_save(int $branchId, string $key, ?string $value): void
+{
+    if ($value === null) {
+        db_run('DELETE FROM branch_settings WHERE branch_id = ? AND setting_key = ?', [$branchId, $key]);
+    } else {
+        db_run('INSERT INTO branch_settings (branch_id, setting_key, setting_value) VALUES (?, ?, ?)
+                ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)', [$branchId, $key, $value]);
+    }
+    branch_settings_all(true);
+}
+
+/** True when the shop uses its own 'email' account or its own 'payments' details. */
+function branch_uses_own(int $branchId, string $group): bool
+{
+    return branch_setting($branchId, $group . '_own') === '1';
+}
+
+/** The address of the shop's own email account, or '' when it uses the shared account. */
+function branch_account_email(int $branchId): string
+{
+    $address = (string) branch_setting($branchId, 'mail_from_address');
+    return branch_uses_own($branchId, 'email') && valid_email($address) ? $address : '';
 }
 
 /** Name shown next to an order or request in the admin panel and emails, e.g. "Greenway". */
@@ -176,24 +242,43 @@ function with_branch(?int $branchId, callable $fn): mixed
     }
 }
 
-/** Value of a shop setting for the branch in context, or null to use the normal setting. */
+/**
+ * Value of a setting for the branch in context, or null to use the shared setting:
+ * its address and phone, its email account (when it has its own), its payment details
+ * (when it has its own) and its own choices for the automatic emails.
+ */
 function branch_setting_override(string $key): ?string
 {
     $branch = $GLOBALS['branch_context'] ?? null;
     if (!$branch) {
         return null;
     }
+    $id = (int) $branch['id'];
     if ($key === 'store_phone_e164') {
         return trim((string) $branch['phone']) !== '' ? phone_e164($branch['phone']) : null;
+    }
+    // Where customers' replies go: the shop's own inbox, else its alerts address.
+    if ($key === 'store_email') {
+        $own = branch_account_email($id);
+        if ($own !== '') {
+            return $own;
+        }
+        return valid_email(trim((string) $branch['email'])) ? trim((string) $branch['email']) : null;
+    }
+    if (in_array($key, BRANCH_EMAIL_KEYS, true)) {
+        return branch_uses_own($id, 'email') ? (string) branch_setting($id, $key) : null;
+    }
+    if (in_array($key, BRANCH_PAYMENT_KEYS, true)) {
+        return branch_uses_own($id, 'payments') ? (string) branch_setting($id, $key) : null;
+    }
+    if (in_array($key, BRANCH_OWN_KEYS, true)) {
+        return branch_setting($id, $key);
     }
     $field = BRANCH_SETTING_FIELDS[$key] ?? null;
     if ($field === null) {
         return null;
     }
     $value = trim((string) ($branch[$field] ?? ''));
-    if ($field === 'email' && !valid_email($value)) {
-        return null;
-    }
     return $value !== '' ? $value : null;
 }
 
