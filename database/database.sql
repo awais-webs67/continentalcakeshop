@@ -115,6 +115,7 @@ CREATE TABLE `branch_settings` (
   PRIMARY KEY (`branch_id`,`setting_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+INSERT INTO `branch_settings` VALUES (1,'public_email','continentalcakeshopcanberra@gmail.com');
 DROP TABLE IF EXISTS `branches`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -147,7 +148,7 @@ CREATE TABLE `branches` (
 LOCK TABLES `branches` WRITE;
 /*!40000 ALTER TABLE `branches` DISABLE KEYS */;
 INSERT INTO `branches` VALUES
-(1,'greenway','Greenway','Shop 4, 38 Reed St N','Greenway','ACT','2900','02 6293 9578','','-35.418923','149.065858','','https://www.google.com/maps/search/?api=1&query=The+Continental+Cake+Shop+Canberra+Greenway',NULL,NULL,1,1,1,'2026-11-06 09:00:00','2026-11-06 09:00:00'),
+(1,'greenway','Greenway','Shop 4, 38 Reed St N','Greenway','ACT','2900','02 6293 9578','continentalcakeshopcanberra@gmail.com','-35.418923','149.065858','','https://www.google.com/maps/search/?api=1&query=The+Continental+Cake+Shop+Canberra+Greenway',NULL,NULL,1,1,1,'2026-11-06 09:00:00','2026-11-06 09:00:00'),
 (2,'wright','Wright','','Wright','ACT','2611','','','-35.3222','149.0347','','',NULL,NULL,0,0,2,'2026-11-06 09:00:00','2026-11-06 09:00:00');
 /*!40000 ALTER TABLE `branches` ENABLE KEYS */;
 UNLOCK TABLES;
@@ -838,7 +839,8 @@ INSERT INTO `schema_migrations` VALUES
 ('023_seo_descriptions.sql','2026-10-22 07:32:57'),
 ('024_menu_cleanup_seo.sql','2026-10-22 08:30:00'),
 ('025_branches.sql','2026-11-06 09:00:00'),
-('026_branch_settings.sql','2026-11-06 12:00:00');
+('026_branch_settings.sql','2026-11-06 12:00:00'),
+('027_branch_contact.sql','2026-11-06 15:00:00');
 /*!40000 ALTER TABLE `schema_migrations` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `settings`;
@@ -918,7 +920,7 @@ INSERT INTO `settings` VALUES
 ('max_orders_per_slot','0','2026-10-18 13:35:43'),
 ('min_lead_hours','1','2026-10-18 13:35:43'),
 ('opening_hours','{\"mon\":[\"08:00\",\"19:00\"],\"tue\":[\"08:00\",\"19:00\"],\"wed\":[\"08:00\",\"19:00\"],\"thu\":[\"08:00\",\"19:00\"],\"fri\":[\"08:00\",\"19:00\"],\"sat\":[\"09:00\",\"18:00\"],\"sun\":[\"09:00\",\"18:00\"]}','2026-10-18 13:35:43'),
-('order_notification_email','continentalcakeshopcanberra@gmail.com','2026-10-18 13:35:43'),
+('order_notification_email','','2026-10-18 13:35:43'),
 ('ordering_paused','0','2026-10-21 10:26:07'),
 ('ordering_paused_message','We are not taking online orders right now. Please call us and we will do our best to help.','2026-10-21 10:26:07'),
 ('ordering_paused_until','','2026-10-21 10:26:07'),

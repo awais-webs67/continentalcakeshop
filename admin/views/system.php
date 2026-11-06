@@ -36,7 +36,9 @@ foreach ($checks as $rows) { foreach ($rows as $row) { $problems += $row[1] ? 0 
             <li><span>Website address</span><a href="<?= e($appUrl) ?>" target="_blank"><?= e($appUrl) ?></a></li>
             <li><span>Stripe webhook</span><code><?= e(url('stripe-webhook')) ?></code></li>
             <li><span>Sitemap for Google</span><a href="<?= e(url('sitemap.xml')) ?>" target="_blank">sitemap.xml</a></li>
-            <li><span>Send a test email</span><a href="<?= e(admin_url('settings', ['tab' => 'emails'])) ?>">Settings, Emails</a></li>
+            <?php foreach (branches() as $navShop): ?>
+            <li><span>Send a test email for <?= e($navShop['name']) ?></span><a href="<?= e(admin_url('branches', ['id' => $navShop['id'], 'tab' => 'email'])) ?>">Branches, <?= e($navShop['name']) ?>, Email</a></li>
+            <?php endforeach; ?>
         </ul></div>
     </section>
     <section class="card">

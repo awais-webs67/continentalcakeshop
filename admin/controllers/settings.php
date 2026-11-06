@@ -2,7 +2,7 @@
 $admin = require_admin();
 
 const SETTINGS_TABS = [
-    'store'    => 'Shop details',
+    'store'    => 'Business',
     'hours'    => 'Opening hours',
     'ordering' => 'Ordering & pickup',
     'payments' => 'Payments',
@@ -12,10 +12,12 @@ const SETTINGS_TABS = [
 
 // Plain text settings each tab may change. Anything not listed here is ignored.
 const SETTINGS_FIELDS = [
-    'store'    => ['store_name' => 120, 'store_short_name' => 80, 'store_phone' => 40, 'store_email' => 190, 'store_street' => 120, 'store_suburb' => 80, 'store_state' => 10, 'store_postcode' => 10, 'store_founded' => 4, 'store_abn' => 20, 'store_latitude' => 12, 'store_longitude' => 12, 'whatsapp_number' => 20, 'whatsapp_message' => 160],
+    // Each shop's address, phone, email and map are in Admin > Branches > shop > Shop details.
+    'store'    => ['store_name' => 120, 'store_short_name' => 80, 'store_founded' => 4, 'store_abn' => 20, 'whatsapp_number' => 20, 'whatsapp_message' => 160],
     'ordering' => ['min_lead_hours' => 4, 'custom_lead_days' => 3, 'max_advance_days' => 4, 'slot_interval_minutes' => 3, 'last_slot_buffer_minutes' => 4, 'max_orders_per_slot' => 4, 'max_deliveries_per_day' => 4, 'delivery_fee' => 10, 'delivery_free_over' => 10, 'delivery_min_order' => 10, 'delivery_note' => 255, 'delivery_postcodes' => 255, 'ordering_paused_until' => 10, 'ordering_paused_message' => 255],
     'payments' => ['payment_stripe_label' => 60, 'payment_stripe_note' => 255, 'payment_payid_label' => 60, 'payment_payid_note' => 255, 'payment_bank_label' => 60, 'payment_bank_note' => 255, 'payid_identifier' => 120, 'payid_account_name' => 120, 'bank_account_name' => 120, 'bank_bsb' => 7, 'bank_account_number' => 20, 'stripe_publishable_key' => 255],
-    'emails'   => ['order_notification_email' => 190, 'email_accent_note' => 255, 'daily_email_to' => 190, 'daily_email_minutes_before' => 4, 'reminder_send_hour' => 2, 'review_delay_hours' => 3, 'mail_from_address' => 190, 'mail_from_name' => 120, 'smtp_host' => 190, 'smtp_port' => 5, 'smtp_username' => 190],
+    // Each shop's email account, order alerts, inbox and automatic emails are in Admin > Branches > shop > Email.
+    'emails'   => ['email_accent_note' => 255, 'daily_email_to' => 190, 'daily_email_minutes_before' => 4, 'reminder_send_hour' => 2],
     'homepage' => ['hero_eyebrow' => 120, 'hero_title' => 120, 'hero_subtitle' => 400, 'announcement_text' => 200, 'google_rating' => 3, 'google_review_count' => 10, 'google_reviews_url' => 500],
     'seo'      => ['social_facebook' => 255, 'social_instagram' => 255, 'social_pinterest' => 255, 'seo_home_title' => 160, 'seo_home_description' => 300, 'seo_ga4_id' => 20, 'seo_google_verification' => 120, 'seo_bing_verification' => 120],
 ];
@@ -23,7 +25,7 @@ const SETTINGS_FIELDS = [
 const SETTINGS_SWITCHES = [
     'ordering' => ['pickup_enabled', 'delivery_enabled', 'ordering_paused'],
     'payments' => ['payment_stripe_enabled', 'payment_payid_enabled', 'payment_bank_enabled'],
-    'emails'   => ['send_customer_emails', 'daily_email_enabled', 'reminder_email_enabled', 'review_email_enabled'],
+    'emails'   => ['send_customer_emails', 'daily_email_enabled'],
     'store'    => ['gst_registered'],
 ];
 
@@ -37,16 +39,6 @@ $errors = [];
 if (is_post()) {
     $action = input('action', 'save');
 
-    if ($action === 'test_email') {
-        $html = render_email('test', ['title' => 'Your shop emails are working', 'preheader' => 'This is a test email from the admin panel', 'admin' => $admin]);
-        $to = valid_email(input('test_to')) ? input('test_to') : $admin['email'];
-        $ok = send_mail($to, 'Test email from ' . setting('store_short_name'), $html);
-        $reason = $GLOBALS['mail_last_error'] ?? '';
-        flash($ok ? 'success' : 'error', $ok
-            ? (mail_config('driver') === 'log' ? 'The test email was saved to storage/logs/mail (the sending method is "Save to a file").' : 'A test email was sent to ' . $to . '. Check the inbox and the spam folder.')
-            : 'The test email could not be sent.' . ($reason !== '' ? ' The server said: ' . $reason : ' Check the settings below.'));
-        redirect($self);
-    }
     if ($action === 'daily_now') {
         $ok = send_daily_summary(date('Y-m-d'));
         flash($ok ? 'success' : 'error', $ok ? "Today's morning email was sent to " . daily_email_recipient() . '.' : 'The morning email could not be sent. ' . ($GLOBALS['mail_last_error'] ?? 'Add an email address first.'));
@@ -91,24 +83,14 @@ if (is_post()) {
         if ($values['store_name'] === '') {
             $errors['store_name'] = 'Please enter the shop name.';
         }
-        if (!valid_email($values['store_email'])) {
-            $errors['store_email'] = 'Please enter a valid email address.';
-        }
         $values['store_abn'] = trim(preg_replace('/(\d{2})(\d{3})(\d{3})(\d{3})/', '$1 $2 $3 $4', preg_replace('/\D/', '', $values['store_abn'])));
         if ($values['store_abn'] !== '' && strlen(str_replace(' ', '', $values['store_abn'])) !== 11) {
             $errors['store_abn'] = 'An ABN has 11 digits.';
-        }
-        foreach (['store_latitude' => 90, 'store_longitude' => 180] as $key => $limit) {
-            if ($values[$key] !== '' && (!is_numeric($values[$key]) || abs((float) $values[$key]) > $limit)) {
-                $errors[$key] = 'Use a number like -35.4167 (copy it from Google Maps).';
-            }
         }
         $wa = preg_replace('/\D/', '', $values['whatsapp_number']);
         if ($wa !== '' && !preg_match('/^(0[45]\d{8}|61[45]\d{8}|\d{9,15})$/', $wa)) {
             $errors['whatsapp_number'] = 'Enter the mobile number used for WhatsApp, e.g. 0412 345 678.';
         }
-        $digits = preg_replace('/\D/', '', $values['store_phone']);
-        $values['store_phone_e164'] = $digits !== '' ? '+61' . ltrim(str_starts_with($digits, '61') ? substr($digits, 2) : $digits, '0') : '';
     }
 
     if ($tab === 'hours') {
@@ -197,36 +179,11 @@ if (is_post()) {
     }
 
     if ($tab === 'emails') {
-        if ($values['order_notification_email'] !== '' && !valid_email($values['order_notification_email'])) {
-            $errors['order_notification_email'] = 'Please enter a valid email address.';
-        }
         if ($values['daily_email_to'] !== '' && !valid_email($values['daily_email_to'])) {
             $errors['daily_email_to'] = 'Please enter a valid email address.';
         }
         $values['daily_email_minutes_before'] = (string) min(600, max(0, (int) $values['daily_email_minutes_before']));
         $values['reminder_send_hour'] = (string) min(21, max(6, (int) $values['reminder_send_hour']));
-        $values['review_delay_hours'] = (string) min(240, max(1, (int) $values['review_delay_hours']));
-        $values['mail_driver'] = in_array(input('mail_driver'), ['mail', 'smtp', 'log'], true) ? input('mail_driver') : 'mail';
-        $values['smtp_encryption'] = in_array(input('smtp_encryption'), ['ssl', 'tls', 'none'], true) ? input('smtp_encryption') : 'ssl';
-        $values['smtp_port'] = (string) ((int) $values['smtp_port'] ?: ($values['smtp_encryption'] === 'tls' ? 587 : 465));
-        if (!valid_email($values['mail_from_address'])) {
-            $errors['mail_from_address'] = 'Please enter the email address emails are sent from.';
-        }
-        if ($values['mail_driver'] === 'smtp' && $values['smtp_host'] === '') {
-            $errors['smtp_host'] = 'Please enter the SMTP server, e.g. mail.yourdomain.com.au.';
-        }
-        if (input('clear_smtp_password') === '1') {
-            $values['smtp_password_encrypted'] = '';
-        } elseif ((string) ($_POST['smtp_password'] ?? '') !== '') {
-            try {
-                $values['smtp_password_encrypted'] = secret_encrypt((string) $_POST['smtp_password']);
-            } catch (Throwable $e) {
-                $errors['smtp_password'] = 'The password could not be stored safely: ' . $e->getMessage();
-            }
-        } elseif (!mail_settings_in_admin() && (string) config('mail.smtp.password', '') !== '') {
-            // First save from the admin panel: keep the password that was in config.php.
-            $values['smtp_password_encrypted'] = secret_encrypt((string) config('mail.smtp.password'));
-        }
     }
 
     if ($tab === 'homepage') {

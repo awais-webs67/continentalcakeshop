@@ -68,6 +68,7 @@ render('header', compact('page'));
                 <ul class="location-facts">
                     <li><?= icon('pin', '', 20) ?><span><strong>Address</strong><a href="<?= e(branch_maps_url($branch)) ?>" target="_blank" rel="noopener"><?= e($address) ?></a></span></li>
                     <li><?= icon('phone', '', 20) ?><span><strong>Phone</strong><a href="tel:<?= e(phone_e164($phone)) ?>"><?= e($phone) ?></a></span></li>
+                    <?php if (($shopEmail = branch_email_shown($branch)) !== ''): ?><li><?= icon('mail', '', 20) ?><span><strong>Email</strong><a href="mailto:<?= e($shopEmail) ?>"><?= e($shopEmail) ?></a></span></li><?php endif; ?>
                 </ul>
                 <table class="hours-table">
                     <caption class="sr-only">Opening hours of the <?= e($suburb) ?> shop</caption>

@@ -59,4 +59,4 @@ $alerts = array_filter([
 
 <p style="margin:18px 0 0;font-size:14px;color:#66666E">Tomorrow: <?= $tomorrow ?> order<?= $tomorrow === 1 ? '' : 's' ?> booked.</p>
 <?= email_button(email_admin_url(), 'Open the admin panel') ?>
-<p style="margin:0;font-size:12px;color:#8A8A92">This email is sent every open day before the shop opens. If it does not arrive, check Admin &gt; Settings &gt; Emails.</p>
+<p style="margin:0;font-size:12px;color:#8A8A92">This email is sent every open day before the shop opens. If it does not arrive, check the email account in Admin &gt; Branches &gt; <?= e(main_branch()['name'] ?? 'main shop') ?> &gt; Email.</p>

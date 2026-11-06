@@ -8,7 +8,7 @@ $mask = static function (string $key): string {
 };
 ?>
 <div class="page-head">
-    <div><h1>Settings</h1><p>Everything the website shows about your shop. Changes go live as soon as you save.</p></div>
+    <div><h1>Settings</h1><p>What the whole business shares. Each shop's own address, phone, email account and payments are in Branches.</p></div>
 </div>
 <?php if ($errors): ?><div class="alert alert--error"><?= e(count($errors) === 1 ? reset($errors) : 'Please fix the highlighted fields.') ?></div><?php endif; ?>
 
@@ -23,30 +23,28 @@ $mask = static function (string $key): string {
     <?= csrf_field() ?><input type="hidden" name="action" value="save">
 
 <?php if ($tab === 'store'): ?>
-    <div class="card__body form-grid">
-        <label class="field"><span>Shop name <small>full name, used in titles and emails</small></span><input class="input" name="store_name" value="<?= $v('store_name') ?>" required></label>
+    <div class="card__body shared-note">
+        <p><strong>Each shop's address, phone, email and map are in Branches.</strong> They show in the footer, on the contact page, on each shop's page, on invoices and in emails.</p>
+        <ul class="shop-summary">
+            <?php foreach (branches() as $navShop): $shown = branch_email_shown($navShop); ?>
+                <li>
+                    <span class="shop-summary__text"><strong><?= e($navShop['name']) ?></strong><?= $navShop['is_active'] ? '' : ' <small class="muted">(hidden)</small>' ?><small><?= e(branch_address_line($navShop)) ?> &middot; <?= e($navShop['phone'] ?: 'no phone yet') ?> &middot; <?= e($shown ?: (branch_setting((int) $navShop['id'], 'show_email') === '0' ? 'email hidden' : 'no email yet')) ?></small></span>
+                    <a class="link-btn" href="<?= e(admin_url('branches', ['id' => $navShop['id'], 'tab' => 'details'])) ?>">Change</a>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
+    <div class="card__body form-grid" style="border-top:1px solid var(--line)">
+        <label class="field"><span>Business name <small>full name, used in titles and emails</small></span><input class="input" name="store_name" value="<?= $v('store_name') ?>" required></label>
         <label class="field"><span>Short name <small>used in the header and footer</small></span><input class="input" name="store_short_name" value="<?= $v('store_short_name') ?>"></label>
         <?= field_error($errors, 'store_name') ?>
-        <label class="field"><span>Phone</span><input class="input" name="store_phone" value="<?= $v('store_phone') ?>" placeholder="02 6293 9578"></label>
-        <label class="field"><span>Email <small>shown on the website, and where replies go</small></span><input class="input" type="email" name="store_email" value="<?= $v('store_email') ?>"></label>
-        <?= field_error($errors, 'store_email') ?>
-        <label class="field span-2"><span>Street address</span><input class="input" name="store_street" value="<?= $v('store_street') ?>"></label>
-        <label class="field"><span>Suburb</span><input class="input" name="store_suburb" value="<?= $v('store_suburb') ?>"></label>
-        <div class="form-grid form-grid--3" style="gap:12px">
-            <label class="field"><span>State</span><input class="input" name="store_state" value="<?= $v('store_state') ?>"></label>
-            <label class="field"><span>Postcode</span><input class="input" name="store_postcode" value="<?= $v('store_postcode') ?>"></label>
+        <div class="form-grid" style="gap:12px">
+            <label class="field"><span>ABN <small>footer and invoices</small></span><input class="input" name="store_abn" value="<?= $v('store_abn') ?>" placeholder="12 345 678 901"></label>
             <label class="field"><span>Since</span><input class="input" name="store_founded" value="<?= $v('store_founded') ?>"></label>
         </div>
-        <label class="field"><span>ABN <small>shown in the footer and on order emails</small></span><input class="input" name="store_abn" value="<?= $v('store_abn') ?>" placeholder="12 345 678 901"></label>
         <label class="switch" style="align-self:end"><input type="checkbox" name="gst_registered" value="1" <?= $on('gst_registered') ?>><span class="switch__track"></span><span>Registered for GST (orders show the GST included)</span></label>
         <?= field_error($errors, 'store_abn') ?>
-        <div class="form-grid" style="gap:12px">
-            <label class="field"><span>Map latitude <small>optional</small></span><input class="input" name="store_latitude" value="<?= $v('store_latitude') ?>" placeholder="-35.4167"></label>
-            <label class="field"><span>Map longitude</span><input class="input" name="store_longitude" value="<?= $v('store_longitude') ?>" placeholder="149.0667"></label>
-        </div>
-        <p class="hint" style="align-self:end">Helps Google show the shop on the map. In Google Maps, right-click the shop and click the numbers to copy them.</p>
-        <?= field_error($errors, 'store_latitude') ?><?= field_error($errors, 'store_longitude') ?>
-        <div class="form-grid" style="gap:12px">
+        <div class="form-grid span-2">
             <label class="field"><span>WhatsApp number <small>optional, shows a chat button on the website</small></span><input class="input" name="whatsapp_number" value="<?= $v('whatsapp_number') ?>" placeholder="0412 345 678"></label>
             <label class="field"><span>First message <small>typed for the customer</small></span><input class="input" name="whatsapp_message" value="<?= $v('whatsapp_message') ?>"></label>
         </div>
@@ -197,85 +195,37 @@ $mask = static function (string $key): string {
     </div>
 
 <?php elseif ($tab === 'emails'): ?>
-    <?php if (count(branches()) > 1): ?>
     <div class="card__body shared-note">
-        <p><strong>This is the shared email account and the shared defaults.</strong> Each shop's own account, order alerts, inbox and automatic emails are in Branches:</p>
-        <ul>
-            <?php foreach (branches() as $navShop): $sid = (int) $navShop['id']; ?>
-                <li><a href="<?= e(admin_url('branches', ['id' => $sid, 'tab' => 'email'])) ?>"><?= e($navShop['name']) ?></a>: <?= branch_uses_own($sid, 'email') ? 'own account ' . e(branch_account_email($sid) ?: '(not finished)') : 'this shared account' ?>, alerts to <?= e(branch_notify_email($sid) ?: 'nobody') ?></li>
+        <p><strong>Each shop sends and receives its emails with its own account.</strong> The account, where order alerts go, the inbox in Messages, reminders and review requests are in each shop's Email tab.</p>
+        <ul class="shop-summary">
+            <?php foreach (branches() as $navShop): $sid = (int) $navShop['id']; $from = branch_account_email($sid); ?>
+                <li>
+                    <span class="shop-summary__text"><strong><?= e($navShop['name']) ?></strong><small><?= ($navShop['is_main'] || branch_uses_own($sid, 'email')) ? 'Sends from ' . e($from ?: '(not set up yet)') : 'Uses ' . e(main_branch()['name'] ?? 'the main shop') . '\'s account for now' ?> &middot; alerts to <?= e(branch_notify_email($sid) ?: 'nobody') ?><?= inbox_enabled($navShop) ? ' &middot; inbox in Messages' : '' ?></small></span>
+                    <a class="link-btn" href="<?= e(admin_url('branches', ['id' => $sid, 'tab' => 'email'])) ?>">Email settings</a>
+                </li>
             <?php endforeach; ?>
         </ul>
     </div>
-    <?php endif; ?>
-    <div class="card__body form-stack">
-        <label class="field"><span>Send new order alerts to<?= count(branches()) > 1 ? ' <small>for shops without their own alerts address</small>' : '' ?></span><input class="input" type="email" name="order_notification_email" value="<?= $v('order_notification_email') ?>"></label>
-        <?= field_error($errors, 'order_notification_email') ?>
-        <p class="hint" style="margin-top:-6px">New orders, custom cake requests and contact messages are emailed here. Leave empty to turn alerts off.</p>
+    <div class="card__body form-stack" style="border-top:1px solid var(--line)">
+        <h3 class="label">Customer emails <small class="muted">(every shop)</small></h3>
         <label class="switch"><input type="checkbox" name="send_customer_emails" value="1" <?= $on('send_customer_emails') ?>><span class="switch__track"></span><span>Email customers their order confirmation and updates</span></label>
         <label class="field"><span>Thank-you line <small>shown at the bottom of customer emails</small></span><input class="input" name="email_accent_note" value="<?= $v('email_accent_note') ?>"></label>
     </div>
     <div class="card__body form-stack" style="border-top:1px solid var(--line)">
-        <h3 class="label">Morning email</h3>
-        <label class="switch"><input type="checkbox" name="daily_email_enabled" value="1" <?= $on('daily_email_enabled') ?>><span class="switch__track"></span><span>Send <?= count(branches()) > 1 ? 'the owner' : '' ?> a plan for the day before the shop opens<?= count(branches()) > 1 ? '<small>Covers every shop. Each shop\'s own plan is switched on in its Email tab.</small>' : '' ?></span></label>
-        <p class="hint" style="margin-top:-6px">Today's pickups and deliveries, payments to check, deliveries without a time, custom cakes this week and unread messages. It arrives every open day, so you also know straight away if email stops working.</p>
+        <h3 class="label">Owner's morning email</h3>
+        <label class="switch"><input type="checkbox" name="daily_email_enabled" value="1" <?= $on('daily_email_enabled') ?>><span class="switch__track"></span><span>Send the owner a plan for the day before opening<small><?= count(branches()) > 1 ? 'Covers every shop. Each shop\'s own plan is switched on in its Email tab.' : 'Today\'s pickups and deliveries, payments to check, deliveries without a time, custom cakes this week and unread messages.' ?></small></span></label>
         <div class="form-grid">
-            <label class="field"><span>Send to <small>empty = the order alerts address</small></span><input class="input" type="email" name="daily_email_to" value="<?= $v('daily_email_to') ?>" placeholder="<?= $v('order_notification_email') ?>"></label>
+            <label class="field"><span>Send to <small>empty = <?= e(branch_notify_email(main_branch_id()) ?: 'the main shop\'s alerts address') ?></small></span><input class="input" type="email" name="daily_email_to" value="<?= $v('daily_email_to') ?>" placeholder="<?= e(branch_notify_email(main_branch_id())) ?>"></label>
             <label class="field"><span>Minutes before opening</span><input class="input" type="number" min="0" max="600" name="daily_email_minutes_before" value="<?= $v('daily_email_minutes_before') ?>"></label>
         </div>
         <?= field_error($errors, 'daily_email_to') ?>
-        <?php $cronRun = setting('cron_last_run'); ?>
-        <h3 class="label" style="margin-top:12px">Reminders and reviews<?= count(branches()) > 1 ? ' <small class="muted">(defaults; each shop can change them in its Email tab)</small>' : '' ?></h3>
-        <label class="switch"><input type="checkbox" name="reminder_email_enabled" value="1" <?= $on('reminder_email_enabled') ?>><span class="switch__track"></span><span>Remind customers the day before pickup or delivery<small>With the time, address, anything still to pay and a link to the order</small></span></label>
-        <label class="switch"><input type="checkbox" name="review_email_enabled" value="1" <?= $on('review_email_enabled') ?>><span class="switch__track"></span><span>Ask for a Google review after an order is completed<small><?= filter_var(setting('google_reviews_url'), FILTER_VALIDATE_URL) ? 'Uses your Google reviews link. Each customer is asked at most once every 4 months.' : 'Add your Google reviews link in Homepage &gt; Google reviews first.' ?></small></span></label>
-        <div class="form-grid">
-            <label class="field"><span>Send reminders from <small>hour of the day, 24 hour clock</small></span><input class="input" type="number" min="6" max="21" name="reminder_send_hour" value="<?= $v('reminder_send_hour') ?>"></label>
-            <label class="field"><span>Ask for a review <small>hours after "Completed"</small></span><input class="input" type="number" min="1" max="240" name="review_delay_hours" value="<?= $v('review_delay_hours') ?>"></label>
-        </div>
-        <p class="hint">Scheduled job: <?= $cronRun !== '' ? 'last ran ' . e(time_ago($cronRun)) . (strtotime($cronRun) < time() - 3600 ? ' ' . status_badge('pending', 'Not running') : ' ' . status_badge('active', 'Running')) : status_badge('pending', 'Not set up yet') . ' Add the cron job from DEPLOY.md in cPanel &gt; Cron Jobs.' ?><?= setting('daily_email_last_sent') !== '' ? ' &middot; last morning email ' . e(date('j M Y', strtotime(setting('daily_email_last_sent')))) : '' ?></p>
+        <p class="hint" style="margin:0">It is sent from <?= e(main_branch()['name'] ?? 'the main shop') ?>'s email account and arrives every open day, so you also know straight away if email stops working.</p>
     </div>
-    <?php
-    // Show what is in use now: the admin settings once saved, otherwise config.php.
-    $mv = static fn (string $key, string $configKey): string => e((string) ($s[$key] ?? '') !== '' ? (string) $s[$key] : (string) config('mail.' . $configKey, ''));
-    $driver = (string) mail_config('driver', 'mail');
-    $hasPassword = mail_config('smtp.password', '') !== '';
-    ?>
-    <div class="card__body form-stack" style="border-top:1px solid var(--line)" data-mail-settings>
-        <h3 class="label">Sending method</h3>
-        <?php if (!mail_settings_in_admin()): ?><p class="hint" style="margin-top:-6px">These values come from <code>config/config.php</code>. Once you save here, the settings on this page are used instead.</p><?php endif; ?>
-        <div class="choice-cards">
-            <?php foreach (['smtp' => ['SMTP email account', 'Recommended. Sends through your own email account, e.g. orders@yourdomain.com.au'], 'mail' => ['Hosting mail (PHP mail)', 'Works on most cPanel hosting with no set up, but may land in spam'], 'log' => ['Save to a file', 'For testing only. Emails are not sent, they are saved in storage/logs/mail']] as $key => [$name, $note]): ?>
-                <label class="choice-card"><input type="radio" name="mail_driver" value="<?= $key ?>" <?= checked($driver === $key) ?> data-mail-driver><span><strong><?= e($name) ?></strong><small><?= e($note) ?></small></span></label>
-            <?php endforeach; ?>
-        </div>
-        <div class="form-grid">
-            <label class="field"><span>Send emails from <small>address</small></span><input class="input" type="email" name="mail_from_address" value="<?= $mv('mail_from_address', 'from_address') ?>" placeholder="orders@yourdomain.com.au"></label>
-            <label class="field"><span>Sender name</span><input class="input" name="mail_from_name" value="<?= $mv('mail_from_name', 'from_name') ?>" placeholder="<?= e(setting('store_short_name')) ?>"></label>
-            <?= field_error($errors, 'mail_from_address') ?>
-        </div>
-        <div class="form-stack" data-smtp-fields <?= $driver === 'smtp' ? '' : 'hidden' ?>>
-            <div class="form-grid">
-                <label class="field"><span>SMTP server <small>host</small></span><input class="input" name="smtp_host" value="<?= $mv('smtp_host', 'smtp.host') ?>" placeholder="mail.yourdomain.com.au"></label>
-                <div class="form-grid" style="gap:12px">
-                    <label class="field"><span>Port</span><input class="input" type="number" name="smtp_port" value="<?= $mv('smtp_port', 'smtp.port') ?: '465' ?>"></label>
-                    <label class="field"><span>Security</span>
-                        <select class="input" name="smtp_encryption">
-                            <?php $enc = (string) mail_config('smtp.encryption', 'ssl'); ?>
-                            <option value="ssl" <?= selected($enc === 'ssl') ?>>SSL (port 465)</option>
-                            <option value="tls" <?= selected($enc === 'tls') ?>>TLS (port 587)</option>
-                            <option value="none" <?= selected($enc === 'none') ?>>None (port 25)</option>
-                        </select></label>
-                </div>
-                <?= field_error($errors, 'smtp_host') ?>
-                <label class="field"><span>Username <small>usually the full email address</small></span><input class="input" name="smtp_username" value="<?= $mv('smtp_username', 'smtp.username') ?>" autocomplete="off"></label>
-                <label class="field"><span>Password</span><input class="input" type="password" name="smtp_password" autocomplete="new-password" placeholder="<?= $hasPassword ? 'Saved. Type a new password to change it' : 'Email account password' ?>"></label>
-                <?= field_error($errors, 'smtp_password') ?>
-            </div>
-            <?php if ($hasPassword): ?><label class="inline-check"><input type="checkbox" name="clear_smtp_password" value="1"> Remove the saved password</label><?php endif; ?>
-            <p class="hint">On cPanel: Email Accounts &gt; Connect Devices shows the server, port and username. The password is stored encrypted and is never shown again.</p>
-        </div>
-        <div class="input-action" style="max-width:520px">
-            <input class="input" type="email" name="test_to" placeholder="Send a test to (default: <?= e($admin['email']) ?>)">
-        </div>
+    <div class="card__body form-stack" style="border-top:1px solid var(--line)">
+        <h3 class="label">Timing <small class="muted">(every shop)</small></h3>
+        <label class="field" style="max-width:360px"><span>Day-before reminders go out from <small>hour, 24 hour clock</small></span><input class="input" type="number" min="6" max="21" name="reminder_send_hour" value="<?= $v('reminder_send_hour') ?>"></label>
+        <?php $cronRun = setting('cron_last_run'); ?>
+        <p class="hint" style="margin:0">Scheduled job (morning emails, reminders, reviews, inboxes): <?= $cronRun !== '' ? 'last ran ' . e(time_ago($cronRun)) . (strtotime($cronRun) < time() - 3600 ? ' ' . status_badge('pending', 'Not running') : ' ' . status_badge('active', 'Running')) : status_badge('pending', 'Not set up yet') . ' Add the cron job from DEPLOY.md in Hostinger &gt; Advanced &gt; Cron Jobs.' ?><?= setting('daily_email_last_sent') !== '' ? ' &middot; last morning email ' . e(date('j M Y', strtotime(setting('daily_email_last_sent')))) : '' ?></p>
     </div>
 
 <?php elseif ($tab === 'homepage'): ?>
@@ -344,7 +294,6 @@ $mask = static function (string $key): string {
             <button class="btn btn--secondary" type="submit" name="action" value="test_stripe" formnovalidate>Test Stripe connection</button>
         <?php endif; ?>
         <?php if ($tab === 'emails'): ?>
-            <button class="btn btn--secondary" type="submit" name="action" value="test_email" formnovalidate><?= icon('mail', '', 18) ?> Send a test email</button>
             <button class="btn btn--secondary" type="submit" name="action" value="daily_now" formnovalidate>Send today's morning email now</button>
         <?php endif; ?>
     </div>

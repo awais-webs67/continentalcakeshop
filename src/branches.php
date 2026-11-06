@@ -4,9 +4,12 @@ declare(strict_types=1);
 // ---------------------------------------------------------------------------
 // Branches: one website, more than one shop (Admin > Branches)
 // ---------------------------------------------------------------------------
-// The menu, prices, opening hours, coupons, payments and settings are shared. What belongs to a
-// branch: its address, phone, the email its orders go to, and its orders, custom cake requests
-// and conversations (branch_id on orders, custom_requests and threads).
+// The menu, prices, opening hours, coupons and business settings are shared. What belongs to a
+// branch (Admin > Branches > shop): its address, phone and the email shown on the website, its
+// email account and order alerts, its automatic emails, optionally its payment details, and its
+// orders, custom cake requests and conversations (branch_id on orders, custom_requests, threads).
+// The main shop's email account is the one stored in settings (mail_*, smtp_*): it also sends the
+// emails that belong to no shop (password links, the owner's morning email).
 //
 // "Branch context": while a page or email is about one order, use_branch() makes the shop's
 // address, phone and reply email (store_street, store_phone, store_email...) read as that
@@ -33,15 +36,10 @@ function branches(bool $refresh = false): array
         } catch (PDOException) {
             $cache = []; // before the database update has run
         }
-        // The main shop's details live in Settings > Shop details; its row only adds the branch extras.
+        // The main shop without its own Google review link uses the one in Admin > Homepage.
         foreach ($cache as $i => $branch) {
-            if ((int) $branch['is_main'] === 1) {
-                foreach (['street', 'suburb', 'state', 'postcode', 'phone', 'latitude', 'longitude'] as $field) {
-                    $cache[$i][$field] = setting_raw('store_' . $field, (string) $branch[$field]);
-                }
-                if (trim((string) $branch['reviews_url']) === '') {
-                    $cache[$i]['reviews_url'] = setting_raw('google_reviews_url');
-                }
+            if ((int) $branch['is_main'] === 1 && trim((string) $branch['reviews_url']) === '') {
+                $cache[$i]['reviews_url'] = setting_raw('google_reviews_url');
             }
         }
     }
@@ -133,19 +131,39 @@ function phone_e164(string $phone): string
 }
 
 /**
- * Where the shop's copy of a new order, custom request or message goes for this branch:
- * the address typed under "Order alerts go to", else the branch's own email account,
- * else the shared alerts address in Settings > Emails.
+ * Where the shop's copy of a new order, custom request or message goes (its Email tab):
+ * the alerts address typed there, else its email account's address. A shop without its own
+ * account yet gets the main shop's alerts.
  */
 function branch_notify_email(?int $branchId): string
 {
-    $branch = $branchId ? get_branch($branchId) : null;
-    $email = trim((string) ($branch['email'] ?? ''));
+    $branch = ($branchId ? get_branch($branchId) : null) ?? main_branch();
+    if (!$branch) {
+        return '';
+    }
+    $email = trim((string) $branch['email']);
     if (valid_email($email)) {
         return $email;
     }
-    $own = $branchId ? branch_account_email($branchId) : '';
-    return $own !== '' ? $own : setting_raw('order_notification_email');
+    if (!(int) $branch['is_main']) {
+        $own = branch_account_email((int) $branch['id']);
+        return $own !== '' ? $own : branch_notify_email(main_branch_id());
+    }
+    return branch_account_email((int) $branch['id']);
+}
+
+/** The email shown for a shop on the website (footer, contact page, its page), or '' when hidden. */
+function branch_email_shown(array $branch): string
+{
+    $email = (string) branch_setting((int) $branch['id'], 'public_email');
+    return branch_setting((int) $branch['id'], 'show_email') !== '0' && valid_email($email) ? $email : '';
+}
+
+/** The shown email of the shop in context (an order's shop), else the main shop's. */
+function shop_email(): string
+{
+    $branch = $GLOBALS['branch_context'] ?? main_branch();
+    return $branch ? branch_email_shown($branch) : '';
 }
 
 // ---------------------------------------------------------------------------
@@ -194,15 +212,25 @@ function branch_setting_save(int $branchId, string $key, ?string $value): void
     branch_settings_all(true);
 }
 
-/** True when the shop uses its own 'email' account or its own 'payments' details. */
+/**
+ * True when the shop uses its own 'email' account or its own 'payments' details. The main shop's
+ * email account is always the one in settings, so for it 'email' is never "own".
+ */
 function branch_uses_own(int $branchId, string $group): bool
 {
+    if ($group === 'email' && $branchId === main_branch_id()) {
+        return false;
+    }
     return branch_setting($branchId, $group . '_own') === '1';
 }
 
-/** The address of the shop's own email account, or '' when it uses the shared account. */
+/** The address a shop's emails are sent from: its own account, the main shop's account, or ''. */
 function branch_account_email(int $branchId): string
 {
+    if ($branchId === main_branch_id()) {
+        $address = (string) with_branch(null, static fn () => mail_config('from_address', ''));
+        return valid_email($address) ? $address : '';
+    }
     $address = (string) branch_setting($branchId, 'mail_from_address');
     return branch_uses_own($branchId, 'email') && valid_email($address) ? $address : '';
 }

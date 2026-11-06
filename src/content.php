@@ -50,7 +50,7 @@ function render_content(string $html): string
     $tokens = [
         '{store_name}'       => e(setting('store_name')),
         '{store_phone}'      => '<a href="tel:' . e(setting('store_phone_e164')) . '">' . e(setting('store_phone')) . '</a>',
-        '{store_email}'      => '<a href="mailto:' . e(setting('store_email')) . '">' . e(setting('store_email')) . '</a>',
+        '{store_email}'      => shop_email() !== '' ? '<a href="mailto:' . e(shop_email()) . '">' . e(shop_email()) . '</a>' : 'our contact form',
         '{store_address}'    => e(store_address_line()),
         '{min_lead_hours}'   => e(setting('min_lead_hours', '24')),
         '{custom_lead_days}' => e(setting('custom_lead_days', '3')),

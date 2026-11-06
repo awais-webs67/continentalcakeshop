@@ -1764,3 +1764,12 @@ body.has-buy-bar .whatsapp-fab { bottom: 88px; }
 .visit__hours h3 { display: flex; align-items: baseline; gap: 8px; font-size: 19px; }
 .visit__hours h3 small { font: 500 13px var(--font-body); color: var(--muted); }
 .checkout-step .shop-choice--tiles { margin-bottom: 0; }
+/* A shop's email as a round icon button next to its phone and directions */
+.btn--icon { padding: 0; width: 46px; flex: none; }
+.btn--sm.btn--icon { width: 40px; }
+.footer-shop__email { overflow-wrap: anywhere; }
+/* Phones: with the email icon, the first button takes the full line and the other two share the next. */
+@media (max-width: 479px) {
+    .shop-card__actions:has(.btn--icon) { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+    .shop-card__actions:has(.btn--icon) > :first-child { grid-column: 1 / -1; }
+}

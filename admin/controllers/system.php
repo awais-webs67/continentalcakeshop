@@ -76,9 +76,9 @@ $checks = [
     'Configuration' => [
         ['Website address uses https', str_starts_with($appUrl, 'https://'), 'Set app_url in config/config.php to https://your-domain once SSL is active.'],
         ['Debug mode is off', !config('debug'), 'Set debug to false in config/config.php on the live site.'],
-        ['Emails are really sent', mail_config('driver', 'mail') !== 'log', 'Emails are only saved to storage/logs/mail. Choose SMTP in Settings, Emails on the live site.'],
-        ['Scheduled job (cron) is running', setting('cron_last_run') !== '' && strtotime(setting('cron_last_run')) > time() - 3600, 'Add the cron job from DEPLOY.md in cPanel > Cron Jobs so the morning email is sent.'],
-        ['Notification email is set', setting('order_notification_email') !== '', 'Add an email in Settings, Emails.'],
+        ['Emails are really sent', with_branch(null, static fn () => mail_config('driver', 'mail')) !== 'log', 'Emails are only saved to storage/logs/mail. Set up the email account in Branches > ' . (main_branch()['name'] ?? 'main shop') . ' > Email.'],
+        ['Scheduled job (cron) is running', setting('cron_last_run') !== '' && strtotime(setting('cron_last_run')) > time() - 3600, 'Add the cron job from DEPLOY.md (Hostinger > Advanced > Cron Jobs) so morning emails, reminders, reviews and inboxes run.'],
+        ['Every shop has an address for its order alerts', !array_filter(branches(), static fn ($b) => branch_notify_email((int) $b['id']) === ''), 'Set up the email account (or an alerts address) in Branches > shop > Email.'],
         ['At least one payment method is live', available_payment_methods() !== [], 'Switch on and fill in a method in Settings, Payments.'],
     ],
 ];

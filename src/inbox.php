@@ -16,10 +16,18 @@ const EMAIL_PROVIDERS = [
     'hostinger' => ['Hostinger email', 'smtp.hostinger.com', 465, 'ssl', 'imap.hostinger.com', 993, 'The password of the mailbox in Hostinger > Emails.'],
     'outlook'   => ['Outlook / Microsoft 365', 'smtp.office365.com', 587, 'tls', 'outlook.office365.com', 993, 'Your Microsoft account password, or an app password if two-step sign in is on.'],
     'other'     => ['Other (cPanel and others)', '', 465, 'ssl', '', 993, 'The server names are in your email provider\'s set up guide.'],
+    'server'    => ['Website server (PHP mail)', '', 0, '', '', 0, 'No password needed, but emails can land in spam and there is no inbox in Messages. Gmail or Hostinger email is better.'],
 ];
 const INBOX_MAX_PER_RUN = 25;
 
-/** Where a shop's inbox is read from: its own account, or (main shop) the shared account. Null = not possible. */
+/** The providers to choose from; "Save to a file" only while the site is in that test mode. */
+function email_providers(): array
+{
+    $testing = with_branch(null, static fn () => mail_config('driver', 'mail')) === 'log';
+    return EMAIL_PROVIDERS + ($testing ? ['log' => ['Save to a file (testing only)', '', 0, '', '', 0, 'Emails are not sent; they are saved in storage/logs/mail.']] : []);
+}
+
+/** Where a shop's inbox is read from: its own account, or (main shop) the main account. Null = not possible. */
 function inbox_account(array $branch): ?array
 {
     $id = (int) $branch['id'];

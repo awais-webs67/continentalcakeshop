@@ -5,8 +5,9 @@ declare(strict_types=1);
 //   'mail' - PHP mail(), works on most cPanel hosts out of the box
 //   'smtp' - any SMTP server (cPanel email account, Gmail, Microsoft 365...)
 //   'log'  - writes each email to storage/logs/mail so you can read it during local testing
-// The settings come from Admin > Settings > Emails once they are saved there,
-// otherwise from the 'mail' section of config/config.php.
+// The main shop's account comes from Admin > Branches > main shop > Email once it is saved there,
+// otherwise from the 'mail' section of config/config.php. Another shop with its own account
+// sends through it (branch_setting_override() while that shop is in context).
 
 const MAIL_SETTING_KEYS = [
     'driver'          => 'mail_driver',

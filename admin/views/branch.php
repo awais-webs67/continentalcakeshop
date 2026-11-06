@@ -38,7 +38,6 @@ $multi = count(branches()) > 1;
 <?php endif; ?>
 
 <?php if ($tab === 'overview'): ?>
-    <?php $ownEmail = branch_uses_own($id, 'email'); ?>
     <div class="branch-overview">
         <section class="card">
             <div class="card__head"><h2>Today and this month</h2></div>
@@ -80,7 +79,6 @@ $multi = count(branches()) > 1;
             <section class="card">
                 <div class="card__head"><h2>Name and address</h2></div>
                 <div class="card__body form-stack">
-                    <?php if ($b['is_main']): ?><p class="hint" style="margin:0">The main shop's address and phone are also the ones in Settings &gt; Shop details; they change together.</p><?php endif; ?>
                     <label class="field"><span>Shop name <small>what customers see, e.g. Wright</small></span><input class="input" name="name" maxlength="80" value="<?= $f('name') ?>" required></label>
                     <label class="field"><span>Street</span><input class="input" name="street" maxlength="120" value="<?= $f('street') ?>" placeholder="e.g. Shop 2, 10 Cooyong Crescent"></label>
                     <div class="form-grid form-grid--3">
@@ -88,7 +86,22 @@ $multi = count(branches()) > 1;
                         <label class="field"><span>State</span><input class="input" name="state" maxlength="10" value="<?= $f('state', 'ACT') ?>"></label>
                         <label class="field"><span>Postcode</span><input class="input" name="postcode" maxlength="10" inputmode="numeric" value="<?= $f('postcode') ?>"></label>
                     </div>
-                    <label class="field" style="max-width:360px"><span>Phone</span><input class="input" type="tel" name="phone" maxlength="40" value="<?= $f('phone') ?>"></label>
+                </div>
+            </section>
+            <?php
+            $publicEmail = old('public_email', (string) ($id ? branch_setting($id, 'public_email') : ''));
+            $showEmail = old('show_email', $id ? (branch_setting($id, 'show_email') ?? '1') : '1') === '1';
+            ?>
+            <section class="card">
+                <div class="card__head"><h2>Phone and email for customers</h2></div>
+                <div class="card__body form-stack">
+                    <p class="hint" style="margin:0">Shown for <?= $isNew ? 'this shop' : e($b['name']) ?> in the website footer, on the contact page and on its own page<?= $b['is_main'] ? ', and on invoices and emails' : ', invoices and its emails' ?>.</p>
+                    <div class="form-grid">
+                        <label class="field"><span>Phone</span><input class="input" type="tel" name="phone" maxlength="40" value="<?= $f('phone') ?>" placeholder="02 6100 0000"></label>
+                        <label class="field"><span>Email</span><input class="input" type="email" name="public_email" maxlength="190" value="<?= e($publicEmail) ?>" placeholder="<?= e(($id ? branch_account_email($id) : '') ?: 'e.g. wright@continentalcakes.com.au') ?>"></label>
+                    </div>
+                    <label class="switch"><input type="checkbox" name="show_email" value="1" <?= checked($showEmail) ?>><span class="switch__track"></span><span><strong>Show the email on the website</strong><small>Switch off to show only the phone. Customers can still write through the contact form.</small></span></label>
+                    <p class="hint" style="margin:0">Use the address of this shop's email account (Email tab), so customers' emails arrive where the shop reads them<?= $id ? ' and show in Messages when its inbox is on' : '' ?>.</p>
                 </div>
             </section>
             <section class="card">
@@ -118,16 +131,35 @@ $multi = count(branches()) > 1;
 
 <?php elseif ($tab === 'email'): ?>
     <?php
-    $ownEmail = old('email_mode', branch_uses_own($id, 'email') ? 'own' : 'shared') === 'own';
-    $provider = old('mail_provider', (string) (branch_setting($id, 'mail_provider') ?? 'gmail'));
-    $hasPassword = (string) branch_setting($id, 'smtp_password_encrypted') !== '';
-    $sharedFrom = mail_from()[0]; // the shared account (Settings > Emails or config.php)
-    $defaultAlerts = branch_account_email($id) ?: setting_raw('order_notification_email');
+    $isMainShop = (bool) $b['is_main'];
+    $main = main_branch();
+    // The account's saved values: the main shop's in settings (or config.php before the first save), another shop's own.
+    $mailKeys = ['mail_from_address' => 'from_address', 'mail_from_name' => 'from_name', 'smtp_host' => 'smtp.host', 'smtp_port' => 'smtp.port', 'smtp_encryption' => 'smtp.encryption'];
+    $saved = static function (string $key) use ($isMainShop, $id, $mailKeys): string {
+        if (!$isMainShop) {
+            return (string) branch_setting($id, $key);
+        }
+        return isset($mailKeys[$key]) ? (string) with_branch(null, static fn () => mail_config($mailKeys[$key], '')) : setting_raw($key);
+    };
+    $acct = static fn (string $key, string $fallback = ''): string => e(old($key, $saved($key) !== '' ? $saved($key) : $fallback));
+    if ($isMainShop && $saved('mail_provider') === '') {
+        // Before the first save here: work out what is used now.
+        $host = $saved('smtp_host');
+        $guess = ['mail' => 'server', 'log' => 'log'][with_branch(null, static fn () => mail_config('driver', 'mail'))] ?? 'other';
+        foreach (EMAIL_PROVIDERS as $key => $p) {
+            if ($p[1] !== '' && strcasecmp($p[1], $host) === 0) {
+                $guess = $key;
+            }
+        }
+    }
+    $provider = old('mail_provider', $saved('mail_provider') ?: ($guess ?? 'gmail'));
+    $ownEmail = $isMainShop || old('email_mode', branch_uses_own($id, 'email') ? 'own' : 'main') === 'own';
+    $hasPassword = $saved('smtp_password_encrypted') !== '' || ($isMainShop && (string) config('mail.smtp.password', '') !== '');
+    $mainFrom = branch_account_email(main_branch_id());
+    $defaultAlerts = $ownEmail && $saved('mail_from_address') !== '' ? $saved('mail_from_address') : branch_notify_email($id);
     $inboxOn = branch_setting($id, 'inbox_enabled') === '1';
     $inboxChecked = (string) branch_setting($id, 'inbox_checked_at');
     $inboxError = (string) branch_setting($id, 'inbox_error');
-    $canSharedInbox = (bool) $b['is_main'];
-    $main = main_branch();
     $effective = static fn (string $key, string $default) => with_branch($id, static fn () => setting($key, $default));
     ?>
     <div class="branch-form">
@@ -137,33 +169,35 @@ $multi = count(branches()) > 1;
             <section class="card">
                 <div class="card__head"><h2>Email account</h2></div>
                 <div class="card__body form-stack">
-                    <p class="hint" style="margin:0">The account <?= e($b['name']) ?>'s emails are sent from: order confirmations, updates, quotes, replies from Messages. Customers' replies come back to it.</p>
+                    <p class="hint" style="margin:0">Every email of <?= e($b['name']) ?> is sent from this account: order confirmations, updates, quotes, reminders, review requests and replies from Messages. Customers' replies come back to it.<?= $isMainShop ? ' As the main shop, it also sends the emails that belong to no shop: password links and the owner\'s morning email.' : '' ?></p>
+                    <?php if (!$isMainShop): ?>
                     <div class="choice-cards choice-cards--2">
-                        <label class="choice-card"><input type="radio" name="email_mode" value="shared" <?= checked(!$ownEmail) ?>><span><strong>Shared account</strong><small><?= e($sharedFrom ?: 'Set in Settings > Emails') ?>, from Settings &gt; Emails</small></span></label>
-                        <label class="choice-card"><input type="radio" name="email_mode" value="own" <?= checked($ownEmail) ?>><span><strong>This shop's own account</strong><small>Its own Gmail, Hostinger or other mailbox</small></span></label>
+                        <label class="choice-card"><input type="radio" name="email_mode" value="own" <?= checked($ownEmail) ?>><span><strong>Its own email account</strong><small>Gmail, Hostinger or another mailbox for <?= e($b['name']) ?></small></span></label>
+                        <label class="choice-card"><input type="radio" name="email_mode" value="main" <?= checked(!$ownEmail) ?>><span><strong>Not yet: use <?= e($main['name'] ?? 'the main shop') ?>'s account</strong><small><?= e($mainFrom ?: 'Set it up in ' . ($main['name'] ?? 'the main shop') . ' > Email') ?>, signed "<?= e(setting_raw('store_short_name') . ' ' . $b['name']) ?>"</small></span></label>
                     </div>
-                    <div class="form-stack own-account" data-show-if="email_mode:own" <?= $ownEmail ? '' : 'hidden' ?>>
+                    <?php endif; ?>
+                    <div class="form-stack own-account" <?= $isMainShop ? '' : 'data-show-if="email_mode:own"' ?> <?= $ownEmail ? '' : 'hidden' ?>>
                         <div class="form-grid">
                             <label class="field"><span>Email provider</span>
                                 <select class="input" name="mail_provider" data-provider>
-                                    <?php foreach (EMAIL_PROVIDERS as $key => $p): ?><option value="<?= e($key) ?>" data-help="<?= e($p[6]) ?>" <?= selected($provider === $key) ?>><?= e($p[0]) ?></option><?php endforeach; ?>
+                                    <?php foreach (email_providers() as $key => $p): ?><option value="<?= e($key) ?>" data-help="<?= e($p[6]) ?>" <?= selected($provider === $key) ?>><?= e($p[0]) ?></option><?php endforeach; ?>
                                 </select></label>
-                            <label class="field"><span>Email address</span><input class="input" type="email" name="mail_from_address" value="<?= $bs('mail_from_address') ?>" placeholder="wright@gmail.com" autocomplete="off"></label>
+                            <label class="field"><span>Email address</span><input class="input" type="email" name="mail_from_address" value="<?= $acct('mail_from_address') ?>" placeholder="<?= e(strtolower($b['name'] ?: 'shop')) ?>@gmail.com" autocomplete="off"></label>
                         </div>
                         <div class="form-grid">
-                            <label class="field"><span>Password <?= $hasPassword ? '<small>saved, leave empty to keep it</small>' : '' ?></span><input class="input" type="password" name="mail_password" autocomplete="new-password" placeholder="<?= $hasPassword ? '••••••••' : '' ?>"></label>
-                            <label class="field"><span>Sender name <small>optional</small></span><input class="input" name="mail_from_name" maxlength="120" value="<?= $bs('mail_from_name') ?>" placeholder="<?= e(setting_raw('store_short_name') . ' ' . $b['name']) ?>"></label>
+                            <label class="field" data-show-if="mail_provider:!server|log" <?= in_array($provider, ['server', 'log'], true) ? 'hidden' : '' ?>><span>Password <?= $hasPassword ? '<small>saved, leave empty to keep it</small>' : '' ?></span><input class="input" type="password" name="mail_password" autocomplete="new-password" placeholder="<?= $hasPassword ? '••••••••' : '' ?>"></label>
+                            <label class="field"><span>Sender name <small>optional</small></span><input class="input" name="mail_from_name" maxlength="120" value="<?= $acct('mail_from_name') ?>" placeholder="<?= e(setting_raw('store_short_name') . ($multi ? ' ' . $b['name'] : '')) ?>"></label>
                         </div>
-                        <p class="hint provider-help" data-provider-help style="margin:0"><?= e(EMAIL_PROVIDERS[$provider][6] ?? '') ?></p>
+                        <p class="hint provider-help" data-provider-help style="margin:0"><?= e(email_providers()[$provider][6] ?? '') ?></p>
                         <div class="form-stack" data-show-if="mail_provider:other" <?= $provider === 'other' ? '' : 'hidden' ?>>
                             <div class="form-grid form-grid--3">
-                                <label class="field"><span>Sending server (SMTP)</span><input class="input" name="smtp_host" value="<?= $bs('smtp_host') ?>" placeholder="mail.yourdomain.com.au"></label>
-                                <label class="field"><span>Port</span><input class="input" type="number" name="smtp_port" value="<?= $bs('smtp_port', '465') ?>"></label>
-                                <label class="field"><span>Security</span><select class="input" name="smtp_encryption"><?php foreach (['ssl' => 'SSL (465)', 'tls' => 'TLS (587)', 'none' => 'None'] as $k => $l): ?><option value="<?= $k ?>" <?= selected((branch_setting($id, 'smtp_encryption') ?? 'ssl') === $k) ?>><?= $l ?></option><?php endforeach; ?></select></label>
+                                <label class="field"><span>Sending server (SMTP)</span><input class="input" name="smtp_host" value="<?= $acct('smtp_host') ?>" placeholder="mail.yourdomain.com.au"></label>
+                                <label class="field"><span>Port</span><input class="input" type="number" name="smtp_port" value="<?= $acct('smtp_port', '465') ?>"></label>
+                                <label class="field"><span>Security</span><select class="input" name="smtp_encryption"><?php $enc = $saved('smtp_encryption') ?: 'ssl'; foreach (['ssl' => 'SSL (465)', 'tls' => 'TLS (587)', 'none' => 'None'] as $k => $l): ?><option value="<?= $k ?>" <?= selected($enc === $k) ?>><?= $l ?></option><?php endforeach; ?></select></label>
                             </div>
                             <div class="form-grid">
-                                <label class="field"><span>Inbox server (IMAP)</span><input class="input" name="imap_host" value="<?= $bs('imap_host') ?>" placeholder="mail.yourdomain.com.au"></label>
-                                <label class="field"><span>Port</span><input class="input" type="number" name="imap_port" value="<?= $bs('imap_port', '993') ?>"></label>
+                                <label class="field"><span>Inbox server (IMAP)</span><input class="input" name="imap_host" value="<?= $acct('imap_host') ?>" placeholder="mail.yourdomain.com.au"></label>
+                                <label class="field"><span>Port</span><input class="input" type="number" name="imap_port" value="<?= $acct('imap_port', '993') ?>"></label>
                             </div>
                         </div>
                     </div>
@@ -173,22 +207,19 @@ $multi = count(branches()) > 1;
             <section class="card">
                 <div class="card__head"><h2>Inbox in Messages</h2></div>
                 <div class="card__body form-stack">
-                    <?php if (!$canSharedInbox): ?><p class="hint own-account-note" data-show-if="email_mode:shared" <?= $ownEmail ? 'hidden' : '' ?> style="margin:0">With the shared account, its inbox shows under <?= e($main['name'] ?? 'the main shop') ?>. Give <?= e($b['name']) ?> its own account to have its own inbox here.</p><?php endif; ?>
-                    <label class="switch" <?= $canSharedInbox ? '' : 'data-show-if="email_mode:own"' ?> <?= !$canSharedInbox && !$ownEmail ? 'hidden' : '' ?>><input type="checkbox" name="inbox_enabled" value="1" <?= checked($inboxOn) ?>><span class="switch__track"></span><span><strong>Show this shop's emails in Messages</strong><small>New emails customers send to the account appear in Admin &gt; Messages for <?= e($b['name']) ?>, and you can answer them there. They stay in your email app too. Emails from before switching on are not copied.</small></span></label>
-                    <?php if ($canSharedInbox): ?>
-                        <div class="form-grid" data-show-if="email_mode:shared" <?= $ownEmail ? 'hidden' : '' ?>>
-                            <label class="field"><span>Inbox server of the shared account (IMAP)</span><input class="input" name="shared_imap_host" value="<?= e(old('shared_imap_host', setting_raw('imap_host', (string) preg_replace('/^smtp\./', 'imap.', setting_raw('smtp_host'))))) ?>" placeholder="imap.gmail.com"></label>
-                            <label class="field"><span>Port</span><input class="input" type="number" name="shared_imap_port" value="<?= e(setting_raw('imap_port', '993')) ?>"></label>
-                        </div>
-                    <?php endif; ?>
+                    <?php if (!$isMainShop): ?><p class="hint" data-show-if="email_mode:main" <?= $ownEmail ? 'hidden' : '' ?> style="margin:0">While <?= e($b['name']) ?> uses <?= e($main['name'] ?? 'the main shop') ?>'s account, emails to that account show under <?= e($main['name'] ?? 'the main shop') ?>. Give <?= e($b['name']) ?> its own account to have its own inbox here.</p><?php endif; ?>
+                    <p class="hint" data-show-if="mail_provider:server|log" <?= in_array($provider, ['server', 'log'], true) && $ownEmail ? '' : 'hidden' ?> style="margin:0">The website server has no inbox. Choose Gmail, Hostinger or another email account to read its emails here.</p>
+                    <div data-show-if="mail_provider:!server|log" <?= in_array($provider, ['server', 'log'], true) ? 'hidden' : '' ?>>
+                    <label class="switch" <?= $isMainShop ? '' : 'data-show-if="email_mode:own"' ?> <?= $ownEmail ? '' : 'hidden' ?>><input type="checkbox" name="inbox_enabled" value="1" <?= checked($inboxOn) ?>><span class="switch__track"></span><span><strong>Show <?= e($b['name']) ?>'s emails in Messages</strong><small>New emails customers send to this account appear in Admin &gt; Messages for <?= e($b['name']) ?>, and you can answer them there. They stay in your email app too. Emails from before switching on are not copied.</small></span></label>
+                    </div>
                 </div>
             </section>
 
             <section class="card">
                 <div class="card__head"><h2>Order alerts</h2></div>
                 <div class="card__body form-stack">
-                    <label class="field"><span>Send new order alerts to <small>empty = <?= e($defaultAlerts ?: 'nobody') ?></small></span><input class="input" type="email" name="alerts_email" value="<?= $f('email') ?>" placeholder="<?= e($defaultAlerts) ?>"></label>
-                    <p class="hint" style="margin:0">New orders, custom cake requests and messages for <?= e($b['name']) ?>. Usually leave it empty so alerts go to the shop's own inbox; type another address only if someone else should get them.</p>
+                    <label class="field"><span>Send new order alerts to <small>empty = <?= e($defaultAlerts ?: 'the account above') ?></small></span><input class="input" type="email" name="alerts_email" value="<?= $f('email') ?>" placeholder="<?= e($defaultAlerts) ?>"></label>
+                    <p class="hint" style="margin:0">New orders, custom cake requests and messages for <?= e($b['name']) ?>. Usually leave it empty so alerts arrive in the shop's own inbox; type another address only if someone else should get them.</p>
                 </div>
             </section>
 
@@ -196,7 +227,7 @@ $multi = count(branches()) > 1;
                 <div class="card__head"><h2>Automatic emails</h2></div>
                 <div class="card__body form-stack">
                     <?php if ($multi): ?>
-                        <label class="switch"><input type="checkbox" name="daily_branch_enabled" value="1" <?= checked(($id ? branch_setting($id, 'daily_branch_enabled') : null) !== '0') ?>><span class="switch__track"></span><span><strong>Morning plan for this shop</strong><small>Today's pickups and deliveries at <?= e($b['name']) ?>, before opening. The owner's email for all shops is in Settings &gt; Emails.</small></span></label>
+                        <label class="switch"><input type="checkbox" name="daily_branch_enabled" value="1" <?= checked(($id ? branch_setting($id, 'daily_branch_enabled') : null) !== '0') ?>><span class="switch__track"></span><span><strong>Morning plan for this shop</strong><small>Today's pickups and deliveries at <?= e($b['name']) ?>, before opening. The owner's plan for all shops is in Settings &gt; Emails.</small></span></label>
                         <label class="field" style="max-width:420px"><span>Send the morning plan to <small>empty = the order alerts address</small></span><input class="input" type="email" name="daily_branch_to" value="<?= $bs('daily_branch_to') ?>" placeholder="<?= e(branch_notify_email($id)) ?>"></label>
                     <?php endif; ?>
                     <label class="switch"><input type="checkbox" name="reminder_email_enabled" value="1" <?= checked($effective('reminder_email_enabled', '1') === '1') ?>><span class="switch__track"></span><span><strong>Reminder the day before</strong><small>Tells the customer the time and this shop's address the day before pickup or delivery</small></span></label>

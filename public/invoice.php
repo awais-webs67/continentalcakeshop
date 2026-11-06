@@ -154,7 +154,7 @@ $balance = order_balance($order);
         <div class="bottom">
             <div class="thanks">
                 <strong>Thank you for choosing <?= e(setting('store_short_name')) ?>!</strong>
-                <?= $gst ? 'The total price includes GST. ' : '' ?>Questions about this <?= e(strtolower($docTitle)) ?>? Call <?= e(setting('store_phone')) ?> or email <?= e(setting('store_email')) ?>.
+                <?= $gst ? 'The total price includes GST. ' : '' ?>Questions about this <?= e(strtolower($docTitle)) ?>? Call <?= e(setting('store_phone')) ?><?= shop_email() !== '' ? ' or email ' . e(shop_email()) : '' ?>.
             </div>
             <div class="totals"><table>
                 <tr><td>Subtotal</td><td class="num"><?= e(money($order['subtotal'])) ?></td></tr>
@@ -178,7 +178,7 @@ $balance = order_balance($order);
     </div>
     <footer class="foot">
         <span><?= e(setting('store_name')) ?><?= setting('store_abn') !== '' ? ' &middot; ABN ' . e(setting('store_abn')) : '' ?></span>
-        <span><?= e(setting('store_phone')) ?> &middot; <?= e(setting('store_email')) ?> &middot; <?= e(preg_replace('#^https?://#', '', rtrim(url(), '/'))) ?></span>
+        <span><?= e(setting('store_phone')) ?><?= shop_email() !== '' ? ' &middot; ' . e(shop_email()) : '' ?> &middot; <?= e(preg_replace('#^https?://#', '', rtrim(url(), '/'))) ?></span>
     </footer>
 </div>
 </body>

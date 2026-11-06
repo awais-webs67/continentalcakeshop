@@ -51,7 +51,7 @@
                 <?php endif; ?>
                 <?php if ($request['quote_token'] && !$linkedOrder): ?><p class="hint" style="margin:0">Customer link: <a href="<?= e(quote_url($request)) ?>" target="_blank"><?= e(quote_url($request)) ?></a></p><?php endif; ?>
                 <label class="field"><span>Message</span><textarea class="input" name="message" rows="6" required><?= e($defaultMessage) ?></textarea></label>
-                <p class="hint">The email goes to <?= e($request['email']) ?> with your logo and shop details. Their replies come to <?= e(setting('store_email')) ?>.</p>
+                <p class="hint">The email goes to <?= e($request['email']) ?> with your logo and shop details. Their replies come to <?= e(with_branch((int) $request['branch_id'] ?: null, static fn () => setting('store_email'))) ?>.</p>
                 <div><button class="btn btn--primary" type="submit"><?= icon('mail', '', 18) ?> Send email</button></div>
             </form>
         </section>

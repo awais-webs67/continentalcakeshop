@@ -52,7 +52,6 @@ function local_business_schema(): array
         'logo'       => url('assets/img/logo-email.png'),
         'image'      => shop_photo()['absolute'],
         'telephone'  => setting('store_phone_e164'),
-        'email'      => setting('store_email'),
         'priceRange' => '$$',
         'paymentAccepted' => 'Cash, Credit Card, Debit Card, Bank Transfer, PayID',
         'servesCuisine' => 'Cakes, Desserts',
@@ -72,6 +71,9 @@ function local_business_schema(): array
         'openingHoursSpecification' => $hours,
         'hasMap'     => store_maps_url(),
     ];
+    if (shop_email() !== '') {
+        $schema['email'] = shop_email(); // only when the shop shows its email on the website
+    }
     if ($sameAs) {
         $schema['sameAs'] = $sameAs;
     }

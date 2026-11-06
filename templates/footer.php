@@ -46,11 +46,13 @@ $socials = array_filter([
                             <a class="footer-shop__name" href="<?= e(branch_url($shop)) ?>"><?= e($shop['name']) ?> shop</a>
                             <span><?= e(branch_address_line($shop)) ?></span>
                             <a href="tel:<?= e(phone_e164(branch_phone($shop))) ?>"><?= e(branch_phone($shop)) ?></a>
+                            <?php if (($shopEmail = branch_email_shown($shop)) !== ''): ?><a class="footer-shop__email" href="mailto:<?= e($shopEmail) ?>"><?= e($shopEmail) ?></a><?php endif; ?>
                         </li>
                     <?php endforeach; ?>
                 <?php else: ?>
                 <li><a href="<?= e(store_maps_url()) ?>" target="_blank" rel="noopener"><?= e(store_address_line()) ?></a></li>
                 <li><a href="tel:<?= e(setting('store_phone_e164')) ?>"><?= e(setting('store_phone')) ?></a></li>
+                <?php if (shop_email() !== ''): ?><li><a class="footer-shop__email" href="mailto:<?= e(shop_email()) ?>"><?= e(shop_email()) ?></a></li><?php endif; ?>
                 <?php endif; ?>
                 <?php foreach (opening_hours_grouped(true) as $row): ?>
                     <li><?= e($row['days']) ?>: <?= e($row['hours']) ?></li>

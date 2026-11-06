@@ -37,7 +37,7 @@ if (is_post()) {
         $live = thread_seen_live($thread, 'customer');
         $sent = shop_message($thread, $body, (int) $admin['id']);
         json_out(['ok' => true, 'note' => $live ? 'The customer has the chat open, so they see your reply straight away.'
-            : ($sent ? 'Also emailed to ' . $thread['customer_email'] . '.' : 'Saved, but the email could not be sent. Check Settings > Emails.')]);
+            : ($sent ? 'Also emailed to ' . $thread['customer_email'] . '.' : 'Saved, but the email could not be sent. Check the shop\'s email account in Branches > ' . branch_name((int) $thread['branch_id']) . ' > Email.')]);
     }
     if ($action === 'reply') {
         $body = trim(str_limit(input('body'), 5000));
@@ -48,7 +48,7 @@ if (is_post()) {
             if (input('close') === '1') {
                 db_run("UPDATE threads SET status = 'closed' WHERE id = ?", [$thread['id']]);
             }
-            flash($sent ? 'success' : 'error', $sent ? 'Reply sent to ' . $thread['customer_email'] . '.' : 'The reply was saved, but the email could not be sent. Check Settings > Emails.');
+            flash($sent ? 'success' : 'error', $sent ? 'Reply sent to ' . $thread['customer_email'] . '.' : 'The reply was saved, but the email could not be sent. Check the shop\'s email account in Branches > ' . branch_name((int) $thread['branch_id']) . ' > Email.');
         }
     } elseif ($action === 'status') {
         db_run('UPDATE threads SET status = ?, unread_admin = 0 WHERE id = ?', [$thread['status'] === 'open' ? 'closed' : 'open', $thread['id']]);

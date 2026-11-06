@@ -20,6 +20,9 @@ if (stripos($visitTitle, (string) main_branch()['suburb']) !== false) {
                         <div class="shop-card__actions">
                             <a class="btn btn--primary btn--sm" href="<?= e(branch_maps_url($shop)) ?>" target="_blank" rel="noopener"><?= icon('pin', '', 16) ?> Directions</a>
                             <a class="btn btn--outline btn--sm" href="tel:<?= e(phone_e164(branch_phone($shop))) ?>"><?= icon('phone', '', 16) ?> <?= e(branch_phone($shop)) ?></a>
+                            <?php if (($shopEmail = branch_email_shown($shop)) !== ''): ?>
+                                <a class="btn btn--outline btn--sm btn--icon" href="mailto:<?= e($shopEmail) ?>" aria-label="Email the <?= e($shop['name']) ?> shop: <?= e($shopEmail) ?>" title="<?= e($shopEmail) ?>"><?= icon('mail', '', 18) ?></a>
+                            <?php endif; ?>
                         </div>
                     </div>
                 <?php endforeach; ?>

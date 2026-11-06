@@ -34,11 +34,12 @@ function daily_summary_data(string $date, ?int $branchId = null): array
 function daily_email_recipient(): string
 {
     $to = setting('daily_email_to');
-    return valid_email($to) ? $to : setting('order_notification_email');
+    // Empty: the main shop's order alerts address (Branches > main shop > Email).
+    return valid_email($to) ? $to : branch_notify_email(main_branch_id());
 }
 
 /**
- * The owner's morning email (every shop, Settings > Emails) and, with two shops, each shop's
+ * The owner's morning email (every shop, Settings > Emails > Owner's morning email) and, with two shops, each shop's
  * own plan (Admin > Branches > shop > Email > Morning plan, on unless switched off).
  */
 function send_daily_summary(string $date, bool $owner = true): bool

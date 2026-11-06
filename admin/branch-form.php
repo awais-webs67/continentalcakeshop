@@ -47,19 +47,30 @@ function branch_save_details(?array $branch): array
     if ($data['is_active'] && ($data['street'] === '' || $data['phone'] === '')) {
         $errors[] = 'Add the street address and phone before showing this shop to customers.';
     }
+    // The email customers see for this shop, and whether it is shown.
+    $publicEmail = strtolower(str_limit(trim(input('public_email')), 190));
+    $showEmail = input('show_email') === '1';
+    if ($publicEmail !== '' && !valid_email($publicEmail)) {
+        $errors[] = 'The email for customers does not look right.';
+    } elseif ($showEmail && $publicEmail === '') {
+        $errors[] = 'Enter the email to show on the website, or switch "Show the email" off.';
+    }
     if ($errors) {
-        branch_remember($data);
+        branch_remember($data + ['public_email' => $publicEmail, 'show_email' => $showEmail ? '1' : '0']);
         return $errors;
     }
     if ($branch) {
         $sets = implode(', ', array_map(static fn ($f) => "`{$f}` = ?", array_keys($data)));
         db_run("UPDATE branches SET {$sets} WHERE id = ?", [...array_values($data), $branch['id']]);
-        // The main shop's address and phone are also the ones in Settings > Shop details.
+        // Pages and emails that are not about one shop show the main shop: keep its copy in settings.
         if ((int) $branch['is_main']) {
             foreach (['street', 'suburb', 'state', 'postcode', 'phone', 'latitude', 'longitude'] as $field) {
                 setting_save('store_' . $field, $data[$field]);
             }
             setting_save('store_phone_e164', phone_e164($data['phone']));
+            if ($publicEmail !== '') {
+                setting_save('store_email', $publicEmail);
+            }
         }
     } else {
         $data['sort_order'] = count(branches()) + 1;
@@ -67,6 +78,9 @@ function branch_save_details(?array $branch): array
         db_run('INSERT INTO branches (`' . implode('`, `', $columns) . '`) VALUES (' . implode(', ', array_fill(0, count($columns), '?')) . ')', array_values($data));
         $GLOBALS['new_branch_id'] = (int) db()->lastInsertId();
     }
+    $branchId = (int) ($branch['id'] ?? $GLOBALS['new_branch_id']);
+    branch_setting_save($branchId, 'public_email', $publicEmail !== '' ? $publicEmail : null);
+    branch_setting_save($branchId, 'show_email', $showEmail ? '1' : '0');
     forget_input();
     branches(true);
     return [];
@@ -95,13 +109,17 @@ function branch_save_page(array $branch): array
 }
 
 /**
- * Email tab: which account the shop sends from and reads its inbox from, where order alerts go,
- * and its automatic emails.
+ * Email tab: the account the shop sends from and reads its inbox from, where its order alerts
+ * go, and its automatic emails. The main shop's account is stored in settings (it also sends the
+ * emails that belong to no shop); another shop has its own account or, until it has one, sends
+ * from the main shop's.
  */
 function branch_save_email(array $branch): array
 {
     $id = (int) $branch['id'];
-    $own = input('email_mode') === 'own';
+    $isMain = (int) $branch['is_main'] === 1;
+    $own = $isMain || input('email_mode') === 'own';
+    $get = static fn (string $key): string => $isMain ? setting_raw($key) : (string) branch_setting($id, $key);
     $errors = [];
 
     $alerts = strtolower(str_limit(trim(input('alerts_email')), 190));
@@ -114,16 +132,20 @@ function branch_save_email(array $branch): array
     }
 
     $account = [];
+    $provider = '';
+    $server = false;
     if ($own) {
-        $provider = isset(EMAIL_PROVIDERS[input('mail_provider')]) ? input('mail_provider') : 'other';
-        [, $smtpHost, $smtpPort, $smtpSecurity, $imapHost, $imapPort] = EMAIL_PROVIDERS[$provider];
+        $providers = email_providers();
+        $provider = isset($providers[input('mail_provider')]) ? input('mail_provider') : 'other';
+        [, $smtpHost, $smtpPort, $smtpSecurity, $imapHost, $imapPort] = $providers[$provider];
         $address = strtolower(str_limit(trim(input('mail_from_address')), 190));
+        $server = in_array($provider, ['server', 'log'], true); // no SMTP account
         $account = [
             'mail_provider'     => $provider,
-            'mail_driver'       => 'smtp',
+            'mail_driver'       => ['server' => 'mail', 'log' => 'log'][$provider] ?? 'smtp',
             'mail_from_address' => $address,
             'mail_from_name'    => str_limit(trim(input('mail_from_name')), 120),
-            'smtp_username'     => $address,
+            'smtp_username'     => $server ? '' : $address,
             'smtp_host'         => $provider === 'other' ? str_limit(trim(input('smtp_host')), 190) : $smtpHost,
             'smtp_port'         => (string) ($provider === 'other' ? max(1, (int) input('smtp_port', '465')) : $smtpPort),
             'smtp_encryption'   => $provider === 'other' ? (in_array(input('smtp_encryption'), ['ssl', 'tls', 'none'], true) ? input('smtp_encryption') : 'ssl') : $smtpSecurity,
@@ -133,7 +155,7 @@ function branch_save_email(array $branch): array
         if (!valid_email($address)) {
             $errors[] = 'Enter the shop\'s email address.';
         }
-        if ($account['smtp_host'] === '') {
+        if (!$server && $account['smtp_host'] === '') {
             $errors[] = 'Enter the sending (SMTP) server.';
         }
         $password = (string) ($_POST['mail_password'] ?? '');
@@ -143,42 +165,37 @@ function branch_save_email(array $branch): array
             } catch (Throwable $e) {
                 $errors[] = 'The password could not be stored safely: ' . $e->getMessage();
             }
-        } elseif ((string) branch_setting($id, 'smtp_password_encrypted') === '') {
+        } elseif ($isMain && $get('smtp_password_encrypted') === '' && (string) config('mail.smtp.password', '') !== '') {
+            // First save here: keep the password that was in config.php.
+            $account['smtp_password_encrypted'] = secret_encrypt((string) config('mail.smtp.password'));
+        } elseif (!$server && $get('smtp_password_encrypted') === '') {
             $errors[] = 'Enter the password of the email account.';
         }
     }
 
-    $inbox = input('inbox_enabled') === '1';
-    if ($inbox && $own && ($account['imap_host'] ?? '') === '') {
+    $inbox = input('inbox_enabled') === '1' && $own;
+    if ($inbox && $server) {
+        $errors[] = 'The website server has no inbox. Choose Gmail, Hostinger or another email account to show its emails in Messages.';
+    } elseif ($inbox && ($account['imap_host'] ?? '') === '') {
         $errors[] = 'Enter the inbox (IMAP) server to show this inbox in Messages.';
-    }
-    $sharedImap = str_limit(trim(input('shared_imap_host')), 190);
-    if ($inbox && !$own && !(int) $branch['is_main']) {
-        $inbox = false; // the shared inbox belongs to the main shop
-    }
-    if ($inbox && !$own && $sharedImap === '' && setting_raw('imap_host') === '') {
-        $errors[] = 'Enter the inbox (IMAP) server of the shared account to show it in Messages.';
     }
 
     if ($errors) {
-        branch_remember(['email_mode' => $own ? 'own' : 'shared', 'alerts_email' => $alerts, 'reviews_url' => $reviews] + $account);
+        branch_remember(['email_mode' => $own ? 'own' : 'shared', 'alerts_email' => $alerts, 'reviews_url' => $reviews] + array_diff_key($account, ['smtp_password_encrypted' => 1]));
         return $errors;
     }
 
     // Which inbox is read now, to know below if it changed.
-    $inboxBefore = (branch_uses_own($id, 'email') ? 'own' : 'shared') . '|' . branch_setting($id, 'mail_from_address') . '|' . branch_setting($id, 'imap_host');
-    branch_setting_save($id, 'email_own', $own ? '1' : '0');
-    foreach ($account as $key => $value) {
-        branch_setting_save($id, $key, $value);
+    $inboxBefore = (branch_uses_own($id, 'email') ? 'own' : 'main') . '|' . $get('mail_from_address') . '|' . $get('imap_host');
+    if (!$isMain) {
+        branch_setting_save($id, 'email_own', $own ? '1' : '0');
     }
-    $sharedChanged = !$own && $sharedImap !== '' && $sharedImap !== setting_raw('imap_host');
-    if (!$own && (int) $branch['is_main'] && $sharedImap !== '') {
-        setting_save('imap_host', $sharedImap);
-        setting_save('imap_port', (string) max(1, (int) input('shared_imap_port', '993')));
+    foreach ($account as $key => $value) {
+        $isMain ? setting_save($key, $value) : branch_setting_save($id, $key, $value);
     }
     // Switching the inbox on (or to another account) starts from the newest email.
-    $inboxNow = ($own ? 'own' : 'shared') . '|' . branch_setting($id, 'mail_from_address') . '|' . branch_setting($id, 'imap_host');
-    if ($inbox && (branch_setting($id, 'inbox_enabled') !== '1' || $inboxNow !== $inboxBefore || $sharedChanged)) {
+    $inboxNow = (branch_uses_own($id, 'email') ? 'own' : 'main') . '|' . $get('mail_from_address') . '|' . $get('imap_host');
+    if ($inbox && (branch_setting($id, 'inbox_enabled') !== '1' || $inboxNow !== $inboxBefore)) {
         branch_setting_save($id, 'inbox_last_uid', null);
         branch_setting_save($id, 'inbox_uidvalidity', null);
     }
@@ -306,13 +323,21 @@ function branch_stats(): array
 function branch_checklist(array $b): array
 {
     $id = (int) $b['id'];
-    $ownEmail = branch_uses_own($id, 'email');
+    $account = branch_account_email($id);
+    $main = main_branch();
+    if ((int) $b['is_main'] || branch_uses_own($id, 'email')) {
+        $emailRow = ['Email account', $account !== '', 'email', $account !== '' ? $account : 'Not set up yet'];
+    } else {
+        $emailRow = ['Email account', false, 'email', 'Uses ' . ($main['name'] ?? 'the main shop') . '\'s account for now'];
+    }
+    $shown = branch_email_shown($b);
     return [
-        ['Address and phone', trim($b['street']) !== '' && trim(branch_phone($b)) !== '', 'details'],
+        ['Address and phone', trim($b['street']) !== '' && trim((string) $b['phone']) !== '', 'details'],
+        ['Email for customers', $shown !== '' || branch_setting($id, 'show_email') === '0', 'details', $shown !== '' ? 'Shown: ' . $shown : (branch_setting($id, 'show_email') === '0' ? 'Hidden on the website' : 'Not added yet')],
         ['Shown to customers', (bool) $b['is_active'], 'details'],
-        ['Email account', $ownEmail ? branch_account_email($id) !== '' : true, 'email', $ownEmail ? 'Own: ' . (branch_account_email($id) ?: 'not finished') : 'Shared account (Settings > Emails)'],
+        $emailRow,
         ['Inbox in Messages', inbox_enabled($b) && (string) branch_setting($id, 'inbox_error') === '', 'email', inbox_enabled($b) ? ((string) branch_setting($id, 'inbox_error') !== '' ? 'Problem: ' . branch_setting($id, 'inbox_error') : 'On') : 'Off'],
-        ['Payments', true, 'payments', branch_uses_own($id, 'payments') ? 'Own payment details' : 'Shared payment details'],
+        ['Payments', true, 'payments', branch_uses_own($id, 'payments') ? 'Own payment details' : 'Shared payment details (Settings > Payments)'],
         ['Google review link', trim((string) $b['reviews_url']) !== '', 'email'],
     ];
 }

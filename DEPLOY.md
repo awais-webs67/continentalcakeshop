@@ -85,7 +85,7 @@ In phpMyAdmin on your computer select the database > **Export** > **Quick** > **
 For email, first create `orders@yourdomain.com.au` in cPanel > **Email Accounts**. Its **Connect Devices** page shows the exact SMTP host and port.
 If SMTP gives trouble, `'driver' => 'mail'` also works on most cPanel hosts.
 
-You can also leave the mail part of `config.php` as it is and set up email later in **Admin > Settings > Emails** (server, port, username and password). Once saved there, those settings are used instead of `config.php`, and the password is stored encrypted with a key in `storage/app.key`.
+You can also leave the mail part of `config.php` as it is and set up email later in **Admin > Branches > (main shop) > Email**: choose Gmail, Hostinger, Outlook or other, then the address and password (for Gmail an app password). Once saved there, it is used instead of `config.php`, and the password is stored encrypted with a key in `storage/app.key`. Each other shop gets its own account in its own Email tab.
 
 `config.php` is never stored in GitHub, so pulling updates later will not overwrite it.
 
@@ -142,7 +142,7 @@ One cron job runs everything that happens by itself:
 /usr/local/bin/php /home/cpaneluser/public_html/cron/run.php >/dev/null 2>&1
 ```
 
-4. In **Admin > Settings > Emails** choose who receives the morning email and how many minutes before opening, and switch reminders and review requests on or off. **Send today's morning email now** sends one straight away to try it.
+4. In **Admin > Settings > Emails** choose who receives the owner's morning email and how many minutes before opening (**Send today's morning email now** sends one straight away to try it). Reminders, review requests and each shop's own morning plan are switched on or off in **Admin > Branches > shop > Email**.
 
 **Admin > System check** shows whether the cron job is running.
 

@@ -64,7 +64,7 @@ $checks = [
     ['Google Analytics is connected', setting('seo_ga4_id') !== '', 'Add your G- measurement ID in Settings > Social & SEO.'],
     ['Homepage title has "Cake Shop Canberra"', (bool) preg_match('/cake shop canberra/i', setting('seo_home_title')), 'The old site ranks for "Cake Shop Canberra". Start the homepage title with it in Settings > Social & SEO.'],
     ['Google reviews link is set', filter_var(setting('google_reviews_url'), FILTER_VALIDATE_URL) !== false, 'Paste your Google reviews link in Homepage > Google reviews. It is also used for review request emails.'],
-    ['Shop location on the map', setting('store_latitude') !== '' && setting('store_longitude') !== '', 'Add the latitude and longitude in Settings > Shop details so Google can place the shop.'],
+    ['Every shop is on the map', !array_filter(active_branches(), static fn ($b) => !is_numeric($b['latitude']) || !is_numeric($b['longitude'])), 'Add the latitude and longitude in Branches > shop > Shop details so Google can place each shop.'],
     ['Landing pages published', $landingCount >= 3, 'Publish the birthday, wedding and baby shower pages in Pages. The old gallery addresses point to them.'],
     ['Every cake has a photo', $noPhoto === 0, $noPhoto . ' visible cakes have no photo. Cakes with photos get more clicks and show in Google Images.'],
     ['No cakes with a weak SEO score', $weakProducts === 0, $weakProducts . ' visible cakes score below half on the SEO checklist. Open them from Products and use "Fill in for me".'],

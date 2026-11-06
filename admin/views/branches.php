@@ -27,7 +27,7 @@
 
             <dl class="branch-card__facts">
                 <div><dt>Phone</dt><dd><?= e(branch_phone($b)) ?><?= trim($b['phone']) === '' && !$b['is_main'] ? ' <span class="muted">(main shop number)</span>' : '' ?></dd></div>
-                <div><dt>Email</dt><dd><?= branch_uses_own((int) $b['id'], 'email') ? e(branch_account_email((int) $b['id']) ?: 'Own account, not finished') : 'Shared account' ?><?= inbox_enabled($b) ? ' &middot; inbox in Messages' : '' ?></dd></div>
+                <div><dt>Email</dt><dd><?= ($b['is_main'] || branch_uses_own((int) $b['id'], 'email')) ? e(branch_account_email((int) $b['id']) ?: 'Not set up yet') : 'Uses ' . e(main_branch()['name'] ?? 'the main shop') . '\'s account' ?><?= inbox_enabled($b) ? ' &middot; inbox in Messages' : '' ?></dd></div>
                 <div><dt>Orders go to</dt><dd><?= $email !== '' ? e($email) : '<span class="muted">No email yet</span>' ?></dd></div>
                 <div><dt>Shop logins</dt><dd><?php if (!$s['logins']): ?><span class="muted">None yet</span><?php else: ?><?= e(implode(', ', array_map(static fn ($l) => $l['name'] . ($l['permissions'] === null ? ' (manager)' : ''), $s['logins']))) ?><?php endif; ?></dd></div>
             </dl>

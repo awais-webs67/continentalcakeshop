@@ -86,6 +86,9 @@ render('header', compact('page'));
                         <div class="shop-card__actions">
                             <a class="btn btn--outline btn--sm" href="tel:<?= e(phone_e164(branch_phone($shop))) ?>"><?= icon('phone', '', 16) ?> <?= e(branch_phone($shop)) ?></a>
                             <a class="btn btn--outline btn--sm" href="<?= e(branch_maps_url($shop)) ?>" target="_blank" rel="noopener"><?= icon('pin', '', 16) ?> Directions</a>
+                            <?php if (($shopEmail = branch_email_shown($shop)) !== ''): ?>
+                                <a class="btn btn--outline btn--sm btn--icon" href="mailto:<?= e($shopEmail) ?>" aria-label="Email the <?= e($shop['name']) ?> shop: <?= e($shopEmail) ?>" title="<?= e($shopEmail) ?>"><?= icon('mail', '', 18) ?></a>
+                            <?php endif; ?>
                         </div>
                         <a class="link-arrow" href="<?= e(branch_url($shop)) ?>">About the <?= e($shop['name']) ?> shop <?= icon('arrow', '', 16) ?></a>
                     </div>
@@ -96,7 +99,9 @@ render('header', compact('page'));
             <?php if (whatsapp_url() !== ''): ?>
                 <a class="contact-tile" href="<?= e(whatsapp_url()) ?>" target="_blank" rel="noopener"><?= icon('whatsapp', '', 24) ?><span><strong>WhatsApp</strong>Chat with us</span></a>
             <?php endif; ?>
-            <a class="contact-tile" href="mailto:<?= e(setting('store_email')) ?>"><?= icon('mail', '', 24) ?><span><strong>Email</strong><?= e(setting('store_email')) ?></span></a>
+            <?php if (!$multiBranch && shop_email() !== ''): ?>
+            <a class="contact-tile" href="mailto:<?= e(shop_email()) ?>"><?= icon('mail', '', 24) ?><span><strong>Email</strong><?= e(shop_email()) ?></span></a>
+            <?php endif; ?>
             <?php if (!$multiBranch): ?>
             <a class="contact-tile" href="<?= e(store_maps_url()) ?>" target="_blank" rel="noopener"><?= icon('pin', '', 24) ?><span><strong>Visit</strong><?= e(store_address_line()) ?></span></a>
             <?php endif; ?>

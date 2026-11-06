@@ -19,7 +19,7 @@ $placeOn = static fn (string $p): bool => $p === 'home' ? (home_sections()['revi
             <?php endforeach; ?>
         </div>
         <?php if (setting('google_rating') === ''): ?><p class="hint">No Google rating is set, so stars only show once you add it in <a href="<?= e(admin_url('homepage')) ?>#reviews">Homepage &gt; Google reviews</a>.</p><?php endif; ?>
-        <p class="hint">The email that asks customers for a Google review is in <a href="<?= e(admin_url('settings', ['tab' => 'emails'])) ?>">Settings &gt; Emails</a>.</p>
+        <p class="hint">The email that asks customers for a Google review (on or off, its link and when) is set for each shop in <a href="<?= e(admin_url('branches')) ?>">Branches</a> &gt; shop &gt; Email.</p>
         <div><button class="btn btn--primary btn--sm" type="submit"><?= icon('check', '', 16) ?> Save</button></div>
     </form>
 </section>
