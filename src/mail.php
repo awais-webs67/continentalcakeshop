@@ -243,8 +243,8 @@ function send_order_emails(array $order): void
     if (setting_bool('send_customer_emails')) {
         send_order_confirmation($order);
     }
-    // The shop's copy goes to the branch that makes the order.
-    $notify = branch_notify_email((int) ($order['branch_id'] ?? 0));
+    // The shop's copy goes to the branch that makes the order (never to the customer).
+    $notify = shop_alert_address((int) ($order['branch_id'] ?? 0), (string) $order['customer_email']);
     if ($notify !== '') {
         $branch = multi_branch() ? branch_name((int) $order['branch_id']) : '';
         send_branch_mail(
@@ -284,7 +284,7 @@ function send_custom_request_emails(array $request): void
         null,
         setting('store_email')
     );
-    $notify = branch_notify_email((int) ($request['branch_id'] ?? 0));
+    $notify = shop_alert_address((int) ($request['branch_id'] ?? 0), (string) $request['email']);
     if ($notify !== '') {
         send_mail(
             $notify,
@@ -322,7 +322,7 @@ function send_contact_confirmation(array $thread, string $message): void
 
 function send_contact_notification(array $data): void
 {
-    $notify = branch_notify_email(isset($data['branch_id']) ? (int) $data['branch_id'] : null);
+    $notify = shop_alert_address(isset($data['branch_id']) ? (int) $data['branch_id'] : null, (string) $data['email']);
     if ($notify !== '') {
         send_branch_mail(
             isset($data['branch_id']) ? (int) $data['branch_id'] : null,
@@ -332,4 +332,65 @@ function send_contact_notification(array $data): void
             $data['email']
         );
     }
+}
+
+// ---------------------------------------------------------------------------
+// Why emails may land in spam (Admin > System check and each shop's Email tab)
+// ---------------------------------------------------------------------------
+
+const FREE_MAIL_DOMAINS = ['gmail.com', 'googlemail.com', 'outlook.com', 'hotmail.com', 'live.com', 'msn.com', 'yahoo.com', 'yahoo.com.au',
+    'icloud.com', 'me.com', 'bigpond.com', 'bigpond.net.au', 'optusnet.com.au'];
+
+/**
+ * Problems that send a shop's emails to spam, as [label, ok, how to fix] rows. Mail providers
+ * trust an email only when it really comes from the address it says: a Gmail address sent by
+ * the website's server is treated as fake. With $dns, the domain's SPF, DKIM and DMARC records
+ * are looked up too (skipped where the server cannot look them up).
+ */
+function email_delivery_checks(int $branchId, bool $dns = true): array
+{
+    $branch = get_branch($branchId) ?? main_branch();
+    $name = (string) ($branch['name'] ?? 'Main shop');
+    $where = 'Branches > ' . $name . ' > Email';
+    [$driver, $from, $host] = with_branch($branchId, static fn () => [(string) mail_config('driver', 'mail'), strtolower((string) mail_from()[0]), strtolower((string) mail_config('smtp.host', ''))]);
+    $domain = (string) substr((string) strrchr($from, '@'), 1);
+    $free = in_array($domain, FREE_MAIL_DOMAINS, true);
+    $rows = [];
+    if ($driver === 'log') {
+        $rows[] = [$name . ': emails are really sent', false, 'They are only saved to a file. Set up the email account in ' . $where . '.'];
+        return $rows;
+    }
+    if ($driver === 'mail') {
+        $rows[] = [$name . ': sent through an email account', false, $free
+            ? $from . ' is sent by the website server, so Gmail and Outlook treat it as fake and put it in spam. In ' . $where . ' choose ' . ($domain === 'gmail.com' || $domain === 'googlemail.com' ? 'Gmail' : 'the provider') . ' and add the account\'s password (for Gmail an app password).'
+            : 'The website server sends the emails (PHP mail), which often lands in spam. In ' . $where . ' choose the email account (e.g. Hostinger or cPanel email) and add its password.'];
+    } else {
+        $rows[] = [$name . ': sent through an email account (' . $from . ')', true, ''];
+        $gmailHost = str_contains($host, 'gmail.com') || str_contains($host, 'google');
+        if ($free && ($domain === 'gmail.com' || $domain === 'googlemail.com') && !$gmailHost) {
+            $rows[] = [$name . ': Gmail address sent by Gmail', false, $from . ' is sent through ' . $host . ', not Gmail, so it looks fake. In ' . $where . ' choose Gmail as the provider.'];
+        }
+    }
+    if (!$free && $domain !== '' && $dns && function_exists('dns_get_record')) {
+        $txt = static fn (string $name): array => array_column(@dns_get_record($name, DNS_TXT) ?: [], 'txt');
+        $spf = $txt($domain);
+        if ($spf || @dns_get_record($domain, DNS_A)) {
+            $rows[] = [$domain . ': SPF record', (bool) preg_grep('/^v=spf1\b/i', $spf), 'Add an SPF record for ' . $domain . ': cPanel > Email Deliverability > ' . $domain . ' > Repair (or copy it to the DNS where the domain is managed).'];
+            $rows[] = [$domain . ': DKIM record', (bool) ($txt('default._domainkey.' . $domain) ?: $txt('google._domainkey.' . $domain)), 'Add the DKIM record: cPanel > Email Deliverability > ' . $domain . ' > Repair.'];
+            $rows[] = [$domain . ': DMARC record', (bool) preg_grep('/^v=DMARC1\b/i', $txt('_dmarc.' . $domain)), 'Add a TXT record named _dmarc.' . $domain . ' with: v=DMARC1; p=none; rua=mailto:' . $from];
+        }
+    }
+    return $rows;
+}
+
+/** The checks for every shop that sends with its own account (others use the main shop's). */
+function all_email_delivery_checks(bool $dns = true): array
+{
+    $rows = [];
+    foreach (branches() as $branch) {
+        if ((int) $branch['is_main'] || branch_uses_own((int) $branch['id'], 'email')) {
+            $rows = array_merge($rows, email_delivery_checks((int) $branch['id'], $dns));
+        }
+    }
+    return $rows;
 }

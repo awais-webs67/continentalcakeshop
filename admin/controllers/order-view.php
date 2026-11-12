@@ -10,14 +10,6 @@ $id = (int) $order['id'];
 $adminId = (int) $admin['id'];
 $self = admin_url('orders/view', ['id' => $id]);
 
-const STATUS_MESSAGES = [
-    'confirmed'   => 'Good news, your order is confirmed. We will have it ready at the time you chose.',
-    'in_progress' => 'We have started preparing your order.',
-    'ready'       => 'Your order is ready to collect.',
-    'completed'   => 'Thank you for your order. We hope you enjoy it!',
-    'cancelled'   => 'Your order has been cancelled. If you have any questions, please give us a call.',
-];
-
 /** "$12.50" or "12.5" typed by staff, as a number (null when empty or not a number). */
 $amountInput = static function (string $key): ?float {
     $text = trim(str_replace(['$', ','], '', input($key)));
@@ -28,17 +20,11 @@ if (is_post()) {
     $action = input('action');
 
     if ($action === 'status') {
-        $new = input('order_status');
-        if (isset(ORDER_STATUSES[$new]) && $new !== $order['order_status']) {
-            db_run('UPDATE orders SET order_status = ?, completed_at = IF(? = \'completed\', NOW(), completed_at) WHERE id = ?', [$new, $new, $id]);
-            log_order_event($id, 'status', 'Status changed to ' . order_status_label($order, $new) . '.', $adminId);
-            if (input('notify') === '1' && valid_email($order['customer_email'])) {
-                $default = $new === 'ready' && is_delivery($order) ? 'Your order is on its way to you.' : (STATUS_MESSAGES[$new] ?? 'There is an update on your order.');
-                $message = trim(input('message')) ?: $default;
-                send_order_update_email(get_order($id), order_status_label($order, $new), $message);
-                log_order_event($id, 'email', 'Customer emailed about the status change.', $adminId);
-            }
-            flash('success', 'Order status updated.');
+        // The same from the order page and from the quick buttons in the order lists.
+        $result = change_order_status($order, input('order_status'), $adminId, input('notify') === '1', trim(input('message')));
+        if ($result['changed']) {
+            flash('success', 'Order ' . $order['order_number'] . ' marked ' . strtolower(order_status_label($order, input('order_status'))) . '.'
+                . ($result['emailed'] ? ' The customer was emailed.' : (input('notify') === '1' ? ' No email sent: the order has no email address.' : '')));
         }
     }
 
@@ -232,7 +218,7 @@ if (is_post()) {
         db_run('UPDATE threads SET branch_id = ? WHERE order_id = ?', [$to['id'], $id]);
         log_order_event($id, 'note', 'Moved from ' . $from . ' to ' . $to['name'] . '.', $adminId);
         $moved = get_order($id);
-        $notify = branch_notify_email((int) $to['id']);
+        $notify = shop_alert_address((int) $to['id'], (string) $moved['customer_email']);
         if ($notify !== '') {
             send_branch_mail((int) $to['id'], $notify, 'Order ' . $moved['order_number'] . ' moved to ' . $to['name'],
                 render_email('order-new-admin', ['order' => $moved, 'items' => get_order_items($id), 'title' => 'Order moved to ' . $to['name'] . ' from ' . $from, 'preheader' => $moved['customer_name'] . ', ' . order_when($moved)]),

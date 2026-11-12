@@ -152,6 +152,17 @@ function branch_notify_email(?int $branchId): string
     return branch_account_email((int) $branch['id']);
 }
 
+/**
+ * Where a shop alert about a customer goes: the shop's alerts address, but never the customer's
+ * own address. (When the two are the same, e.g. a test order placed with the shop's address,
+ * the customer would otherwise get the shop's copy with the admin panel link.)
+ */
+function shop_alert_address(?int $branchId, string $customerEmail): string
+{
+    $to = branch_notify_email($branchId);
+    return $to !== '' && strcasecmp(trim($to), trim($customerEmail)) !== 0 ? $to : '';
+}
+
 /** The email shown for a shop on the website (footer, contact page, its page), or '' when hidden. */
 function branch_email_shown(array $branch): string
 {

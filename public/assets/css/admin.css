@@ -1173,3 +1173,25 @@ select.input { appearance: none; padding-right: 36px; background-image: url("dat
 .maintenance-box .link-btn { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; }
 .maintenance-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin: 0 0 16px; padding: 10px 16px; border-radius: var(--radius); background: var(--amber-bg); color: var(--amber); font-size: 14px; font-weight: 600; }
 .maintenance-bar a { color: inherit; text-decoration: underline; }
+.spam-alert { display: flex; flex-direction: column; gap: 6px; }
+.spam-alert strong { display: flex; align-items: center; gap: 6px; }
+.spam-alert ul { margin: 0; padding-left: 20px; }
+.spam-alert a { color: inherit; font-weight: 600; }
+
+/* Orders: needs-action bar, tabs and quick lists */
+.action-bar { display: flex; align-items: center; gap: 12px; margin: 0 0 14px; padding: 12px 16px; border: 1px solid #F3D58C; border-radius: var(--radius); background: var(--amber-bg); color: var(--amber); text-decoration: none; transition: border-color .15s, transform .15s; }
+.action-bar:hover { border-color: var(--amber); transform: translateY(-1px); }
+.action-bar__icon { display: grid; place-items: center; flex: none; width: 34px; height: 34px; border-radius: 50%; background: #fff; }
+.action-bar > span:nth-child(2) { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.action-bar strong { color: #5C3D00; font-family: var(--font-head); }
+.action-bar small { font-size: 13px; overflow-wrap: anywhere; }
+.action-bar__go { display: inline-flex; align-items: center; gap: 4px; flex: none; font-weight: 700; }
+.order-tabs { border-bottom: 0; padding-bottom: 4px; }
+.order-tabs a span { background: var(--bg); color: var(--muted); }
+.order-tabs a.is-active span { background: #fff; color: var(--brand-deep); }
+.order-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 12px; border-bottom: 1px solid var(--line); }
+.order-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--muted); font-size: 13px; font-weight: 600; text-decoration: none; }
+.order-chip span { color: var(--ink); }
+.order-chip:hover { border-color: var(--brand-mint); color: var(--ink); }
+.order-chip.is-active { border-color: var(--brand); background: var(--brand-soft); color: var(--brand-deep); }
+.order-chip--alert { border-color: #F3D58C; background: var(--amber-bg); color: var(--amber); }

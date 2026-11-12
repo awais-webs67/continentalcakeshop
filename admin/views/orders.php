@@ -1,5 +1,5 @@
 <?php /** @var array $result @var array $views @var string $current @var array $viewCounts @var bool $filtersOn */
-$viewIcons = ['action' => 'bell', 'today' => 'calendar', 'tomorrow' => 'clock', 'upcoming' => 'calendar', 'unpaid' => 'card', 'done' => 'check', 'cancelled' => 'close', 'all' => 'bag'];
+$link = static fn (string $key): string => admin_url('orders', $key === 'ongoing' ? [] : ['view' => $key]);
 ?>
 <div class="page-head">
     <div><h1>Orders</h1><p>Every order from the website, by phone and in the shop. Tap an order to open it.</p></div>
@@ -9,19 +9,31 @@ $viewIcons = ['action' => 'bell', 'today' => 'calendar', 'tomorrow' => 'clock', 
     </div>
 </div>
 
-<nav class="view-cards" data-live="views" aria-label="Order views">
-    <?php foreach ($views as $key => [$label, $help]): ?>
-        <a href="<?= e(admin_url('orders', $key === 'all' ? [] : ['view' => $key])) ?>" class="view-card view-card--<?= e($key) ?><?= $current === $key ? ' is-active' : '' ?><?= $key === 'action' && $viewCounts[$key] ? ' has-alert' : '' ?>" title="<?= e($help) ?>"<?= $current === $key ? ' aria-current="page"' : '' ?>>
-            <span class="view-card__icon"><?= icon($viewIcons[$key], '', 17) ?></span>
-            <span class="view-card__label"><?= e($label) ?></span>
-            <strong><?= $viewCounts[$key] ?></strong>
+<div data-live="views">
+    <?php if ($viewCounts['action'] && $current !== 'action'): ?>
+        <a class="action-bar" href="<?= e($link('action')) ?>">
+            <span class="action-bar__icon"><?= icon('bell', '', 18) ?></span>
+            <span><strong><?= $viewCounts['action'] ?> order<?= $viewCounts['action'] === 1 ? ' needs' : 's need' ?> action</strong><small>New orders, payments to check and deliveries without a time</small></span>
+            <span class="action-bar__go">Show <?= icon('arrow', '', 15) ?></span>
         </a>
-    <?php endforeach; ?>
-</nav>
+    <?php endif; ?>
+</div>
 
 <section class="card">
+    <div data-live="tabs">
+        <nav class="tabs order-tabs" aria-label="Orders">
+            <?php foreach (ORDER_TABS as $key): ?>
+                <a href="<?= e($link($key)) ?>" class="<?= $current === $key ? 'is-active' : '' ?>"<?= $current === $key ? ' aria-current="page"' : '' ?> title="<?= e($views[$key][1]) ?>"><?= e($views[$key][0]) ?> <span><?= $viewCounts[$key] ?></span></a>
+            <?php endforeach; ?>
+        </nav>
+        <div class="order-chips" aria-label="Quick lists">
+            <?php foreach (['action', 'tomorrow', 'unpaid', 'cancelled'] as $key): ?>
+                <a class="order-chip<?= $current === $key ? ' is-active' : '' ?><?= $key === 'action' && $viewCounts[$key] ? ' order-chip--alert' : '' ?>" href="<?= e($link($key)) ?>"<?= $current === $key ? ' aria-current="page"' : '' ?>><?= e($views[$key][0]) ?> <span><?= $viewCounts[$key] ?></span></a>
+            <?php endforeach; ?>
+        </div>
+    </div>
     <form class="order-filters" method="get" action="<?= e(admin_url('orders')) ?>">
-        <?php if ($current !== 'all'): ?><input type="hidden" name="view" value="<?= e($current) ?>"><?php endif; ?>
+        <?php if ($current !== 'ongoing'): ?><input type="hidden" name="view" value="<?= e($current) ?>"><?php endif; ?>
         <div class="order-filters__search">
             <?= icon('search', '', 18) ?>
             <input class="input" type="search" name="q" value="<?= e($q) ?>" placeholder="Search order number, name, email or phone" aria-label="Search orders">
@@ -64,7 +76,7 @@ $viewIcons = ['action' => 'bell', 'today' => 'calendar', 'tomorrow' => 'clock', 
                         <option value="placed" <?= selected($sort === 'placed') ?>>Newest placed first</option>
                     </select>
                 </label>
-                <?php if ($filtersOn || $q !== ''): ?><a class="btn btn--ghost btn--sm order-filters__clear" href="<?= e(admin_url('orders', $current !== 'all' ? ['view' => $current] : [])) ?>">Clear filters</a><?php endif; ?>
+                <?php if ($filtersOn || $q !== ''): ?><a class="btn btn--ghost btn--sm order-filters__clear" href="<?= e($link($current)) ?>">Clear filters</a><?php endif; ?>
             </div>
         </details>
     </form>
@@ -75,7 +87,13 @@ $viewIcons = ['action' => 'bell', 'today' => 'calendar', 'tomorrow' => 'clock', 
             <span><?= e($views[$current][1]) ?> &middot; <?= (int) $result['total'] ?> order<?= $result['total'] === 1 ? '' : 's' ?></span>
         </div>
         <?php if (!$result['rows']): ?>
-            <div class="empty"><?= icon('bag', '', 32) ?><p><?= $current === 'action' ? 'Nothing needs doing right now.' : 'No orders match these filters.' ?></p></div>
+            <div class="empty"><?= icon('bag', '', 32) ?><p><?= match (true) {
+                $filtersOn || $q !== '' => 'No orders match these filters.',
+                $current === 'action'   => 'Nothing needs doing right now.',
+                $current === 'ongoing'  => 'No open orders. New orders show here.',
+                $current === 'today'    => 'No pickups or deliveries today.',
+                default                 => 'No orders here yet.',
+            } ?></p></div>
         <?php else: ?>
             <div class="order-list">
                 <?php foreach ($result['rows'] as $o): ?>

@@ -162,6 +162,14 @@ $multi = count(branches()) > 1;
     $inboxError = (string) branch_setting($id, 'inbox_error');
     $effective = static fn (string $key, string $default) => with_branch($id, static fn () => setting($key, $default));
     ?>
+    <?php $spamProblems = array_filter(email_delivery_checks($id, false), static fn ($row) => !$row[1]); ?>
+    <?php if ($spamProblems): ?>
+        <div class="alert alert--warning spam-alert">
+            <strong><?= icon('alert', '', 16) ?> Emails from <?= e($b['name']) ?> may land in spam</strong>
+            <ul><?php foreach ($spamProblems as [, , $fix]): ?><li><?= e($fix) ?></li><?php endforeach; ?></ul>
+            <a href="<?= e(admin_url('system')) ?>">Full check in System check (also the domain's SPF, DKIM and DMARC)</a>
+        </div>
+    <?php endif; ?>
     <div class="branch-form">
         <form method="post" class="branch-form__main" id="branch-email-form" data-reveal-form>
             <?= csrf_field() ?><input type="hidden" name="action" value="email"><input type="hidden" name="id" value="<?= $id ?>">

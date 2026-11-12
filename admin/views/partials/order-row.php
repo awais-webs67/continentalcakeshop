@@ -48,8 +48,9 @@ $overdue = $o['pickup_date'] < date('Y-m-d') && !in_array($o['order_status'], ['
                 <input type="hidden" name="id" value="<?= (int) $o['id'] ?>">
                 <input type="hidden" name="action" value="status">
                 <input type="hidden" name="order_status" value="<?= e($next[0]) ?>">
+                <input type="hidden" name="notify" value="1">
                 <input type="hidden" name="back" value="<?= e(admin_back_path()) ?>">
-                <button class="btn btn--secondary btn--sm" type="submit"><?= icon('check', '', 15) ?> <?= e($next[1]) ?></button>
+                <button class="btn btn--secondary btn--sm" type="submit" title="<?= valid_email((string) $o['customer_email']) ? 'Also emails the customer' : 'No email address on this order' ?>"><?= icon('check', '', 15) ?> <?= e($next[1]) ?></button>
             </form>
         <?php endif; ?>
         <a class="btn btn--primary btn--sm order-row__open" href="<?= e(admin_url('orders/view', ['id' => $o['id']])) ?>">Open <?= icon('arrow', '', 15) ?></a>

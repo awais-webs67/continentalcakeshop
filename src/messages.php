@@ -112,7 +112,7 @@ function chat_bubble_html(array $m, array $thread, string $view): string
 function customer_message(array $thread, string $body): void
 {
     add_thread_message($thread, 'customer', $body);
-    $notify = branch_notify_email((int) ($thread['branch_id'] ?? 0));
+    $notify = shop_alert_address((int) ($thread['branch_id'] ?? 0), (string) $thread['customer_email']);
     if ($notify !== '' && !thread_seen_live($thread, 'admin')) {
         send_branch_mail(
             (int) ($thread['branch_id'] ?? 0),

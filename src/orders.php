@@ -302,6 +302,39 @@ function order_address(array $order): string
     return trim((string) $order['delivery_address'] . ($place !== '' ? ', ' . $place : ''));
 }
 
+/** What the customer is told when their order moves on (staff can type their own words). */
+const ORDER_STATUS_MESSAGES = [
+    'confirmed'   => 'Good news, your order is confirmed. We will have it ready at the time you chose.',
+    'in_progress' => 'We have started preparing your order.',
+    'ready'       => 'Your order is ready to collect.',
+    'completed'   => 'Thank you for your order. We hope you enjoy it!',
+    'cancelled'   => 'Your order has been cancelled. If you have any questions, please give us a call.',
+];
+
+/**
+ * Moves an order to another status, notes it in the order's history and, when $notify, emails
+ * the customer. Used by the order page and the quick buttons in the order lists, so the
+ * customer is told the same way wherever staff change it. Returns [changed, emailed].
+ */
+function change_order_status(array $order, string $new, ?int $adminId, bool $notify, string $message = ''): array
+{
+    if (!isset(ORDER_STATUSES[$new]) || $new === $order['order_status']) {
+        return ['changed' => false, 'emailed' => false];
+    }
+    $id = (int) $order['id'];
+    db_run("UPDATE orders SET order_status = ?, completed_at = IF(? = 'completed', NOW(), completed_at) WHERE id = ?", [$new, $new, $id]);
+    log_order_event($id, 'status', 'Status changed to ' . order_status_label($order, $new) . '.', $adminId);
+    $emailed = false;
+    if ($notify && valid_email((string) $order['customer_email'])) {
+        $default = $new === 'ready' && is_delivery($order) ? 'Your order is on its way to you.' : (ORDER_STATUS_MESSAGES[$new] ?? 'There is an update on your order.');
+        send_order_update_email(get_order($id), order_status_label($order, $new), $message !== '' ? $message : $default);
+        log_order_event($id, 'email', 'Customer emailed about the status change.', $adminId);
+        $emailed = true;
+    }
+    return ['changed' => true, 'emailed' => $emailed];
+}
+
+
 function log_order_event(int $orderId, string $event, string $message, ?int $adminId = null): void
 {
     db_run('INSERT INTO order_events (order_id, admin_id, event, message) VALUES (?, ?, ?, ?)', [$orderId, $adminId, $event, str_limit($message, 500)]);
@@ -362,7 +395,7 @@ function mark_order_paid(array $order, string $reference, ?float $amount = null)
         send_order_update_email($updated, $updated['payment_status'] === 'paid' ? 'Payment received' : 'Deposit received',
             'Thank you, we have received your payment of ' . money($amount) . '.'
             . (order_balance($updated) > 0 ? ' The balance of ' . money(order_balance($updated)) . ' is due before ' . (is_delivery($updated) ? 'delivery' : 'pickup') . '.' : ''));
-        $notify = branch_notify_email((int) $updated['branch_id']);
+        $notify = shop_alert_address((int) $updated['branch_id'], (string) $updated['customer_email']);
         if ($notify !== '' && $updated['channel'] !== 'online') {
             send_branch_mail((int) $updated['branch_id'], $notify, 'Card payment ' . money($amount) . ' for ' . $updated['order_number'],
                 render_email('order-new-admin', ['order' => $updated, 'items' => get_order_items((int) $updated['id']), 'title' => 'Card payment received', 'preheader' => money($amount) . ' from ' . $updated['customer_name']]),

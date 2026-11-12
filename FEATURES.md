@@ -521,3 +521,13 @@ A login with a shop never sees another shop's records, even by typing a link (`r
 ## 36. Maintenance mode
 
 Admin > Settings > Business > **Maintenance mode** (owners). While it is on (`src/maintenance.php`, checked at the end of `src/bootstrap.php`), customers get `templates/maintenance.php` for every page: "Our website is having a quick update", the optional message, and each shop's call and email buttons so they can still order. It answers `503` with `Retry-After` (Google keeps the pages and rankings) and `noindex`. Staff logged in to the admin panel see the website as usual with a reminder bar (and the page itself with `?preview_maintenance=1`); the admin panel shows a bar with "Turn it off". The admin panel, `robots.txt` and the Stripe webhook keep working; scheduled jobs are not affected. The page has its own small styles, so it shows correctly while the rest of the website is being changed.
+
+## 37. Orders page, status emails, emails reaching the inbox
+
+**Orders page tabs** (`admin/controllers/orders.php`): **Ongoing** (default: every order not finished, soonest first; late ones show "Not marked done"), **Today**, **Upcoming**, **Completed**, **History** (every order dated before today, latest first) and **All** (newest placed first), each with its count. Below them, quick lists: Needs action, Tomorrow, Money owing, Cancelled. A yellow bar above says how many orders need action. Search and filters (status, payment, pickup or delivery, where it came from, dates, sort) work inside the chosen tab.
+
+**Status emails** (`change_order_status()` in `src/orders.php`): changing the status from the order page or with the quick button in any order list (Orders, Pickups, Dashboard) does the same thing: notes it in the order's history and emails the customer (on the order page the email can be switched off; the quick buttons always email when the order has an email address). The words are in `ORDER_STATUS_MESSAGES`.
+
+**The shop's alert never reaches the customer** (`shop_alert_address()`): new order, custom cake request, contact message, card payment and moved-order alerts go to the shop's alerts address, and are skipped when that address is the customer's own (e.g. a test order placed with the shop's address).
+
+**Inbox, not spam** (`email_delivery_checks()` in `src/mail.php`): Admin > System check > "Emails: spam check" and a warning on each shop's Email tab say why emails may land in spam: emails only saved to a file, sent by the website server (PHP mail), a Gmail address not sent through Gmail, and the domain's SPF, DKIM and DMARC records (cPanel > Email Deliverability > Repair).
