@@ -1166,3 +1166,10 @@ select.input { appearance: none; padding-right: 36px; background-image: url("dat
 .photo-tools__buttons { display: flex; flex-wrap: wrap; gap: 8px; }
 .progress { height: 8px; border-radius: 99px; background: var(--brand-soft); overflow: hidden; }
 .progress__bar { height: 100%; width: 0; background: var(--brand); transition: width .3s; }
+
+/* Settings > Business: maintenance mode */
+.maintenance-box { display: flex; flex-direction: column; gap: 12px; border-bottom: 1px solid var(--line); }
+.maintenance-box.is-on { background: var(--amber-bg); }
+.maintenance-box .link-btn { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; }
+.maintenance-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin: 0 0 16px; padding: 10px 16px; border-radius: var(--radius); background: var(--amber-bg); color: var(--amber); font-size: 14px; font-weight: 600; }
+.maintenance-bar a { color: inherit; text-decoration: underline; }

@@ -13,7 +13,7 @@ const SETTINGS_TABS = [
 // Plain text settings each tab may change. Anything not listed here is ignored.
 const SETTINGS_FIELDS = [
     // Each shop's address, phone, email and map are in Admin > Branches > shop > Shop details.
-    'store'    => ['store_name' => 120, 'store_short_name' => 80, 'store_founded' => 4, 'store_abn' => 20, 'whatsapp_number' => 20, 'whatsapp_message' => 160],
+    'store'    => ['store_name' => 120, 'store_short_name' => 80, 'store_founded' => 4, 'store_abn' => 20, 'whatsapp_number' => 20, 'whatsapp_message' => 160, 'maintenance_message' => 300],
     'ordering' => ['min_lead_hours' => 4, 'custom_lead_days' => 3, 'max_advance_days' => 4, 'slot_interval_minutes' => 3, 'last_slot_buffer_minutes' => 4, 'max_orders_per_slot' => 4, 'max_deliveries_per_day' => 4, 'delivery_fee' => 10, 'delivery_free_over' => 10, 'delivery_min_order' => 10, 'delivery_note' => 255, 'delivery_postcodes' => 255, 'ordering_paused_until' => 10, 'ordering_paused_message' => 255],
     'payments' => ['payment_stripe_label' => 60, 'payment_stripe_note' => 255, 'payment_payid_label' => 60, 'payment_payid_note' => 255, 'payment_bank_label' => 60, 'payment_bank_note' => 255, 'payid_identifier' => 120, 'payid_account_name' => 120, 'bank_account_name' => 120, 'bank_bsb' => 7, 'bank_account_number' => 20, 'stripe_publishable_key' => 255],
     // Each shop's email account, order alerts, inbox and automatic emails are in Admin > Branches > shop > Email.
@@ -26,7 +26,7 @@ const SETTINGS_SWITCHES = [
     'ordering' => ['pickup_enabled', 'delivery_enabled', 'ordering_paused'],
     'payments' => ['payment_stripe_enabled', 'payment_payid_enabled', 'payment_bank_enabled'],
     'emails'   => ['send_customer_emails', 'daily_email_enabled'],
-    'store'    => ['gst_registered'],
+    'store'    => ['gst_registered', 'maintenance_mode'],
 ];
 
 if (($_GET['tab'] ?? '') === 'homepage') {

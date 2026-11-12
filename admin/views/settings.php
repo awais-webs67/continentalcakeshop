@@ -23,6 +23,12 @@ $mask = static function (string $key): string {
     <?= csrf_field() ?><input type="hidden" name="action" value="save">
 
 <?php if ($tab === 'store'): ?>
+    <?php $maintenanceOn = ($s['maintenance_mode'] ?? '0') === '1'; ?>
+    <div class="card__body maintenance-box <?= $maintenanceOn ? 'is-on' : '' ?>">
+        <label class="switch"><input type="checkbox" name="maintenance_mode" value="1" <?= $on('maintenance_mode') ?>><span class="switch__track"></span><span><strong>Maintenance mode</strong><small>When on, customers see a "back very soon" page with each shop's phone and email, so they can still order by phone or email. You stay logged in and see the website as usual; Google is told it is only for a short while.</small></span></label>
+        <label class="field"><span>Message on that page <small>optional</small></span><textarea class="input" name="maintenance_message" rows="2" maxlength="300" placeholder="We are making a few improvements to our website and will be back very soon. You can still order: call or email us and we will take your order."><?= $v('maintenance_message') ?></textarea></label>
+        <a class="link-btn" href="<?= e(url('?preview_maintenance=1')) ?>" target="_blank" rel="noopener">See the page customers get <?= icon('arrow', '', 14) ?></a>
+    </div>
     <div class="card__body shared-note">
         <p><strong>Each shop's address, phone, email and map are in Branches.</strong> They show in the footer, on the contact page, on each shop's page, on invoices and in emails.</p>
         <ul class="shop-summary">

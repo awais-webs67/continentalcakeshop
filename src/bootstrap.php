@@ -81,6 +81,7 @@ require __DIR__ . '/menu.php';
 require __DIR__ . '/seo.php';
 require __DIR__ . '/icons.php';
 require __DIR__ . '/migrations.php';
+require __DIR__ . '/maintenance.php';
 
 // New code that came with database changes updates the database on the first request.
 if (PHP_SAPI !== 'cli') {
@@ -99,6 +100,9 @@ if (session_status() === PHP_SESSION_NONE && PHP_SAPI !== 'cli') {
     ]);
     session_start();
 }
+
+// Maintenance mode: customers see the "back soon" page (staff and the admin panel do not).
+maintenance_gate();
 
 function config(string $key, mixed $default = null): mixed
 {

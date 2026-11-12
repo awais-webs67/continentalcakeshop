@@ -51,6 +51,9 @@ $current = static fn (array $item): string => $item['active'] ? ' aria-current="
 <?php endforeach; ?>
 </head>
 <body class="<?= e($page['body_class']) ?>">
+<?php if (maintenance_on()): // only staff get this far while it is on ?>
+<div style="position:sticky;top:0;z-index:200;padding:8px 16px;background:#FFF4DB;color:#8A5A00;font:600 14px/1.4 system-ui,sans-serif;text-align:center">Maintenance mode is on: customers see the "back very soon" page. You see the website because you are logged in to the admin panel.</div>
+<?php endif; ?>
 <a class="skip-link" href="#main">Skip to content</a>
 
 <?php $announcement = ordering_paused() ? ordering_paused_message() : setting('announcement_text'); ?>

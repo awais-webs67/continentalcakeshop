@@ -220,6 +220,9 @@ $branchLocked = admin_branch_locked($admin);
     <?php endif; ?>
 
     <main class="admin-content">
+        <?php if (maintenance_on()): ?>
+            <div class="maintenance-bar" role="status"><span>Maintenance mode is on: customers see the "back very soon" page.</span><?php if ($admin['role'] === 'owner'): ?><a href="<?= e(admin_url('settings', ['tab' => 'store'])) ?>">Turn it off</a><?php endif; ?></div>
+        <?php endif; ?>
         <?= $content ?>
     </main>
 </div>
