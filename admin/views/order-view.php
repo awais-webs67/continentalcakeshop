@@ -147,12 +147,20 @@ $ordinal = static fn (int $n): string => $n . (in_array($n % 100, [11, 12, 13], 
                         <p class="ov-pay__method"><?= e(payment_method_label($order['payment_method'])) ?><?php if ($order['payment_reference']): ?> &middot; reference <?= e($order['payment_reference']) ?><?php endif; ?></p>
                         <?php if ($balance > 0 && !$cancelled): ?>
                             <div class="ov-pay__buttons">
+                                <?php if (confirm_takes_payment($order)): ?>
+                                <form method="post">
+                                    <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $order['id'] ?>"><input type="hidden" name="action" value="status">
+                                    <input type="hidden" name="order_status" value="confirmed"><input type="hidden" name="notify" value="1">
+                                    <button class="btn btn--primary" type="submit" title="Confirms the order, records the payment and sends the customer one email"><?= icon('check', '', 17) ?> Money received, confirm order</button>
+                                </form>
+                                <?php else: ?>
                                 <form method="post">
                                     <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $order['id'] ?>"><input type="hidden" name="action" value="record_payment">
                                     <input type="hidden" name="amount" value="<?= e(number_format($balance, 2, '.', '')) ?>"><input type="hidden" name="method" value="<?= e($order['payment_method']) ?>">
                                     <?php if (valid_email($order['customer_email'])): ?><input type="hidden" name="notify" value="1"><?php endif; ?>
-                                    <button class="btn btn--success" type="submit" title="<?= valid_email($order['customer_email']) ? 'Records the full amount and emails the customer a receipt' : 'Records the full amount' ?>"><?= icon('check', '', 17) ?> Money received <?= e(money($balance)) ?></button>
+                                    <button class="btn btn--primary" type="submit" title="<?= valid_email($order['customer_email']) ? 'Records the full amount and emails the customer a receipt' : 'Records the full amount' ?>"><?= icon('check', '', 17) ?> Money received <?= e(money($balance)) ?></button>
                                 </form>
+                                <?php endif; ?>
                             </div>
                         <?php endif; ?>
                     </div>
@@ -173,7 +181,7 @@ $ordinal = static fn (int $n): string => $n . (in_array($n % 100, [11, 12, 13], 
                                 <label class="field"><span>Note <small>optional</small></span><input class="input" name="note" maxlength="200" placeholder="e.g. deposit"></label>
                             </div>
                             <label class="switch"><input type="checkbox" name="notify" value="1" <?= checked(valid_email($order['customer_email'])) ?>><span class="switch__track"></span><span>Email the customer a receipt</span></label>
-                            <button class="btn btn--success" type="submit"><?= icon('check', '', 18) ?> Record payment</button>
+                            <button class="btn btn--primary" type="submit"><?= icon('check', '', 18) ?> Record payment</button>
                         </form>
                     </details>
                     <?php if (in_array($order['payment_status'], ['pending', 'awaiting_verification'], true)): ?>
@@ -259,7 +267,7 @@ $ordinal = static fn (int $n): string => $n . (in_array($n % 100, [11, 12, 13], 
                 <div class="ov-customer__buttons">
                     <?php if ($phoneDigits !== ''): ?>
                         <a class="btn btn--secondary btn--sm" href="tel:<?= e($order['customer_phone']) ?>"><?= icon('phone', '', 15) ?> Call</a>
-                        <a class="btn btn--sm ov-wa" href="https://wa.me/<?= e($waDigits) ?>" target="_blank" rel="noopener"><?= icon('whatsapp', '', 15) ?> WhatsApp</a>
+                        <a class="btn btn--secondary btn--sm ov-wa" href="https://wa.me/<?= e($waDigits) ?>" target="_blank" rel="noopener"><?= icon('whatsapp', '', 15) ?> WhatsApp</a>
                     <?php endif; ?>
                     <?php if (valid_email((string) $order['customer_email'])): ?><a class="btn btn--secondary btn--sm" href="mailto:<?= e($order['customer_email']) ?>"><?= icon('mail', '', 15) ?> Email</a><?php endif; ?>
                 </div>

@@ -24,6 +24,7 @@ if (is_post()) {
         $result = change_order_status($order, input('order_status'), $adminId, input('notify') === '1', trim(input('message')));
         if ($result['changed']) {
             flash('success', 'Order ' . $order['order_number'] . ' marked ' . strtolower(order_status_label($order, input('order_status'))) . '.'
+                . (($result['paid'] ?? 0) > 0 ? ' Payment of ' . money($result['paid']) . ' marked as received.' : '')
                 . ($result['emailed'] ? ' The customer was emailed.' : (input('notify') === '1' ? ' No email sent: the order has no email address.' : '')));
         }
     }

@@ -263,11 +263,12 @@ function selected(bool $value): string
 /** SQL for a one-line list of the cakes in an order, e.g. "1 x Red Velvet (Midi, Eggless)". */
 const ORDER_SUMMARY_SQL = "(SELECT GROUP_CONCAT(CONCAT(quantity, ' x ', product_name, IF(CONCAT_WS(', ', NULLIF(size_label, ''), NULLIF(options, '')) = '', '', CONCAT(' (', CONCAT_WS(', ', NULLIF(size_label, ''), NULLIF(options, '')), ')'))) ORDER BY id SEPARATOR ', ') FROM order_items WHERE order_id = o.id)";
 
-/** The next step for an order from a list: [new status, button label], or null when it is finished. */
+/** The next step for an order from a list: [new status, button label], or null when it is finished.
+ *  "Confirm & paid" when confirming also records a PayID or bank transfer (confirm_takes_payment()). */
 function order_next_step(array $order): ?array
 {
     return match ($order['order_status']) {
-        'new'                      => ['confirmed', 'Confirm'],
+        'new'                      => ['confirmed', confirm_takes_payment($order) ? 'Confirm & paid' : 'Confirm'],
         'confirmed', 'in_progress' => ['ready', is_delivery($order) ? 'Out for delivery' : 'Mark ready'],
         'ready'                    => ['completed', is_delivery($order) ? 'Delivered' : 'Collected'],
         default                    => null,

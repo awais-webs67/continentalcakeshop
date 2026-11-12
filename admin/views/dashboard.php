@@ -24,17 +24,17 @@ $hour = (int) date('G');
         <span class="stat__value"><?= $stats['due_today'] ?></span>
         <span class="stat__note">Pickups and deliveries</span>
     </a>
-    <a class="stat <?= $stats['to_verify'] ? 'stat--alert' : '' ?>" href="<?= e(admin_url('orders', ['payment' => 'awaiting_verification'])) ?>">
+    <a class="stat<?= $stats['to_verify'] ? ' stat--dot' : '' ?>" href="<?= e(admin_url('orders', ['payment' => 'awaiting_verification'])) ?>">
         <span class="stat__label"><?= icon('card', '', 18) ?> Payments to check</span>
         <span class="stat__value"><?= $stats['to_verify'] ?></span>
         <span class="stat__note">PayID and bank screenshots</span>
     </a>
-    <a class="stat <?= $stats['new_orders'] ? 'stat--alert' : '' ?>" href="<?= e(admin_url('orders', ['status' => 'new'])) ?>">
+    <a class="stat<?= $stats['new_orders'] ? ' stat--dot' : '' ?>" href="<?= e(admin_url('orders', ['status' => 'new'])) ?>">
         <span class="stat__label"><?= icon('bag', '', 18) ?> New orders</span>
         <span class="stat__value"><?= $stats['new_orders'] ?></span>
         <span class="stat__note">Not confirmed yet</span>
     </a>
-    <a class="stat stat--brand" href="<?= e(admin_can('reports', $admin) ? admin_url('reports') : admin_url('orders')) ?>">
+    <a class="stat" href="<?= e(admin_can('reports', $admin) ? admin_url('reports') : admin_url('orders')) ?>">
         <span class="stat__label"><?= icon('chart', '', 18) ?> Sales this month</span>
         <span class="stat__value"><?= e(money($stats['month_sales'])) ?></span>
         <span class="stat__note"><?= $stats['month_orders'] ?> orders in <?= e(date('F')) ?></span>

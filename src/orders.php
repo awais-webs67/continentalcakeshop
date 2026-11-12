@@ -312,6 +312,18 @@ const ORDER_STATUS_MESSAGES = [
 ];
 
 /**
+ * Whether confirming this order also records its payment: a new PayID or bank transfer order
+ * with money still owing (staff confirm once they see the transfer). Card orders are paid by
+ * Stripe already; cash and EFTPOS orders are paid in the shop at pickup.
+ */
+function confirm_takes_payment(array $order): bool
+{
+    return $order['order_status'] === 'new'
+        && in_array($order['payment_method'], [PAYMENT_PAYID, PAYMENT_BANK], true)
+        && order_balance($order) > 0.004;
+}
+
+/**
  * Moves an order to another status, notes it in the order's history and, when $notify, emails
  * the customer. Used by the order page and the quick buttons in the order lists, so the
  * customer is told the same way wherever staff change it. Returns [changed, emailed].
@@ -324,14 +336,22 @@ function change_order_status(array $order, string $new, ?int $adminId, bool $not
     $id = (int) $order['id'];
     db_run("UPDATE orders SET order_status = ?, completed_at = IF(? = 'completed', NOW(), completed_at) WHERE id = ?", [$new, $new, $id]);
     log_order_event($id, 'status', 'Status changed to ' . order_status_label($order, $new) . '.', $adminId);
+    // Confirming a PayID or bank transfer order means staff have seen the money arrive.
+    $paid = $new === 'confirmed' && confirm_takes_payment($order) ? order_balance($order) : 0.0;
+    if ($paid > 0 && !record_payment($order, $paid, (string) $order['payment_method'], null, 'Received, noted when the order was confirmed.', $adminId)) {
+        $paid = 0.0;
+    }
     $emailed = false;
     if ($notify && valid_email((string) $order['customer_email'])) {
         $default = $new === 'ready' && is_delivery($order) ? 'Your order is on its way to you.' : (ORDER_STATUS_MESSAGES[$new] ?? 'There is an update on your order.');
+        if ($paid > 0 && $message === '') {
+            $default = 'Good news, we have received your payment of ' . money($paid) . ' and your order is confirmed. We will have it ready at the time you chose.';
+        }
         send_order_update_email(get_order($id), order_status_label($order, $new), $message !== '' ? $message : $default);
         log_order_event($id, 'email', 'Customer emailed about the status change.', $adminId);
         $emailed = true;
     }
-    return ['changed' => true, 'emailed' => $emailed];
+    return ['changed' => true, 'emailed' => $emailed, 'paid' => $paid];
 }
 
 

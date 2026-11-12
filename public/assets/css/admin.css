@@ -1424,3 +1424,66 @@ select.input { appearance: none; padding-right: 36px; background-image: url("dat
     .ov__customer { order: 1; } .ov__when { order: 2; } .ov__items { order: 3; } .ov__pay { order: 4; } .ov__notes { order: 5; } .ov__history { order: 6; }
     .ov-pay__proof { height: 170px; }
 }
+
+/* ---- Calm colours (Nov 2026): white cards, one green for actions, colour only in small dots ---- */
+/* Status labels: grey pill, coloured dot. */
+.badge { background: #F1F3F3; color: var(--text); font-weight: 600; }
+.badge::before { width: 7px; height: 7px; opacity: 1; background: #A2A9AE; }
+.badge--new::before, .badge--pending::before, .badge--quoted::before, .badge--unread::before, .badge--partially_paid::before, .badge--awaiting_verification::before { background: #E3A008; }
+.badge--confirmed::before, .badge--in_progress::before, .badge--staff::before { background: #4C7FD9; }
+.badge--ready::before, .badge--paid::before, .badge--active::before, .badge--owner::before, .badge--read::before { background: var(--brand); }
+.badge--completed::before { background: #A2A9AE; }
+.badge--cancelled::before, .badge--failed::before, .badge--refunded::before, .badge--inactive::before, .badge--closed::before { background: #D64545; }
+.badge--cancelled, .badge--failed { color: var(--red); }
+
+/* Dashboard tiles: all alike. */
+.stats .stat, .stats .stat:hover { background: #fff; border-color: var(--line); color: inherit; }
+.stats .stat::after { display: none; }
+.stats .stat__label { color: var(--muted); }
+.stats .stat__label .icon { background: var(--bg); color: var(--muted); }
+.stats .stat__value { color: var(--ink); }
+.stats .stat__note { color: var(--muted); }
+.stat--dot .stat__label::after { content: ""; width: 8px; height: 8px; margin-left: auto; border-radius: 50%; background: #E3A008; }
+.card__head h2 .count, .card__head h2 .count--warn, .card__head h2 .count--alert { background: var(--bg); color: var(--ink); }
+
+/* Order lines and rows: no coloured stripes or tinted rows. */
+.order-line::before, .order-row::before { display: none; }
+.order-line--completed, .order-line--cancelled { opacity: 1; }
+.order-line--completed .order-line__main strong, .order-line--cancelled .order-line__main strong { color: var(--muted); }
+.order-line__end .is-due { color: var(--red); }
+.order-line__when, .order-row__when { background: var(--bg); }
+.otr--new { background: transparent; }
+.otr__dot { background: #E3A008; box-shadow: none; }
+.otr__pay { padding: 0; }
+.otr__pay--check { background: none; color: var(--amber); }
+.order-line__act .btn--primary, .otr__act .btn--primary { background: #fff; color: var(--ink); border-color: var(--line-strong); box-shadow: none; }
+.order-line__act .btn--primary:hover, .otr__act .btn--primary:hover { background: var(--brand-softer); border-color: var(--brand); color: var(--brand-dark); }
+
+/* "Waiting for you": plain numbers. */
+.wait-list__n, .wait-list__n--blue, .wait-list__n--amber, .wait-list__n--red, .wait-list__n--brand, .wait-list__n--purple { background: var(--bg); color: var(--ink); }
+
+/* Orders page: plain tabs and a quiet "needs action" line. */
+.order-tabs a.is-active { background: var(--brand-soft); color: var(--brand-deep); }
+.order-tabs a.is-active span { background: #fff; color: var(--brand-deep); }
+.action-bar { background: #fff; border-color: var(--line); color: var(--text); }
+.action-bar:hover { border-color: var(--brand); }
+.action-bar__icon { background: var(--amber-bg); color: var(--amber); }
+.action-bar strong { color: var(--ink); }
+.action-bar small { color: var(--muted); }
+.action-bar__go { color: var(--brand-dark); }
+.list-caption { background: #fff; }
+
+/* Order page. */
+.balance-box div, .balance-box .is-owing, .balance-box .is-credit { background: var(--bg); color: var(--ink); }
+.balance-box .is-owing strong { color: var(--red); }
+.balance-box .is-credit strong { color: var(--blue); }
+.ov-items__pic { background: var(--bg); color: var(--muted); }
+.ov-items__main .ov-items__writing { background: #FFFBF0; border-left: 3px solid #E3A008; border-radius: 6px; color: var(--ink); }
+.ov-customer__avatar { background: var(--brand-soft); color: var(--brand-deep); }
+.ov-customer__badge, .ov-customer__badge--new { background: var(--bg); color: var(--text); }
+.btn.ov-wa, .btn.ov-wa:hover { background: #fff; border-color: var(--line-strong); color: var(--ink); }
+.btn.ov-wa .icon { color: #25A366; }
+.card--attention { border-color: var(--line); background: #fff; box-shadow: var(--shadow); }
+.card--attention .card__head h2::before { background: #E3A008; }
+.otr__tags .branch-tag { background: var(--bg); color: var(--text); }
+@media (hover: none) { .otr:hover, .order-line:hover, .wait-list a:hover { background: transparent; } }

@@ -2,7 +2,7 @@
 $link = static fn (string $key): string => admin_url('orders', $key === 'ongoing' ? [] : ['view' => $key]);
 ?>
 <div class="page-head">
-    <div><h1>Orders</h1><p>Every order from the website, by phone and in the shop. Tap an order to open it.</p></div>
+    <div><h1>Orders</h1></div>
     <div class="page-head__actions">
         <a class="btn btn--secondary" href="<?= e(admin_url('pickups')) ?>"><?= icon('calendar', '', 18) ?> Pickups &amp; deliveries</a>
         <a class="btn btn--primary" href="<?= e(admin_url('orders/new')) ?>"><?= icon('plus', '', 18) ?> New order</a>
@@ -26,11 +26,6 @@ $link = static fn (string $key): string => admin_url('orders', $key === 'ongoing
                 <a href="<?= e($link($key)) ?>" class="<?= $current === $key ? 'is-active' : '' ?>"<?= $current === $key ? ' aria-current="page"' : '' ?> title="<?= e($views[$key][1]) ?>"><?= e($views[$key][0]) ?> <span><?= $viewCounts[$key] ?></span></a>
             <?php endforeach; ?>
         </nav>
-        <div class="order-chips" aria-label="Quick lists">
-            <?php foreach (['action', 'tomorrow', 'unpaid', 'cancelled'] as $key): ?>
-                <a class="order-chip<?= $current === $key ? ' is-active' : '' ?><?= $key === 'action' && $viewCounts[$key] ? ' order-chip--alert' : '' ?>" href="<?= e($link($key)) ?>"<?= $current === $key ? ' aria-current="page"' : '' ?>><?= e($views[$key][0]) ?> <span><?= $viewCounts[$key] ?></span></a>
-            <?php endforeach; ?>
-        </div>
     </div>
     <form class="order-filters" method="get" action="<?= e(admin_url('orders')) ?>">
         <?php if ($current !== 'ongoing'): ?><input type="hidden" name="view" value="<?= e($current) ?>"><?php endif; ?>
