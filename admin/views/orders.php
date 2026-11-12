@@ -71,9 +71,9 @@ $link = static fn (string $key): string => admin_url('orders', $key === 'ongoing
                 <label class="field"><span>Date to</span><input class="input input--sm" type="date" name="to" value="<?= e($to) ?>" data-auto-submit></label>
                 <label class="field"><span>Sort by</span>
                     <select class="input input--sm" name="sort" data-auto-submit>
-                        <option value="">Best for this view</option>
+                        <option value="">Newest placed first</option>
                         <option value="date" <?= selected($sort === 'date') ?>>Pickup date, soonest first</option>
-                        <option value="placed" <?= selected($sort === 'placed') ?>>Newest placed first</option>
+                        
                     </select>
                 </label>
                 <?php if ($filtersOn || $q !== ''): ?><a class="btn btn--ghost btn--sm order-filters__clear" href="<?= e($link($current)) ?>">Clear filters</a><?php endif; ?>

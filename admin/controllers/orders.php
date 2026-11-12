@@ -8,16 +8,16 @@ $open = "o.order_status NOT IN ('completed', 'cancelled')";
 // Each view: [label, help text, SQL condition, sort]. The first six are the tabs; the others are
 // quick links (the "needs action" bar, tomorrow, money owing, cancelled) and keep their addresses.
 $views = [
-    'ongoing'  => ['Ongoing', 'Every order not finished yet, soonest first', $open, 'o.pickup_date, o.pickup_time IS NOT NULL, o.pickup_time'],
-    'today'    => ['Today', 'Pickups and deliveries today', "o.pickup_date = '{$today}' AND o.order_status <> 'cancelled'", 'o.pickup_time IS NOT NULL, o.pickup_time'],
-    'upcoming' => ['Upcoming', 'Orders for a later day', "o.pickup_date > '{$today}' AND {$open}", 'o.pickup_date, o.pickup_time'],
+    'ongoing'  => ['Ongoing', 'Every order not finished yet, newest first', $open, 'o.created_at DESC, o.id DESC'],
+    'today'    => ['Today', 'Pickups and deliveries today, newest first', "o.pickup_date = '{$today}' AND o.order_status <> 'cancelled'", 'o.created_at DESC, o.id DESC'],
+    'upcoming' => ['Upcoming', 'Orders for a later day, newest first', "o.pickup_date > '{$today}' AND {$open}", 'o.created_at DESC, o.id DESC'],
     'done'     => ['Completed', 'Collected or delivered, latest first', "o.order_status = 'completed'", 'o.pickup_date DESC, o.pickup_time DESC, o.id DESC'],
     'history'  => ['History', 'Every order for a day before today, latest first', "o.pickup_date < '{$today}'", 'o.pickup_date DESC, o.pickup_time DESC, o.id DESC'],
     'all'      => ['All', 'Every order, newest placed first', '1 = 1', 'o.created_at DESC, o.id DESC'],
     'action'   => ['Needs action', 'New orders, payments to check and deliveries without a time',
-        "(o.order_status = 'new' OR o.payment_status = 'awaiting_verification' OR (o.fulfilment = 'delivery' AND o.pickup_time IS NULL AND {$open}))", 'o.pickup_date, o.pickup_time'],
-    'tomorrow' => ['Tomorrow', 'Bake list for tomorrow', "o.pickup_date = '{$tomorrow}' AND o.order_status <> 'cancelled'", 'o.pickup_time IS NOT NULL, o.pickup_time'],
-    'unpaid'   => ['Money owing', 'Orders with a balance still to pay', "{$open} AND o.amount_paid - o.amount_refunded < o.total - 0.004", 'o.pickup_date, o.pickup_time'],
+        "(o.order_status = 'new' OR o.payment_status = 'awaiting_verification' OR (o.fulfilment = 'delivery' AND o.pickup_time IS NULL AND {$open}))", 'o.created_at DESC, o.id DESC'],
+    'tomorrow' => ['Tomorrow', 'Orders for tomorrow, newest first', "o.pickup_date = '{$tomorrow}' AND o.order_status <> 'cancelled'", 'o.created_at DESC, o.id DESC'],
+    'unpaid'   => ['Money owing', 'Orders with a balance still to pay, newest first', "{$open} AND o.amount_paid - o.amount_refunded < o.total - 0.004", 'o.created_at DESC, o.id DESC'],
     'cancelled' => ['Cancelled', 'Cancelled orders, latest first', "o.order_status = 'cancelled'", 'o.created_at DESC'],
 ];
 const ORDER_TABS = ['ongoing', 'today', 'upcoming', 'done', 'history', 'all'];
