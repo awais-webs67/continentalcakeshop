@@ -232,7 +232,14 @@ If cakes, photos and settings were already entered on a test site (for example `
 
 1. Test site: hPanel > **Databases** > **phpMyAdmin** > the database > **Export** > **Quick** > **SQL**. Import that file in Step 3 instead of `database.sql`.
 2. Test site File Manager: compress and download `public/uploads` and `storage/uploads`, and download `storage/app.key`. On the new hosting, upload and extract them to the same places (replace when asked). Without `app.key` the saved email passwords must be typed in again.
-3. After the move, open each shop in **Admin > Branches** and check its email account (Email tab, **Send a test email**) and the cron jobs of Step 9.
+3. Images and links typed in the editor (pages, FAQs, cake descriptions) and menu links were saved with the test site's address. Change them to the new address once (cPanel > **Terminal**; it makes a database backup first, `--dry` only counts):
+
+```
+php ~/public_html/cron/change-domain.php cake.skillsnexuspro.com --dry
+php ~/public_html/cron/change-domain.php cake.skillsnexuspro.com
+```
+
+4. After the move, open each shop in **Admin > Branches** and check its email account (Email tab, **Send a test email**) and the cron jobs of Step 9.
 
 ## Updating the site later
 
