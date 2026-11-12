@@ -1,5 +1,19 @@
 <?php
 require_admin();
+require BASE_PATH . '/admin/photo-tools.php';
+
+// Photo tools: download as a ZIP, make every photo smaller (a batch per request, see admin.js).
+if (!is_post() && in_array($_GET['download'] ?? '', ['gallery', 'all'], true)) {
+    send_photos_zip($_GET['download']);
+}
+if (is_post() && input('action') === 'optimise') {
+    session_write_close();
+    $result = optimise_photos(max(0, (int) input('offset')));
+    if ($result['done']) {
+        setting_save('photos_optimised_at', date('Y-m-d H:i:s'));
+    }
+    json_out($result);
+}
 
 if (is_post()) {
     $id = post_int('id');
@@ -63,4 +77,6 @@ if (is_post()) {
 
 $result = paginate('SELECT * FROM gallery_images ORDER BY sort_order, id', 'SELECT COUNT(*) FROM gallery_images', [], 24);
 $hero = setting('hero_image');
-admin_view('gallery', compact('result', 'hero') + ['title' => 'Gallery']);
+$panelPhotos = panel_photos();
+$photoStats = ['count' => count($panelPhotos), 'bytes' => panel_photos_size($panelPhotos)];
+admin_view('gallery', compact('result', 'hero', 'photoStats') + ['title' => 'Gallery']);

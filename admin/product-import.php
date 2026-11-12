@@ -19,6 +19,15 @@ const IMPORT_COLUMNS = [
     'size3_name'       => 'Optional third size',
     'size3_serves'     => '',
     'size3_price'      => '',
+    'size4_name'       => 'Optional fourth size',
+    'size4_serves'     => '',
+    'size4_price'      => '',
+    'size5_name'       => 'Optional fifth size',
+    'size5_serves'     => '',
+    'size5_price'      => '',
+    'size6_name'       => 'Optional sixth size',
+    'size6_serves'     => '',
+    'size6_price'      => '',
     'visible'          => 'yes or no',
     'featured'         => 'yes or no (homepage)',
     'price_on_request' => 'yes or no (shows Enquire instead of Add to Cart)',
@@ -31,19 +40,45 @@ const IMPORT_COLUMNS = [
     'meta_description' => 'Optional description for Google',
     'focus_keyword'    => 'Optional words people search for, e.g. red velvet cake canberra',
     'image_alt'        => 'Optional description of the photo',
+    'options'          => 'Optional extras ticked on the cake page, e.g. Eggless +5.00; Extra cherries +3.50',
+    'extra_photos'     => 'Export only: links to the other photos (change them in the cake editor)',
+    'extra_photo_alts' => 'Export only: descriptions of the other photos',
+    'page_url'         => 'Export only: the cake\'s page on the website',
 ];
+const IMPORT_MAX_SIZES = 6;
+
+/** "Eggless +5.00; Extra cherries +3.50" */
+function options_as_text(array $options): string
+{
+    return implode('; ', array_map(static fn ($o) => $o['name'] . ' +' . number_format((float) $o['price'], 2, '.', ''), $options));
+}
+
+/** "Eggless +5.00; Extra cherries" back to [[name, price], ...]; null and an error for a wrong line. */
+function options_from_text(string $text): array
+{
+    $list = [];
+    foreach (array_filter(array_map('trim', preg_split('/[;\n]+/', $text))) as $part) {
+        $name = preg_match('/^(.+?)\s*(?:\+?\s*\$?\s*(\d+(?:\.\d{1,2})?))?$/u', $part, $m) ? trim($m[1], " +$\t") : '';
+        if ($name === '' || preg_match('/^[\d.]+$/', $name)) {
+            return [null, 'Options: "' . $part . '" should look like "Eggless +5.00".'];
+        }
+        $list[] = ['name' => str_limit($name, 80), 'price' => round((float) ($m[2] ?? 0), 2)];
+    }
+    return [$list, null];
+}
 
 /** Rows of the current products in the import format, for the export and the template. */
 function products_as_import_rows(): array
 {
     $rows = [];
     foreach (db_all('SELECT p.*, c.name AS category_name FROM products p JOIN categories c ON c.id = p.category_id ORDER BY c.sort_order, p.sort_order, p.name') as $p) {
-        $sizes = db_all('SELECT label, servings, price FROM product_sizes WHERE product_id = ? AND is_active = 1 ORDER BY sort_order, price LIMIT 3', [$p['id']]);
+        $sizes = db_all('SELECT label, servings, price FROM product_sizes WHERE product_id = ? AND is_active = 1 ORDER BY sort_order, price LIMIT ' . IMPORT_MAX_SIZES, [$p['id']]);
+        $photos = db_all('SELECT image, alt FROM product_images WHERE product_id = ? ORDER BY sort_order, id', [$p['id']]);
         $row = [
             'name' => $p['name'], 'slug' => $p['slug'], 'category' => $p['category_name'],
             'short_description' => (string) $p['short_description'], 'description' => content_text((string) $p['description']),
         ];
-        for ($i = 1; $i <= 3; $i++) {
+        for ($i = 1; $i <= IMPORT_MAX_SIZES; $i++) {
             $size = $sizes[$i - 1] ?? null;
             $row["size{$i}_name"] = $size['label'] ?? '';
             $row["size{$i}_serves"] = (string) ($size['servings'] ?? '');
@@ -56,6 +91,10 @@ function products_as_import_rows(): array
             'image_url' => $p['image'] ? product_image_url($p['image']) : '',
             'meta_title' => (string) $p['meta_title'], 'meta_description' => (string) $p['meta_description'],
             'focus_keyword' => (string) ($p['focus_keyword'] ?? ''), 'image_alt' => (string) ($p['image_alt'] ?? ''),
+            'options' => options_as_text(get_product_options((int) $p['id'])),
+            'extra_photos' => implode(' | ', array_map(static fn ($ph) => product_image_url($ph['image']), $photos)),
+            'extra_photo_alts' => implode(' | ', array_map(static fn ($ph) => (string) $ph['alt'], $photos)),
+            'page_url' => product_url($p),
         ];
         $rows[] = $row;
     }
@@ -131,7 +170,7 @@ function plan_import_row(array $row, array $categories, bool $createCategories):
         $errors[] = 'Category "' . $categoryName . '" does not exist. Tick "Create missing categories" or fix the name.';
     }
     $sizes = [];
-    for ($i = 1; $i <= 3; $i++) {
+    for ($i = 1; $i <= IMPORT_MAX_SIZES; $i++) {
         $label = str_limit($row["size{$i}_name"] ?? '', 60);
         $priceText = str_replace(['$', ',', ' '], '', $row["size{$i}_price"] ?? '');
         if ($label === '' && $priceText === '') {
@@ -146,6 +185,14 @@ function plan_import_row(array $row, array $categories, bool $createCategories):
     $enquiry = import_yes($row['price_on_request'] ?? '', false);
     if (!$sizes && !$enquiry) {
         $errors[] = 'Add at least one size with a price, or set price_on_request to yes.';
+    }
+    // Options only change when the file has the column (older files leave them as they are).
+    $options = null;
+    if (array_key_exists('options', $row)) {
+        [$options, $optionError] = options_from_text($row['options']);
+        if ($optionError) {
+            $errors[] = $optionError;
+        }
     }
     $imageUrl = trim($row['image_url'] ?? '');
     if ($imageUrl !== '' && !preg_match('#^https?://#i', $imageUrl)) {
@@ -166,6 +213,7 @@ function plan_import_row(array $row, array $categories, bool $createCategories):
         'category'     => $categoryName,
         'image_url'    => $imageUrl,
         'sizes'        => $sizes,
+        'options'      => $options,
         'data'         => [
             'name'              => $name,
             'slug'              => $slug,
@@ -285,6 +333,21 @@ function apply_import_row(array $plan, bool $replaceImages, array &$categories):
         }
     }
     db_run('DELETE FROM product_sizes WHERE product_id = ? AND id NOT IN (' . implode(',', $keep) . ')', [$productId]);
+    // Options, matched by name like the sizes (the same as saving the cake in the editor).
+    if (($plan['options'] ?? null) !== null) {
+        $currentOptions = array_column(db_all('SELECT id, name FROM product_options WHERE product_id = ?', [$productId]), 'id', 'name');
+        $keepOptions = [0];
+        foreach ($plan['options'] as $i => $option) {
+            if (isset($currentOptions[$option['name']])) {
+                db_run('UPDATE product_options SET price = ?, sort_order = ?, is_active = 1 WHERE id = ?', [$option['price'], $i + 1, $currentOptions[$option['name']]]);
+                $keepOptions[] = (int) $currentOptions[$option['name']];
+            } else {
+                db_run('INSERT INTO product_options (product_id, name, price, sort_order) VALUES (?, ?, ?, ?)', [$productId, $option['name'], $option['price'], $i + 1]);
+                $keepOptions[] = (int) $pdo->lastInsertId();
+            }
+        }
+        db_run('DELETE FROM product_options WHERE product_id = ? AND id NOT IN (' . implode(',', $keepOptions) . ')', [$productId]);
+    }
     $pdo->commit();
     return $note;
 }

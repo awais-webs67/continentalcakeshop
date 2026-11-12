@@ -1155,3 +1155,14 @@ select.input { appearance: none; padding-right: 36px; background-image: url("dat
 .shop-summary__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .shop-summary__text small { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
 .shop-summary .link-btn { flex: none; white-space: nowrap; }
+
+/* Gallery > Photo tools */
+.photo-tools { margin-top: 20px; }
+.photo-tools__grid { display: grid; gap: 20px; }
+@media (min-width: 900px) { .photo-tools__grid { grid-template-columns: 1fr 1fr; } }
+.photo-tools__item { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.photo-tools__item h3 { margin: 0; font-size: 16px; }
+.photo-tools__item .hint { margin: 0; }
+.photo-tools__buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.progress { height: 8px; border-radius: 99px; background: var(--brand-soft); overflow: hidden; }
+.progress__bar { height: 100%; width: 0; background: var(--brand); transition: width .3s; }

@@ -58,7 +58,30 @@ function render_content(string $html): string
     // "{min_lead_hours} hours" in page text becomes "1 hour", "3 hours" or "2 days".
     $html = str_replace('{min_lead_hours} hours', e(notice_label((int) setting('min_lead_hours', '24'))), $html);
     $html = strtr($html, $tokens);
-    return (string) preg_replace_callback('/\{url:([a-z0-9-]+)\}/', static fn ($m) => e(url($m[1])), $html);
+    $html = (string) preg_replace_callback('/\{url:([a-z0-9-]+)\}/', static fn ($m) => e(url($m[1])), $html);
+    return content_image_alts($html);
+}
+
+/**
+ * Pictures added in the text editor have no description. Google Images and screen readers need
+ * one, so a picture without alt text gets one from its file name ("chocolate-drip-cake-3fa21c.webp"
+ * becomes "Chocolate drip cake"), or "Cake by The Continental Cake Shop".
+ */
+function content_image_alts(string $html): string
+{
+    return (string) preg_replace_callback('/<img\b[^>]*>/i', static function (array $m): string {
+        $tag = $m[0];
+        if (preg_match('/\balt\s*=\s*"[^"]*[^"\s][^"]*"/i', $tag)) {
+            return $tag;
+        }
+        $file = preg_match('/\bsrc\s*=\s*"([^"]+)"/i', $tag, $src) ? pathinfo((string) parse_url(html_entity_decode($src[1]), PHP_URL_PATH), PATHINFO_FILENAME) : '';
+        $words = trim((string) preg_replace(['/-[0-9a-f]{6,8}$/', '/[-_]+/'], ['', ' '], $file));
+        $brand = setting('store_short_name');
+        $alt = preg_match('/[a-z]{3,}/i', $words) && !preg_match('/^(img|dsc|pxl|photo|image|screenshot)\b/i', $words)
+            ? ucfirst(str_ireplace($brand, $brand, $words)) : 'Cake by ' . $brand;
+        $tag = (string) preg_replace('/\s*\balt\s*=\s*"\s*"/i', '', $tag);
+        return (string) preg_replace('/^<img\b/i', '<img alt="' . e($alt) . '"', $tag);
+    }, $html);
 }
 
 /**

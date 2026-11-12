@@ -219,7 +219,7 @@ render('header', compact('page'));
             </div>
             <div class="field">
                 <label class="field-label" for="reference_image">Reference photo <span class="field-hint">Optional</span></label>
-                <?php render('partials/upload-field', ['field' => 'reference_image', 'purpose' => 'custom', 'accept' => 'image/jpeg,image/png,image/webp,image/heic', 'hint' => 'Tap to upload a photo of a cake you like (max 10 MB)', 'invalid' => $invalid('reference_image')]); ?>
+                <?php render('partials/upload-field', ['field' => 'reference_image', 'purpose' => 'custom', 'accept' => 'image/jpeg,image/png,image/webp,image/heic', 'hint' => 'Tap to upload a photo of a cake you like', 'invalid' => $invalid('reference_image')]); ?>
                 <?= $fieldError('reference_image') ?>
             </div>
             <button class="btn btn--primary btn--lg" type="submit">Send Request <?= icon('arrow', '', 18) ?></button>

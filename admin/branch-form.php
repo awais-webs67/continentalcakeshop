@@ -102,7 +102,7 @@ function branch_save_page(array $branch): array
     $sets = implode(', ', array_map(static fn ($f) => "`{$f}` = ?", array_keys($data)));
     db_run("UPDATE branches SET {$sets} WHERE id = ?", [...array_values($data), $branch['id']]);
     if (array_key_exists('photo', $data) && $branch['photo'] && $branch['photo'] !== $data['photo']) {
-        @unlink(BASE_PATH . '/public/uploads/' . $branch['photo']);
+        delete_public_image($branch['photo']); // only if nothing else uses it
     }
     branches(true);
     return [];

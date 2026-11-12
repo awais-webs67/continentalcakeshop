@@ -407,6 +407,31 @@ function save_public_images(string $field, string $folder, int $width, int $heig
 }
 
 /**
+ * Photos are made smaller in the browser before upload (assets/js/shrink.js). One that arrives
+ * full size anyway (an old browser) still works up to about 50 megapixels: more memory is asked
+ * for while it is resized. Returns an error message for a photo too big to open, else null.
+ */
+function image_too_big(string $path): ?string
+{
+    $size = @getimagesize($path);
+    if (!$size) {
+        return null; // not an image: the caller says which types are allowed
+    }
+    $pixels = (int) $size[0] * (int) $size[1];
+    if ($pixels > 50_000_000) {
+        return 'This photo is too big to open (' . $size[0] . ' x ' . $size[1] . ' pixels). Please use a smaller copy.';
+    }
+    // About 5 bytes a pixel for the photo plus the resized copy.
+    $need = (int) ($pixels * 6 + 64 * 1024 * 1024);
+    $limit = ini_get('memory_limit');
+    $bytes = $limit === '-1' ? PHP_INT_MAX : (int) $limit * match (strtolower(substr((string) $limit, -1))) { 'g' => 1073741824, 'm' => 1048576, 'k' => 1024, default => 1 };
+    if ($bytes < $need) {
+        @ini_set('memory_limit', (string) (int) ceil($need / 1048576) . 'M');
+    }
+    return null;
+}
+
+/**
  * Crops a photo on disk to the target shape, scales it down and saves it as WebP in public/uploads/{folder}.
  * Used for uploads and for photos downloaded during a product import.
  * A $height of 0 keeps the photo's own shape (for the Pinterest style gallery), only trimming
@@ -417,6 +442,9 @@ function save_public_images(string $field, string $folder, int $width, int $heig
 function store_image_file(string $path, string $folder, int $width, int $height, string $name = ''): array
 {
     $mime = (new finfo(FILEINFO_MIME_TYPE))->file($path) ?: '';
+    if ($tooBig = image_too_big($path)) {
+        return [null, $tooBig];
+    }
     $source = match ($mime) {
         'image/jpeg' => @imagecreatefromjpeg($path),
         'image/png'  => @imagecreatefrompng($path),
@@ -476,6 +504,9 @@ function save_content_image(string $field, int $maxWidth = 1600): array
         return [null, 'The picture did not upload. Please try a smaller file (under 10 MB).'];
     }
     $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']) ?: '';
+    if ($tooBig = image_too_big($file['tmp_name'])) {
+        return [null, $tooBig];
+    }
     $source = match ($mime) {
         'image/jpeg' => @imagecreatefromjpeg($file['tmp_name']),
         'image/png'  => @imagecreatefrompng($file['tmp_name']),
@@ -497,7 +528,12 @@ function save_content_image(string $field, int $maxWidth = 1600): array
     if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
         return [null, 'The uploads folder is not writable.'];
     }
-    $name = slugify(pathinfo((string) $file['name'], PATHINFO_FILENAME)) . '-' . bin2hex(random_bytes(3)) . '.webp';
+    // The file name helps Google Images: "chocolate-drip-cake-3fa21c.webp", not "img-2041-3fa21c.webp".
+    $base = slugify(pathinfo((string) $file['name'], PATHINFO_FILENAME));
+    if ($base === '' || preg_match('/^(img|dsc|pxl|mvimg|photo|image|picture|screenshot|whatsapp-image|signal|fb-img|received)?[-_]?[\d-]*$/', $base)) {
+        $base = slugify('cake by ' . setting('store_short_name'));
+    }
+    $name = $base . '-' . bin2hex(random_bytes(3)) . '.webp';
     if (!imagewebp($canvas, $dir . '/' . $name, 82)) {
         return [null, 'The picture could not be saved.'];
     }
@@ -513,8 +549,14 @@ function delete_public_image(?string $path): void
     if (!$path || str_contains($path, '..')) {
         return;
     }
-    $inUse = db_value('SELECT 1 FROM products WHERE image = ? UNION SELECT 1 FROM categories WHERE image = ? UNION SELECT 1 FROM gallery_images WHERE image = ? UNION SELECT 1 FROM product_images WHERE image = ?', [$path, $path, $path, $path])
-        || in_array($path, [setting('hero_image'), setting('popup_image')], true);
+    // Only photos the panel made (their names end in a random code). The starter photos come with
+    // the code: deleting one would make the server's copy differ from GitHub, and cPanel's
+    // "Deploy" refuses a copy with changes.
+    if (!preg_match('/-[0-9a-f]{6,8}\.webp$/', $path)) {
+        return;
+    }
+    $inUse = db_value('SELECT 1 FROM products WHERE image = ? UNION SELECT 1 FROM categories WHERE image = ? UNION SELECT 1 FROM gallery_images WHERE image = ? UNION SELECT 1 FROM product_images WHERE image = ? UNION SELECT 1 FROM branches WHERE photo = ?', [$path, $path, $path, $path, $path])
+        || in_array($path, [setting('hero_image'), setting('popup_image'), setting('shop_photo')], true);
     if ($inUse) {
         return;
     }

@@ -238,6 +238,7 @@ $branchLocked = admin_branch_locked($admin);
     'live'      => ['url' => admin_url('live'), 'icon' => asset('img/logo-email.png')] + admin_live_state($admin),
 ], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?>;</script>
 <button type="button" class="sound-unlock" data-sound-unlock hidden><?= icon('volume', '', 18) ?> Tap to turn on order sounds</button>
+<script src="<?= e(asset('js/shrink.js')) ?>" defer></script>
 <script src="<?= e(asset('js/sounds.js')) ?>" defer></script>
 <script src="<?= e(asset('js/admin.js')) ?>" defer></script>
 </body>

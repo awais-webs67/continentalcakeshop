@@ -9,12 +9,12 @@
     <section class="card step-card">
         <span class="step-card__num">1</span>
         <h2>Download the template</h2>
-        <p class="hint">Open it in Excel or Google Sheets. Each row is one cake, with up to three sizes.</p>
+        <p class="hint">Open it in Excel or Google Sheets. Each row is one cake, with up to six sizes and its extras (options) such as <em>Eggless +5.00; Extra cherries +3.50</em>.</p>
         <div class="step-card__actions">
             <a class="btn btn--primary" href="<?= e(admin_url('products/import', ['download' => 'template'])) ?>"><?= icon('download', '', 18) ?> Empty template</a>
             <a class="btn btn--secondary" href="<?= e(admin_url('products/import', ['download' => 'current'])) ?>"><?= icon('download', '', 18) ?> Current products</a>
         </div>
-        <p class="hint">Use "Current products" to change many prices at once: edit them and upload the file again.</p>
+        <p class="hint">Use "Current products" to export every cake (sizes, prices, options, photos, SEO) or to change many prices at once: edit them and upload the file again. The extra photo columns are for reference; change those photos in the cake editor.</p>
     </section>
     <section class="card step-card">
         <span class="step-card__num">2</span>

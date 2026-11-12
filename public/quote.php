@@ -173,7 +173,7 @@ render('header', compact('page'));
                     <div class="proof-fields" data-proof-fields <?= ($methods[$selectedMethod]['needs_proof'] ?? false) ? '' : 'hidden' ?>>
                         <div class="field">
                             <label class="field-label" for="payment_proof">Payment screenshot</label>
-                            <?php render('partials/upload-field', ['field' => 'payment_proof', 'purpose' => 'payment', 'accept' => 'image/jpeg,image/png,image/webp,image/heic,application/pdf', 'hint' => 'Tap to upload a screenshot or PDF (max 10 MB)', 'invalid' => invalid_attr($errors, 'payment_proof')]); ?>
+                            <?php render('partials/upload-field', ['field' => 'payment_proof', 'purpose' => 'payment', 'accept' => 'image/jpeg,image/png,image/webp,image/heic,application/pdf', 'hint' => 'Tap to upload a screenshot or PDF', 'invalid' => invalid_attr($errors, 'payment_proof')]); ?>
                             <?= field_error($errors, 'payment_proof') ?>
                         </div>
                         <div class="field">

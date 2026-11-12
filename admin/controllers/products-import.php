@@ -6,10 +6,18 @@ require_admin();
 
 $download = (string) ($_GET['download'] ?? '');
 if ($download === 'template' || $download === 'current') {
+    $blank = array_fill_keys(array_keys(IMPORT_COLUMNS), '');
     $rows = $download === 'current' ? products_as_import_rows() : [
-        array_combine(array_keys(IMPORT_COLUMNS), ['Chocolate Ganache Torte', '', 'Tortes', 'Chocolate sponge with rich ganache.', 'Layers of chocolate sponge and ganache, finished with chocolate curls.', 'Midi', 'Serves 8', '44.95', 'Full', 'Serves 14', '54.95', '', '', '', 'yes', 'no', 'no', 'yes', '', '', '20', '', '', '', 'chocolate ganache cake canberra', 'Chocolate ganache torte with chocolate curls']),
-        array_combine(array_keys(IMPORT_COLUMNS), ['Wedding Showpiece Cake', '', 'Tea Cakes & Desserts', 'Made to order for weddings.', '', '', '', '', '', '', '', '', '', '', 'yes', 'no', 'yes', 'no', 'Special', '72', '30', '', '', '', 'wedding cakes canberra', '']),
+        array_merge($blank, ['name' => 'Chocolate Ganache Torte', 'category' => 'Tortes', 'short_description' => 'Chocolate sponge with rich ganache.',
+            'description' => 'Layers of chocolate sponge and ganache, finished with chocolate curls.', 'size1_name' => 'Midi', 'size1_serves' => 'Serves 8',
+            'size1_price' => '44.95', 'size2_name' => 'Full', 'size2_serves' => 'Serves 14', 'size2_price' => '54.95', 'visible' => 'yes', 'featured' => 'no',
+            'price_on_request' => 'no', 'allow_message' => 'yes', 'sort_order' => '20', 'focus_keyword' => 'chocolate ganache cake canberra',
+            'image_alt' => 'Chocolate ganache torte with chocolate curls', 'options' => 'Eggless +5.00; Extra ganache +3.50']),
+        array_merge($blank, ['name' => 'Wedding Showpiece Cake', 'category' => 'Tea Cakes & Desserts', 'short_description' => 'Made to order for weddings.',
+            'visible' => 'yes', 'featured' => 'no', 'price_on_request' => 'yes', 'allow_message' => 'no', 'badge' => 'Special', 'notice_hours' => '72',
+            'sort_order' => '30', 'focus_keyword' => 'wedding cakes canberra']),
     ];
+    $rows = array_map(static fn ($r) => array_merge($blank, $r), $rows);
     send_csv($download === 'current' ? 'continental-cakes-products-' . date('Y-m-d') . '.csv' : 'product-import-template.csv', array_keys(IMPORT_COLUMNS), array_map('array_values', $rows));
 }
 

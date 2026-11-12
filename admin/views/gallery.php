@@ -1,4 +1,4 @@
-<?php /** @var array $result @var string $hero */ ?>
+<?php /** @var array $result @var string $hero @var array $photoStats */ ?>
 <?php $showOnCustom = setting('custom_show_gallery', '1') === '1'; ?>
 <div class="page-head">
     <div><h1>Gallery</h1><p>Photos of cakes you have made. They fill the <a href="<?= e(url('custom-cake-gallery')) ?>" target="_blank" rel="noopener">Custom Cake Gallery</a> page (Pinterest style, every photo keeps its own shape) and also show on the homepage and the custom cakes page.</p></div>
@@ -12,7 +12,7 @@
     <div class="card__head"><h2>Add photos</h2><span class="hint">Choose many at once</span></div>
     <form class="card__body form-stack" method="post" enctype="multipart/form-data" data-gallery-upload>
         <?= csrf_field() ?><input type="hidden" name="action" value="upload">
-        <label class="field"><span>Photos <small>JPG, PNG or WebP, up to 10 MB each</small></span><input class="input" type="file" name="images[]" accept="image/jpeg,image/png,image/webp" multiple required></label>
+        <label class="field"><span>Photos <small>JPG, PNG or WebP, any size: made smaller and saved as WebP for you</small></span><input class="input" type="file" name="images[]" accept="image/jpeg,image/png,image/webp" multiple required></label>
         <div class="form-grid">
             <label class="field"><span>Occasion <small>sorts them into the filter buttons</small></span>
                 <select class="input" name="occasion">
@@ -38,6 +38,27 @@
     </form>
 </section>
 </div>
+<?php $optimisedAt = setting('photos_optimised_at'); ?>
+<section class="card photo-tools">
+    <div class="card__head"><h2>Photo tools</h2><span class="hint">Every photo on the website</span></div>
+    <div class="card__body photo-tools__grid">
+        <div class="photo-tools__item" data-photo-optimise>
+            <h3>Make photos smaller</h3>
+            <p class="hint">New photos are already made small when you upload them. This goes over the <strong><?= (int) $photoStats['count'] ?></strong> photos added in the panel (<?= e(number_format($photoStats['bytes'] / 1048576, 1)) ?> MB: cakes, gallery, categories, pages) and saves each one smaller when that saves at least 15%, at a quality you will not see a difference in. Names and places stay the same, so nothing on the website breaks.<?= $optimisedAt !== '' ? ' Last done ' . e(time_ago($optimisedAt)) . '.' : '' ?></p>
+            <form method="post" data-optimise-form><?= csrf_field() ?><input type="hidden" name="action" value="optimise"><button class="btn btn--secondary" type="submit" <?= $photoStats['count'] ? '' : 'disabled' ?>><?= icon('check', '', 16) ?> Make all photos smaller</button></form>
+            <div class="progress" data-optimise-progress hidden><div class="progress__bar" data-optimise-bar></div></div>
+            <p class="hint" data-optimise-status role="status" aria-live="polite"></p>
+        </div>
+        <div class="photo-tools__item">
+            <h3>Download photos</h3>
+            <p class="hint">A ZIP file to keep a copy on your computer or share with a designer.</p>
+            <div class="photo-tools__buttons">
+                <a class="btn btn--secondary" href="<?= e(admin_url('gallery', ['download' => 'gallery'])) ?>"><?= icon('download', '', 16) ?> Gallery photos (ZIP)</a>
+                <a class="btn btn--secondary" href="<?= e(admin_url('gallery', ['download' => 'all'])) ?>"><?= icon('download', '', 16) ?> All website photos (ZIP)</a>
+            </div>
+        </div>
+    </div>
+</section>
 <section class="card">
     <div class="card__head"><h2>Photos</h2><span class="hint">The outlined photo is the main homepage photo.</span></div>
     <div class="card__body">

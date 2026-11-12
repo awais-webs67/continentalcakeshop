@@ -264,8 +264,10 @@
         input.type = 'file';
         input.accept = 'image/jpeg,image/png,image/webp';
         input.addEventListener('change', function () {
-            var file = input.files && input.files[0];
-            if (!file) return;
+            var picked = input.files && input.files[0];
+            if (!picked) return;
+            // Made smaller in the browser first (shrink.js); this input is not on the page.
+            (window.shrinkImage ? window.shrinkImage(picked) : Promise.resolve(picked)).then(function (file) {
             var body = new FormData();
             body.append('image', file);
             body.append('_token', window.CCS_ADMIN.csrf);
@@ -286,6 +288,7 @@
                     quill.deleteText(range.index, 'Uploading picture...'.length, 'user');
                     window.alert('The picture could not be uploaded. Please try again.');
                 });
+            });
         });
         input.click();
     }
@@ -1067,5 +1070,43 @@ document.addEventListener('input', function (e) {
         };
         form.addEventListener('change', sync);
         sync();
+    });
+})();
+
+// Admin > Gallery > Photo tools: "Make all photos smaller" in batches, with progress.
+(function () {
+    var box = document.querySelector('[data-photo-optimise]');
+    if (!box || !window.fetch || !window.FormData) return;
+    var form = box.querySelector('[data-optimise-form]');
+    var button = form.querySelector('button');
+    var bar = box.querySelector('[data-optimise-bar]');
+    var progress = box.querySelector('[data-optimise-progress]');
+    var status = box.querySelector('[data-optimise-status]');
+    var mb = function (bytes) { return (bytes / 1048576).toFixed(1) + ' MB'; };
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        button.disabled = true;
+        progress.hidden = false;
+        var saved = 0, changed = 0;
+        var step = function (offset) {
+            var data = new FormData(form);
+            data.set('offset', offset);
+            fetch(location.pathname, { method: 'POST', body: data, credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
+                .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+                .then(function (res) {
+                    saved += res.saved; changed += res.changed;
+                    bar.style.width = (res.total ? Math.round(res.next / res.total * 100) : 100) + '%';
+                    status.textContent = res.done
+                        ? (changed ? 'Done: ' + changed + ' of ' + res.total + ' photos made smaller, ' + mb(saved) + ' saved.' : 'Done: all ' + res.total + ' photos were already small.')
+                        : 'Working: ' + res.next + ' of ' + res.total + ' photos checked, ' + mb(saved) + ' saved so far...';
+                    if (res.done) { button.disabled = false; } else { step(res.next); }
+                })
+                .catch(function () {
+                    status.textContent = 'Stopped: the server did not answer. Press the button again to carry on.';
+                    button.disabled = false;
+                });
+        };
+        status.textContent = 'Starting...';
+        step(0);
     });
 })();

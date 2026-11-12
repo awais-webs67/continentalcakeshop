@@ -2,7 +2,8 @@
 <div class="page-head">
     <div><h1>Products</h1><p>Cakes shown in the shop, with their sizes and prices.</p></div>
     <div class="page-head__actions">
-        <a class="btn btn--secondary" href="<?= e(admin_url('products/import')) ?>"><?= icon('upload', '', 18) ?> Import from Excel</a>
+        <a class="btn btn--secondary" href="<?= e(admin_url('products/import', ['download' => 'current'])) ?>" title="Every cake with its sizes, prices, options, photos and SEO, for Excel"><?= icon('download', '', 18) ?> Export</a>
+        <a class="btn btn--secondary" href="<?= e(admin_url('products/import')) ?>"><?= icon('upload', '', 18) ?> Import</a>
         <a class="btn btn--primary" href="<?= e(admin_url('products/edit')) ?>"><?= icon('plus', '', 18) ?> Add product</a>
     </div>
 </div>
