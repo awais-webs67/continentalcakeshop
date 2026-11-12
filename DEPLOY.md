@@ -22,6 +22,34 @@ Pick one way.
 4. Repository Path: `public_html`. Repository Name: `continentalcakeshop`. Click **Create**.
 5. For automatic updates from GitHub, add the cron job in Step 9 (the second one).
 
+**A2. If the GitHub repository is private**
+
+cPanel then needs a read-only key that GitHub accepts (a "deploy key"). Nothing else changes, `cron/deploy.sh` works the same.
+
+1. cPanel > **SSH Access** > **Manage SSH Keys** > **Generate a New Key**: Key Name `github_deploy`, leave the password **empty** (git cannot type one), Key Type RSA, Key Size 4096 > **Generate Key**.
+2. Back in **Manage SSH Keys**, under Public Keys, `github_deploy.pub` > **View/Download**, copy the whole text.
+3. GitHub > the repository > **Settings** > **Deploy keys** > **Add deploy key**: title `cPanel live site`, paste the key, leave **Allow write access** off > **Add key**.
+4. Tell the server to use that key for GitHub and to trust GitHub. With cPanel > **Terminal**, run:
+
+```
+mkdir -p ~/.ssh && chmod 700 ~/.ssh
+printf 'Host github.com\n  IdentityFile ~/.ssh/github_deploy\n  IdentitiesOnly yes\n' >> ~/.ssh/config && chmod 600 ~/.ssh/config
+ssh-keyscan github.com >> ~/.ssh/known_hosts
+ssh -T git@github.com
+```
+
+The last line should answer "Hi awais-webs67/continentalcakeshop! You've successfully authenticated". No Terminal? Add the first three lines as one-time cron jobs (one minute from now), then delete them.
+
+5. Clone in Git Version Control with the URL `git@github.com:awais-webs67/continentalcakeshop.git` instead of the https one.
+
+Already cloned with the https address before the repository became private? Change the address once (Terminal):
+
+```
+cd ~/public_html && git remote set-url origin git@github.com:awais-webs67/continentalcakeshop.git && git fetch origin
+```
+
+No `.cpanel.yml` is needed: the site is cloned straight into `public_html`, and `cron/deploy.sh` brings in updates. (`.cpanel.yml` only copies files when you press **Deploy** in cPanel; it does not fetch from GitHub by itself.)
+
 **B. Zip file (cPanel > File Manager)**
 
 1. On GitHub click **Code** > **Download ZIP**.
