@@ -225,7 +225,7 @@ $mask = static function (string $key): string {
         <h3 class="label">Timing <small class="muted">(every shop)</small></h3>
         <label class="field" style="max-width:360px"><span>Day-before reminders go out from <small>hour, 24 hour clock</small></span><input class="input" type="number" min="6" max="21" name="reminder_send_hour" value="<?= $v('reminder_send_hour') ?>"></label>
         <?php $cronRun = setting('cron_last_run'); ?>
-        <p class="hint" style="margin:0">Scheduled job (morning emails, reminders, reviews, inboxes): <?= $cronRun !== '' ? 'last ran ' . e(time_ago($cronRun)) . (strtotime($cronRun) < time() - 3600 ? ' ' . status_badge('pending', 'Not running') : ' ' . status_badge('active', 'Running')) : status_badge('pending', 'Not set up yet') . ' Add the cron job from DEPLOY.md in Hostinger &gt; Advanced &gt; Cron Jobs.' ?><?= setting('daily_email_last_sent') !== '' ? ' &middot; last morning email ' . e(date('j M Y', strtotime(setting('daily_email_last_sent')))) : '' ?></p>
+        <p class="hint" style="margin:0">Scheduled job (morning emails, reminders, reviews, inboxes): <?= $cronRun !== '' ? 'last ran ' . e(time_ago($cronRun)) . (strtotime($cronRun) < time() - 3600 ? ' ' . status_badge('pending', 'Not running') : ' ' . status_badge('active', 'Running')) : status_badge('pending', 'Not set up yet') . ' Add it in cPanel &gt; Cron Jobs (see Admin &gt; System check).' ?><?= setting('daily_email_last_sent') !== '' ? ' &middot; last morning email ' . e(date('j M Y', strtotime(setting('daily_email_last_sent')))) : '' ?></p>
     </div>
 
 <?php elseif ($tab === 'homepage'): ?>
