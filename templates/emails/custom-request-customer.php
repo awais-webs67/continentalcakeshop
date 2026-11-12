@@ -11,4 +11,4 @@
         <strong>Your idea:</strong> as described in your request
     </td></tr>
 </table>
-<p style="margin:0;font-size:14px;color:#66666E">If your date is soon, please call us on <?= e(setting('store_phone')) ?>.</p>
+<p style="margin:0;font-size:14px;color:#71717A">If your date is soon, please call us on <?= e(setting('store_phone')) ?>.</p>

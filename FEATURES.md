@@ -546,6 +546,12 @@ Admin > Settings > Business > **Maintenance mode** (owners). While it is on (`sr
 
 **Counts:** the Orders badge in the menu, the bell and the live updates count each order that needs staff once (`admin_badges()['action']`, the same as the Needs action tab): a new order with a payment screenshot is one order, not two.
 
-**Order sound:** browsers only allow sound after the page has been tapped once. When sound is blocked, a black bar says "Order sound is off. Tap here to turn it on" on every screen size (phones and tablets too). Tapping it also offers desktop alerts, which keep sounding after the page reloads.
+**Order sound:** browsers only allow sound after the page has been tapped once, on every page load. When sound is blocked, a black bar says "Order alerts are off. Tap here to turn them on" (all screen sizes). Tapping it turns on sound and asks to allow desktop alerts. Once desktop alerts are allowed and on, the bar no longer appears after a reload: new orders and messages show as computer notifications with the computer's own alert sound.
 
 **Admin look:** the shop's green sidebar, black main buttons, white cards with thin lines, underline tabs, status labels with a small coloured dot. Orders is one table (order number, customer and cakes, pickup, status, payment, total, next step) with Needs action as the first tab. The dashboard shows figures and charts only (no order lists). The order page has the number, status and the next-step button on top, Print (receipt, thermal, kitchen ticket) and More (change status or cancel, message, customer's page); each card has its own Edit, and the payment card shows its buttons (Mark as paid or Money received, Other amount, Not received, Refund).
+
+**Order page extras:** the payment screenshot shows a large preview on hover and opens full size in a pop-up on click (click the picture to zoom in on a spot). **More** lists the statuses in order (Received, Confirmed, Being prepared, Ready, Completed) with the current one marked; one click moves the order there and emails the customer, Cancel order asks first, and "Change status with a message" opens the form with a message box. After any change on the order page staff stay on that order.
+
+**Orders list:** the eye button on each row shows that order's receipt in a pop-up (Print or Open from there); the Back arrow, the browser's Back button or Esc closes it.
+
+**Emails** (`templates/emails/layout.php`): a slim header (logo, shop name, phone), a wide 680px card and a one-line footer; the pickup or delivery box shows the order number and status beside the time. On phones the spacing tightens and the boxes stack.

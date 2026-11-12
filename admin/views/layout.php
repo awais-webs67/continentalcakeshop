@@ -239,7 +239,7 @@ $branchLocked = admin_branch_locked($admin);
     'csrf'      => csrf_token(),
     'live'      => ['url' => admin_url('live'), 'icon' => asset('img/logo-email.png')] + admin_live_state($admin),
 ], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?>;</script>
-<button type="button" class="sound-unlock" data-sound-unlock hidden><?= icon('volume', '', 18) ?> Order sound is off. Tap here to turn it on</button>
+<button type="button" class="sound-unlock" data-sound-unlock hidden><?= icon('volume', '', 18) ?> Order alerts are off. Tap here to turn them on</button>
 <script src="<?= e(asset('js/shrink.js')) ?>" defer></script>
 <script src="<?= e(asset('js/sounds.js')) ?>" defer></script>
 <script src="<?= e(asset('js/admin.js')) ?>" defer></script>

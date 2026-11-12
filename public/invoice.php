@@ -18,6 +18,7 @@ use_branch(get_branch((int) $order['branch_id']));
 header('X-Robots-Tag: noindex, nofollow');
 
 $thermal = input('format') === 'thermal';
+$embed = input('embed') === '1'; // shown inside the admin's receipt pop-up: no buttons, no outer margin
 $items = get_order_items((int) $order['id']);
 $payments = get_order_payments((int) $order['id']);
 $gst = setting_bool('gst_registered') && setting('store_abn') !== '';
@@ -173,11 +174,13 @@ $self = invoice_url($order);
         .hero .amount { font-size: 38px; }
         .facts { grid-template-columns: 1fr; } .facts div + div { border-left: 0; border-top: 1px solid var(--line); }
     }
+    .embed { background: #fff; } .embed .receipt { margin: 0 auto; border: 0; box-shadow: none; }
     @page { size: A4; margin: 14mm; }
     @media print { body { background: #fff; } .bar { display: none; } .receipt { margin: 0 auto; border: 0; box-shadow: none; max-width: 600px; } }
 </style>
 </head>
-<body>
+<body<?= $embed ? ' class="embed"' : '' ?>>
+<?php if (!$embed): ?>
 <div class="bar">
     <a class="btn" href="<?= e($back) ?>">&larr; Back to the order</a>
     <div>
@@ -185,6 +188,7 @@ $self = invoice_url($order);
         <button class="btn btn--dark" type="button" onclick="window.print()">Print or save PDF</button>
     </div>
 </div>
+<?php endif; ?>
 <main class="receipt">
     <header class="top">
         <div class="shop">

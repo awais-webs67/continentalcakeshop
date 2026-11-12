@@ -38,8 +38,25 @@ $quantity = array_sum(array_map(static fn ($i) => (int) $i['quantity'], $items))
         </details>
         <details class="dropdown">
             <summary class="btn btn--secondary">More <?= icon('down', '', 14) ?></summary>
-            <div class="dropdown__panel">
-                <button type="button" data-open="ov-status"><?= icon('pen', '', 17) ?> Change status<?= $cancelled ? '' : ' or cancel' ?></button>
+            <div class="dropdown__panel ov-more">
+                <p class="dropdown__title">Order status</p>
+                <?php foreach ($steps as $i => $key): $isNow = $order['order_status'] === $key; ?>
+                    <form method="post">
+                        <?= $idField ?><input type="hidden" name="action" value="status"><input type="hidden" name="order_status" value="<?= e($key) ?>"><input type="hidden" name="notify" value="1">
+                        <button type="submit" class="ov-more__step<?= $isNow ? ' is-now' : '' ?><?= $at !== false && $i < $at ? ' is-done' : '' ?>"<?= $isNow ? ' disabled aria-current="step"' : '' ?>>
+                            <span class="ov-more__num"><?= $at !== false && $i < $at ? icon('check', '', 13) : $i + 1 ?></span>
+                            <?= e(order_status_label($order, $key)) ?><?= $key === 'confirmed' && $confirmPays ? ' &amp; paid' : '' ?><?= $isNow ? ' <small>now</small>' : '' ?>
+                        </button>
+                    </form>
+                <?php endforeach; ?>
+                <?php if (!$cancelled): ?>
+                    <form method="post" data-confirm="Cancel order <?= e($order['order_number']) ?>? The customer will be emailed.">
+                        <?= $idField ?><input type="hidden" name="action" value="status"><input type="hidden" name="order_status" value="cancelled"><input type="hidden" name="notify" value="1">
+                        <button type="submit" class="ov-more__cancel"><?= icon('close', '', 15) ?> Cancel order</button>
+                    </form>
+                <?php endif; ?>
+                <button type="button" data-open="ov-status"><?= icon('pen', '', 17) ?> Change status with a message</button>
+                <hr class="dropdown__sep">
                 <?php if (admin_can('messages')): ?><a href="<?= e(admin_url('messages/view', ['order' => $id])) ?>"><?= icon('mail', '', 17) ?> <?= $orderThread ? 'Conversation' . ($orderThread['unread_admin'] ? ' (new)' : '') : 'Message customer' ?></a><?php endif; ?>
                 <a href="<?= e(order_url($order)) ?>" target="_blank"><?= icon('user', '', 17) ?> Customer's order page</a>
             </div>
@@ -145,7 +162,8 @@ $quantity = array_sum(array_map(static fn ($i) => (int) $i['quantity'], $items))
                 </dl>
                 <?php if ($order['payment_proof']): ?>
                     <?php if ($proofIsImage): ?>
-                        <a class="ov-proof" href="<?= e(admin_url('file', ['path' => $order['payment_proof']])) ?>" target="_blank" title="Open the screenshot full size"><img src="<?= e(admin_url('file', ['path' => $order['payment_proof']])) ?>" alt="Payment screenshot"><span>Screenshot</span></a>
+                        <?php $proofUrl = admin_url('file', ['path' => $order['payment_proof']]); ?>
+                        <a class="ov-proof" href="<?= e($proofUrl) ?>" target="_blank" data-lightbox title="Click to see it full size"><img src="<?= e($proofUrl) ?>" alt="Payment screenshot"><span><?= icon('search', '', 12) ?> Zoom</span><img class="ov-proof__peek" src="<?= e($proofUrl) ?>" alt="" aria-hidden="true"></a>
                     <?php else: ?>
                         <a class="ov-proof ov-proof--file" href="<?= e(admin_url('file', ['path' => $order['payment_proof']])) ?>" target="_blank"><?= icon('download', '', 22) ?><span>Receipt file</span></a>
                     <?php endif; ?>

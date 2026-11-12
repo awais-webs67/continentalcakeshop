@@ -713,7 +713,7 @@ document.addEventListener('input', function (e) {
         setTimeout(function () { t.style.opacity = '0'; setTimeout(function () { t.remove(); }, 300); }, 15000);
         unseen++;
         document.title = '(' + unseen + ') ' + baseTitle;
-        if (!alertFor(kind, id, title, text, link) && sound.prefs().on) {
+        if (!alertFor(kind, id, title, text, link) && sound.prefs().on && !desktopReady()) {
             // This page cannot make a sound yet: say so on the notice itself.
             var hint = document.createElement('small');
             hint.className = 'toast__sound-off';
@@ -891,7 +891,10 @@ document.addEventListener('input', function (e) {
         var prefs = sound.prefs();
         document.querySelectorAll('[data-sound-pref]').forEach(function (box) { box.checked = !!prefs[box.getAttribute('data-sound-pref')]; });
         document.querySelectorAll('[data-sound-icon]').forEach(function (el) { el.hidden = (el.getAttribute('data-sound-icon') === 'on') !== prefs.on; });
-        var blocked = prefs.on && !sound.ready();
+        // With desktop alerts on, new orders and messages still ring (through the computer's own
+        // notification sound) after a reload, so the page does not ask for a tap every time.
+        var desktopOn = !!prefs.desktop && 'Notification' in window && Notification.permission === 'granted';
+        var blocked = prefs.on && !sound.ready() && !desktopOn;
         if (pill) pill.hidden = !blocked;
         // Phones show the same hint as a red dot on the speaker button instead of a floating button.
         var summary = document.querySelector('[data-sound-menu] > summary');
@@ -1142,3 +1145,77 @@ document.addEventListener('click', function (e) {
         if (field) setTimeout(function () { field.focus({ preventScroll: true }); }, 50);
     }
 });
+
+/* Pop-ups: a payment screenshot full size (click to zoom in), and an order's receipt from the
+   Orders list. Close with the back arrow, the browser's Back button, Esc or a click outside. */
+(function () {
+    var open = null;
+    var close = function (fromHistory) {
+        if (!open) return;
+        open.remove();
+        open = null;
+        document.body.classList.remove('has-modal');
+        if (!fromHistory && history.state && history.state.ccsModal) history.back();
+    };
+    var show = function (box) {
+        close(true);
+        open = box;
+        document.body.appendChild(box);
+        document.body.classList.add('has-modal');
+        history.pushState({ ccsModal: true }, '');
+        var focus = box.querySelector('[data-modal-close]');
+        if (focus) focus.focus();
+    };
+    window.addEventListener('popstate', function () { close(true); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && open) close(false); });
+    var shell = function (title, extra) {
+        var box = document.createElement('div');
+        box.className = 'modal';
+        box.setAttribute('role', 'dialog');
+        box.setAttribute('aria-modal', 'true');
+        box.setAttribute('aria-label', title);
+        box.innerHTML = '<div class="modal__bar"><button type="button" class="modal__back" data-modal-close aria-label="Close">'
+            + '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg> Back</button>'
+            + '<strong></strong><span class="modal__tools">' + (extra || '') + '</span></div><div class="modal__body"></div>';
+        box.querySelector('strong').textContent = title;
+        box.addEventListener('click', function (e) {
+            if (e.target === box || e.target.closest('[data-modal-close]')) close(false);
+        });
+        return box;
+    };
+    document.addEventListener('click', function (e) {
+        var link = e.target.closest && e.target.closest('a[data-lightbox], a[data-receipt]');
+        if (!link || e.metaKey || e.ctrlKey || e.shiftKey) return;
+        e.preventDefault();
+        if (link.hasAttribute('data-receipt')) {
+            var url = link.href + (link.href.indexOf('?') < 0 ? '?' : '&') + 'embed=1';
+            var box = shell('Receipt ' + link.getAttribute('data-receipt'),
+                '<button type="button" class="btn btn--secondary btn--sm" data-modal-print>Print</button><a class="btn btn--secondary btn--sm" href="' + link.href + '" target="_blank" rel="noopener">Open</a>');
+            box.classList.add('modal--receipt');
+            var frame = document.createElement('iframe');
+            frame.src = url;
+            frame.title = 'Receipt';
+            box.querySelector('.modal__body').appendChild(frame);
+            box.querySelector('[data-modal-print]').addEventListener('click', function () { try { frame.contentWindow.print(); } catch (err) { window.open(link.href, '_blank'); } });
+            show(box);
+            return;
+        }
+        var lb = shell('Payment screenshot', '<a class="btn btn--secondary btn--sm" href="' + link.href + '" target="_blank" rel="noopener">Open</a>');
+        lb.classList.add('modal--image');
+        var img = document.createElement('img');
+        img.src = link.href;
+        img.alt = 'Payment screenshot';
+        // Click the picture to zoom in on that spot; move the mouse to look around; click again to zoom out.
+        // The spot under the mouse, measured on the picture before zooming (its box in the page).
+        var aim = function (ev) {
+            var p = img.parentNode.getBoundingClientRect();
+            var x = (ev.clientX - p.left - img.offsetLeft) / img.offsetWidth * 100;
+            var y = (ev.clientY - p.top - img.offsetTop + img.parentNode.scrollTop) / img.offsetHeight * 100;
+            img.style.transformOrigin = Math.max(0, Math.min(100, x)) + '% ' + Math.max(0, Math.min(100, y)) + '%';
+        };
+        img.addEventListener('click', function (ev) { aim(ev); img.classList.toggle('is-zoomed'); });
+        img.addEventListener('mousemove', function (ev) { if (img.classList.contains('is-zoomed')) aim(ev); });
+        lb.querySelector('.modal__body').appendChild(img);
+        show(lb);
+    });
+})();

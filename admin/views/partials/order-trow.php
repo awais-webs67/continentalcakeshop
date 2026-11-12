@@ -46,6 +46,7 @@ $url = admin_url('orders/view', ['id' => $o['id']]);
     <span class="otr__pay otr__pay--<?= e($payClass) ?>"><?= e($payLabel) ?></span>
     <strong class="otr__total"><?= e(money((float) $o['total'])) ?></strong>
     <span class="otr__act">
+        <a class="otr__eye" href="<?= e(invoice_url($o)) ?>" data-receipt="<?= e($o['order_number']) ?>" title="Show the receipt" aria-label="Show the receipt for <?= e($o['order_number']) ?>"><?= icon('eye', '', 17) ?></a>
         <?php if ($next): ?>
             <form method="post" action="<?= e(admin_url('orders/view')) ?>">
                 <?= csrf_field() ?>
