@@ -6,9 +6,18 @@
 /storage/logs/*
 !/storage/logs/.gitkeep
 /storage/app.key
-/public/uploads/content/*
-!/public/uploads/content/.gitkeep
-/public/uploads/popup/*
-!/public/uploads/popup/.gitkeep
+# Photos added in the admin panel stay on the server (the starter photos in the repository stay
+# tracked; add a new starter photo with git add -f).
+/public/uploads/**
+!/public/uploads/**/
+!/public/uploads/.htaccess
+!/public/uploads/**/.gitkeep
 /storage/backups/*
 !/storage/backups/.gitkeep
+
+# Made by cPanel or the hosting on the live site, not part of the code
+/cgi-bin/
+/.well-known/
+error_log
+/php.ini
+/.user.ini

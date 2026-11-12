@@ -1,0 +1,8 @@
+---
+# cPanel > Git Version Control > Manage > Pull or Deploy.
+# The site runs from this repository's own folder (public_html), so "Update from Remote" already
+# puts the new code live; "Deploy HEAD Commit" then runs the task below, which applies any
+# database changes that came with it. (cron/deploy.sh does both by itself every 5 minutes.)
+deployment:
+  tasks:
+    - /usr/local/bin/php cron/migrate.php

@@ -55,7 +55,16 @@ Already cloned with the https address before the repository became private? Chan
 cd ~/public_html && git remote set-url origin git@github.com:awais-webs67/continentalcakeshop.git && git fetch origin
 ```
 
-No `.cpanel.yml` is needed: the site is cloned straight into `public_html`, and `cron/deploy.sh` brings in updates. (`.cpanel.yml` only copies files when you press **Deploy** in cPanel; it does not fetch from GitHub by itself.)
+Cloned in Terminal instead of the Git Version Control page (works even when `public_html` holds `cgi-bin`)?
+
+```
+cd ~/public_html && git init -q && git remote add origin git@github.com:awais-webs67/continentalcakeshop.git
+git fetch origin main && git checkout -b main --track origin/main
+```
+
+To see it in cPanel > **Git Version Control** too: **Create**, switch **Clone a Repository** off, Repository Path `public_html`, name `continentalcakeshop`, **Create**: cPanel adds the existing repository.
+
+`.cpanel.yml` (in the repository) is what cPanel's **Deploy HEAD Commit** button runs: the site already runs from the repository folder, so it only applies database changes (`cron/migrate.php`).
 
 **B. Zip file (cPanel > File Manager)**
 
@@ -227,7 +236,9 @@ If cakes, photos and settings were already entered on a test site (for example `
 
 ## Updating the site later
 
-1. With the update cron job (Step 9) nothing is needed: push to `main` on GitHub and the site follows within 5 minutes. Without it: Git Version Control > **Manage** > **Pull or Deploy** > **Update from Remote**, or upload the new files over the old ones. Do not upload a different `config/config.php` or replace `public/uploads`.
+1. With the update cron job (Step 9) nothing is needed: push to `main` on GitHub and the site follows within 5 minutes (each update is listed in `storage/logs/deploy.log`). Right away instead:
+   - cPanel > **Git Version Control** > **Manage** > **Pull or Deploy** > **Update from Remote**, then **Deploy HEAD Commit** (runs `.cpanel.yml`: the database changes), or
+   - cPanel > **Terminal**: `sh ~/public_html/cron/deploy.sh` (both steps at once). Do not upload a different `config/config.php` or replace `public/uploads`.
 2. Open the website once. Database changes that came with the update are applied by themselves on the first visit (a backup is made every night, and you can press **Back up now** in **Admin > System check** before updating). If **System check** still says **The database needs an update**, click **Update database**.
 
 ## Backups
