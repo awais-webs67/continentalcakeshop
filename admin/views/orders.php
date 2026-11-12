@@ -95,9 +95,10 @@ $link = static fn (string $key): string => admin_url('orders', $key === 'ongoing
                 default                 => 'No orders here yet.',
             } ?></p></div>
         <?php else: ?>
-            <div class="order-list">
+            <div class="otable">
+                <div class="otr otr--head" aria-hidden="true"><span>Placed</span><span>Customer and cakes</span><span>Pickup</span><span>Status</span><span>Payment</span><span class="otr__total">Total</span><span></span></div>
                 <?php foreach ($result['rows'] as $o): ?>
-                    <?php render_admin_partial('order-row', ['o' => $o, 'show' => 'date']); ?>
+                    <?php render_admin_partial('order-trow', ['o' => $o]); ?>
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>

@@ -246,5 +246,10 @@ $proofIsImage = $order['payment_proof'] && preg_match('/\.(jpe?g|png|webp)$/i', 
 $hasStripePayment = (bool) db_value("SELECT 1 FROM payments WHERE order_id = ? AND kind = 'payment' AND reference LIKE 'pi\\_%'", [$id])
     || str_starts_with((string) $order['payment_reference'], 'pi_');
 $catalogue = admin_size_choices();
+// Which order this is for the customer (same email or phone), for the "Regular customer" badge.
+$orderCount = (int) db_value(
+    "SELECT COUNT(*) FROM orders WHERE order_status <> 'cancelled' AND created_at <= ? AND ((customer_email <> '' AND customer_email = ?) OR (customer_phone <> '' AND customer_phone = ?))",
+    [$order['created_at'], (string) $order['customer_email'], (string) $order['customer_phone']]
+);
 
-admin_view('order-view', compact('order', 'items', 'events', 'payments', 'customer', 'proofIsImage', 'hasStripePayment', 'catalogue') + ['title' => 'Order ' . $order['order_number']]);
+admin_view('order-view', compact('order', 'items', 'events', 'payments', 'customer', 'proofIsImage', 'hasStripePayment', 'catalogue', 'orderCount') + ['title' => 'Order ' . $order['order_number']]);

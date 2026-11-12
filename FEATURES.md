@@ -306,7 +306,7 @@ New scheduled jobs: add a function `something_task(DateTimeImmutable $now): stri
 
 | Route | What it is |
 |---|---|
-| `/admin` | Dashboard: today, payments to check, deliveries to schedule, sales chart, recent orders |
+| `/admin` | Dashboard: today's orders with a progress bar and the next-step button on each, "Waiting for you" (new orders, payments to check, deliveries without a time, unread messages, custom requests: a count and the first one each), sales chart, latest orders |
 | `orders`, `orders/new`, `orders/view`, `orders/print` | Orders, phone and shop orders, order detail, kitchen ticket |
 | `pickups` | Pickups and deliveries by day |
 | `custom-requests` | Custom cake requests and quotes |
@@ -524,7 +524,9 @@ Admin > Settings > Business > **Maintenance mode** (owners). While it is on (`sr
 
 ## 37. Orders page, status emails, emails reaching the inbox
 
-**Orders page tabs** (`admin/controllers/orders.php`): **Ongoing** (default: every order not finished, soonest first; late ones show "Not marked done"), **Today**, **Upcoming**, **Completed**, **History** (every order dated before today, latest first) and **All** (newest placed first), each with its count. Below them, quick lists: Needs action, Tomorrow, Money owing, Cancelled. A yellow bar above says how many orders need action. Search and filters (status, payment, pickup or delivery, where it came from, dates, sort) work inside the chosen tab.
+**Orders page tabs** (`admin/controllers/orders.php`): **Ongoing** (default: every order not finished, soonest first; late ones show "Not marked done"), **Today**, **Upcoming**, **Completed**, **History** (every order dated before today, latest first) and **All** (newest placed first), each with its count. Below them, quick lists: Needs action, Tomorrow, Money owing, Cancelled. A yellow bar above says how many orders need action. Search and filters (status, payment, pickup or delivery, where it came from, dates, sort) work inside the chosen tab. Each order is one row (`admin/views/partials/order-trow.php`): when it was placed (a green dot for new ones), customer and cakes, pickup day and time, status, payment, total and the next-step button; on phones the row becomes a small card.
+
+**Order page** (`admin/views/order-view.php`): the top card shows the customer, the pickup or delivery time, the steps (Received, Confirmed, Being prepared, Ready, Collected) and one button for the next step; "Change status or cancel the order", Print ticket and More (message, invoice, customer view) sit next to it. Below: the cakes (writing for the cake in a yellow box), payment (screenshot, Total / Paid / Owing, one "Money received" button for the full amount, plus part payment, "Money not received" and refund), what happened, the customer (Call, WhatsApp, Email, "Regular customer, 5th order"), pickup or delivery with its change form, and staff notes. On phones the customer and the time come first.
 
 **Status emails** (`change_order_status()` in `src/orders.php`): changing the status from the order page or with the quick button in any order list (Orders, Pickups, Dashboard) does the same thing: notes it in the order's history and emails the customer (on the order page the email can be switched off; the quick buttons always email when the order has an email address). The words are in `ORDER_STATUS_MESSAGES`.
 
