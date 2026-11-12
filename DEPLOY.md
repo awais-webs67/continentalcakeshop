@@ -14,12 +14,13 @@ It takes about 20 minutes. You need the cPanel login and the domain already poin
 
 Pick one way.
 
-**A. Git (cPanel > Git Version Control)**
+**A. Git (cPanel > Git Version Control), recommended: updates then arrive by themselves**
 
-1. Click **Create**, turn on **Clone a Repository**.
-2. Clone URL: `https://github.com/awais-webs67/continentalcakeshop.git`
-3. Repository Path: `public_html` (the folder must be empty), or a folder of your choice such as `continentalcakeshop`.
-4. Click **Create**. Later updates are one click: **Manage** > **Pull or Deploy** > **Update from Remote**.
+1. `public_html` must be empty. If the domain had another site, File Manager > `public_html` > **Select All** > **Compress** (keep the zip somewhere else as a copy), then delete everything in it, including hidden files like `.htaccess`.
+2. cPanel > **Git Version Control** > **Create**, turn on **Clone a Repository**.
+3. Clone URL: `https://github.com/awais-webs67/continentalcakeshop.git` (the repository is public, so no key is needed).
+4. Repository Path: `public_html`. Repository Name: `continentalcakeshop`. Click **Create**.
+5. For automatic updates from GitHub, add the cron job in Step 9 (the second one).
 
 **B. Zip file (cPanel > File Manager)**
 
@@ -119,7 +120,7 @@ If photo uploads fail later, try `775` on the same folders.
 In the admin panel, **Settings**:
 
 - **Payments**: add the PayID and/or bank details, then switch each method on. For cards, see Step 9.
-- **Emails**: set where new order alerts go, then click **Send me a test email**.
+- **Branches** > each shop: **Shop details** (address, phone, the email shown on the website) and **Email** (the shop's email account and where its order alerts go), then **Send a test email**.
 - **Opening hours** and **Ordering & pickup**: check the hours, notice time and closed dates, and the delivery fee, delivery area text and delivery postcodes.
 - **Homepage**, **Social & SEO**: check the text and links.
 
@@ -146,6 +147,17 @@ One cron job runs everything that happens by itself:
 
 **Admin > System check** shows whether the cron job is running.
 
+**Second cron job: automatic updates from GitHub** (only with Git, Step 1 A). Every change pushed to the `main` branch on GitHub reaches the live site within 5 minutes:
+
+1. cPanel > **Cron Jobs** > **Add New Cron Job**, Common settings: **Once Per Five Minutes** (`*/5 * * * *`).
+2. Command (change `cpaneluser`):
+
+```
+/bin/sh /home/cpaneluser/public_html/cron/deploy.sh >/dev/null 2>&1
+```
+
+It only replaces files that are in GitHub. `config/config.php`, `storage/` (the key for saved passwords, logs, backups, payment screenshots) and photos uploaded in the admin panel are not in GitHub, so they are never touched. Each update is written to `storage/logs/deploy.log`. Database changes that come with an update run by themselves on the next visit.
+
 ## Step 10. Stripe card payments
 
 1. Log in at [dashboard.stripe.com](https://dashboard.stripe.com) and finish the account activation.
@@ -170,9 +182,17 @@ The old Wix site ranks well in Canberra, mostly because of the domain's age, lin
 6. Open **Admin > SEO**, press **Suggest keywords**, then improve the cakes with the lowest SEO score first using **Fill in for me** in each cake.
 7. For the first weeks after launch, check **Admin > SEO > Addresses not found** once a week and redirect anything listed.
 
+## Moving from the test site
+
+If cakes, photos and settings were already entered on a test site (for example `cake.skillsnexuspro.com` on Hostinger), bring them over instead of starting from `database.sql`:
+
+1. Test site: hPanel > **Databases** > **phpMyAdmin** > the database > **Export** > **Quick** > **SQL**. Import that file in Step 3 instead of `database.sql`.
+2. Test site File Manager: compress and download `public/uploads` and `storage/uploads`, and download `storage/app.key`. On the new hosting, upload and extract them to the same places (replace when asked). Without `app.key` the saved email passwords must be typed in again.
+3. After the move, open each shop in **Admin > Branches** and check its email account (Email tab, **Send a test email**) and the cron jobs of Step 9.
+
 ## Updating the site later
 
-1. Pull the update (Git Version Control > **Update from Remote**) or upload the new files over the old ones. Do not upload a different `config/config.php` or replace `public/uploads`.
+1. With the update cron job (Step 9) nothing is needed: push to `main` on GitHub and the site follows within 5 minutes. Without it: Git Version Control > **Manage** > **Pull or Deploy** > **Update from Remote**, or upload the new files over the old ones. Do not upload a different `config/config.php` or replace `public/uploads`.
 2. Open the website once. Database changes that came with the update are applied by themselves on the first visit (a backup is made every night, and you can press **Back up now** in **Admin > System check** before updating). If **System check** still says **The database needs an update**, click **Update database**.
 
 ## Backups
