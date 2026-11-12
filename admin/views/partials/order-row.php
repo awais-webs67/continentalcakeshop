@@ -28,10 +28,11 @@ $overdue = $o['pickup_date'] < date('Y-m-d') && !in_array($o['order_status'], ['
         </a>
         <p class="order-row__items"><?= e((string) ($o['summary'] ?: 'No items')) ?></p>
         <div class="order-row__tags">
-            <span class="tag tag--<?= $delivery ? 'delivery' : 'pickup' ?>"><?= icon($delivery ? 'truck' : 'store', '', 13) ?> <?= $delivery ? e('Delivery' . ($o['delivery_suburb'] ? ' · ' . $o['delivery_suburb'] : '')) : 'Pickup' ?></span>
-            <?= branch_tag(isset($o['branch_id']) ? (int) $o['branch_id'] : null) ?>
             <?= status_badge($o['order_status'], order_status_label($o)) ?>
-            <?= status_badge($o['payment_status'], PAYMENT_STATUSES[$o['payment_status']]) ?>
+            <?php // "Paid" is already under the price; other payment states need attention. ?>
+            <?php if ($o['payment_status'] !== 'paid' && $o['order_status'] !== 'cancelled'): ?><?= status_badge($o['payment_status'], PAYMENT_STATUSES[$o['payment_status']]) ?><?php endif; ?>
+            <?php if ($delivery): ?><span class="tag tag--delivery"><?= icon('truck', '', 13) ?> <?= e('Delivery' . ($o['delivery_suburb'] ? ' · ' . $o['delivery_suburb'] : '')) ?></span><?php endif; ?>
+            <?= branch_tag(isset($o['branch_id']) ? (int) $o['branch_id'] : null) ?>
             <?php if (($o['channel'] ?? 'online') !== 'online'): ?><span class="tag"><?= e(ORDER_CHANNELS[$o['channel']] ?? $o['channel']) ?></span><?php endif; ?>
             <?php if ($delivery && !$o['pickup_time'] && !in_array($o['order_status'], ['completed', 'cancelled'], true)): ?><span class="tag tag--warn"><?= icon('clock', '', 13) ?> Set delivery time</span><?php endif; ?>
             <?php if ($overdue): ?><span class="tag tag--warn">Not marked done</span><?php endif; ?>

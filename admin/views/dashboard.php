@@ -1,4 +1,4 @@
-<?php /** @var array $stats @var array $todayOrders @var array $toSchedule @var array $toVerify @var array $recent @var ?array $requests @var ?array $threads @var ?array $chart @var bool $canOrders @var array $admin */
+<?php /** @var array $stats @var array $counts @var array $todayOrders @var array $toSchedule @var array $toVerify @var array $recent @var ?array $requests @var ?array $threads @var ?array $chart @var bool $canOrders @var array $admin */
 $hour = (int) date('G');
 ?>
 <div class="page-head">
@@ -42,39 +42,44 @@ $hour = (int) date('G');
 </div>
 <?php endif; ?>
 
-<div class="grid-main">
+<?php
+// A card's footer link: "See all 40 payments to check".
+$more = static fn (int $shown, int $total, string $url, string $what): string => $total > $shown
+    ? '<a class="card__more" href="' . e($url) . '">See all ' . $total . ' ' . e($what) . ' ' . icon('arrow', '', 14) . '</a>' : '';
+?>
+<div class="grid-main dash">
     <div class="stack">
+        <?php if ($canOrders): ?>
+        <section class="card">
+            <div class="card__head"><h2>Today <span class="count"><?= $stats['due_today'] ?></span></h2><span class="hint"><?= $counts['today_done'] ?> of <?= $stats['due_today'] ?> done &middot; <a href="<?= e(admin_url('pickups')) ?>">Full schedule</a></span></div>
+            <?php if (!$todayOrders): ?>
+                <div class="empty empty--small"><?= icon('calendar', '', 28) ?><p>No pickups or deliveries today.</p></div>
+            <?php else: ?>
+                <div class="order-lines">
+                    <?php foreach ($todayOrders as $o): ?><?php render_admin_partial('order-line', ['o' => $o, 'show' => 'time']); ?><?php endforeach; ?>
+                </div>
+                <?= $more(count($todayOrders), $stats['due_today'], admin_url('pickups'), 'for today') ?>
+            <?php endif; ?>
+        </section>
+
         <?php if ($toSchedule): ?>
         <section class="card card--attention">
-            <div class="card__head"><h2>Deliveries to schedule</h2><span class="hint">Set a time and the customer is emailed</span></div>
+            <div class="card__head"><h2>Deliveries to schedule <span class="count count--warn"><?= $counts['to_schedule'] ?></span></h2><span class="hint">Set a time and the customer is emailed</span></div>
             <ul class="schedule-list">
                 <?php foreach ($toSchedule as $o): ?>
                     <li>
                         <span class="schedule-list__date"><strong><?= e(date('D j', strtotime($o['pickup_date']))) ?></strong><span><?= e(date('M', strtotime($o['pickup_date']))) ?></span></span>
                         <span class="schedule-list__main">
                             <a href="<?= e(admin_url('orders/view', ['id' => $o['id']]) . '#when') ?>"><?= e($o['customer_name']) ?></a>
-                            <span><?= e($o['order_number']) ?> &middot; <?= e(trim((string) $o['delivery_suburb'] . ' ' . (string) $o['delivery_postcode'])) ?> &middot; <?= e(delivery_window_label($o['delivery_window'] ?? null)) ?></span>
+                            <span><?= e(trim((string) $o['delivery_suburb'] . ' ' . (string) $o['delivery_postcode'])) ?> &middot; <?= e(delivery_window_label($o['delivery_window'] ?? null)) ?></span>
                         </span>
                         <a class="btn btn--primary btn--sm" href="<?= e(admin_url('orders/view', ['id' => $o['id']]) . '#when') ?>"><?= icon('clock', '', 15) ?> Set time</a>
                     </li>
                 <?php endforeach; ?>
             </ul>
+            <?= $more(count($toSchedule), $counts['to_schedule'], admin_url('orders', ['view' => 'action', 'fulfilment' => 'delivery']), 'deliveries to schedule') ?>
         </section>
         <?php endif; ?>
-
-        <?php if ($canOrders): ?>
-        <section class="card">
-            <div class="card__head"><h2>Today</h2><a href="<?= e(admin_url('pickups')) ?>">Full schedule</a></div>
-            <?php if (!$todayOrders): ?>
-                <div class="empty"><?= icon('calendar', '', 32) ?><p>No pickups or deliveries today.</p></div>
-            <?php else: ?>
-                <div class="order-list">
-                    <?php foreach ($todayOrders as $o): ?>
-                        <?php render_admin_partial('order-row', ['o' => $o, 'show' => 'time']); ?>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-        </section>
         <?php endif; ?>
 
         <?php if ($chart !== null): ?>
@@ -96,14 +101,12 @@ $hour = (int) date('G');
 
         <?php if ($canOrders): ?>
         <section class="card">
-            <div class="card__head"><h2>Recent orders</h2><a href="<?= e(admin_url('orders')) ?>">All orders</a></div>
+            <div class="card__head"><h2>Latest orders</h2><a href="<?= e(admin_url('orders', ['view' => 'all'])) ?>">All orders</a></div>
             <?php if (!$recent): ?>
-                <div class="empty"><?= icon('bag', '', 32) ?><p>Orders will appear here as soon as customers start ordering.</p></div>
+                <div class="empty empty--small"><?= icon('bag', '', 28) ?><p>Orders will appear here as soon as customers start ordering.</p></div>
             <?php else: ?>
-                <div class="order-list">
-                    <?php foreach ($recent as $o): ?>
-                        <?php render_admin_partial('order-row', ['o' => $o, 'show' => 'date']); ?>
-                    <?php endforeach; ?>
+                <div class="order-lines">
+                    <?php foreach ($recent as $o): ?><?php render_admin_partial('order-line', ['o' => $o, 'show' => 'date']); ?><?php endforeach; ?>
                 </div>
             <?php endif; ?>
         </section>
@@ -113,41 +116,44 @@ $hour = (int) date('G');
     <div class="stack">
         <?php if ($canOrders): ?>
         <section class="card">
-            <div class="card__head"><h2>Payments to check</h2></div>
+            <div class="card__head"><h2>Payments to check <?php if ($stats['to_verify']): ?><span class="count count--warn"><?= $stats['to_verify'] ?></span><?php endif; ?></h2></div>
             <div class="card__body">
                 <?php if (!$toVerify): ?><p class="hint">All payment screenshots have been checked.</p><?php endif; ?>
                 <ul class="mini-list">
                 <?php foreach ($toVerify as $o): ?>
-                    <li><a href="<?= e(admin_url('orders/view', ['id' => $o['id']])) ?>"><strong><?= e($o['order_number']) ?></strong><span><?= e($o['customer_name']) ?> &middot; <?= e(payment_method_label($o['payment_method'])) ?></span></a><strong><?= e(money($o['total'])) ?></strong></li>
+                    <li><a href="<?= e(admin_url('orders/view', ['id' => $o['id']])) ?>"><strong><?= e($o['customer_name']) ?></strong><span><?= e($o['order_number']) ?> &middot; <?= e(payment_method_label($o['payment_method'])) ?> &middot; <?= e(date('D j M', strtotime($o['pickup_date']))) ?></span></a><strong><?= e(money($o['total'])) ?></strong></li>
                 <?php endforeach; ?>
                 </ul>
             </div>
+            <?= $more(count($toVerify), $stats['to_verify'], admin_url('orders', ['view' => 'all', 'payment' => 'awaiting_verification']), 'payments to check') ?>
         </section>
         <?php endif; ?>
         <?php if ($threads !== null): ?>
         <section class="card">
-            <div class="card__head"><h2>Unread messages</h2><a href="<?= e(admin_url('messages')) ?>">Inbox</a></div>
+            <div class="card__head"><h2>Unread messages <?php if ($counts['unread']): ?><span class="count count--warn"><?= $counts['unread'] ?></span><?php endif; ?></h2><a href="<?= e(admin_url('messages')) ?>">Messages</a></div>
             <div class="card__body">
                 <?php if (!$threads): ?><p class="hint">You are all caught up.</p><?php endif; ?>
                 <ul class="mini-list">
                 <?php foreach ($threads as $t): ?>
-                    <li><a href="<?= e(admin_url('messages/view', ['id' => $t['id']])) ?>"><strong><?= e($t['customer_name']) ?></strong><span><?= e(mb_strimwidth((string) $t['last_body'], 0, 60, '...')) ?></span></a><span class="muted"><?= e(time_ago($t['last_message_at'])) ?></span></li>
+                    <li><a href="<?= e(admin_url('messages/view', ['id' => $t['id']])) ?>"><strong><?= e($t['customer_name']) ?></strong><span><?= e((string) $t['last_body']) ?></span></a><span class="muted"><?= e(time_ago($t['last_message_at'])) ?></span></li>
                 <?php endforeach; ?>
                 </ul>
             </div>
+            <?= $more(count($threads), $counts['unread'], admin_url('messages', ['filter' => 'unread']), 'unread messages') ?>
         </section>
         <?php endif; ?>
         <?php if ($requests !== null): ?>
         <section class="card">
-            <div class="card__head"><h2>New custom requests</h2><a href="<?= e(admin_url('custom-requests')) ?>">View all</a></div>
+            <div class="card__head"><h2>New custom requests <?php if ($counts['requests']): ?><span class="count"><?= $counts['requests'] ?></span><?php endif; ?></h2><a href="<?= e(admin_url('custom-requests')) ?>">Requests</a></div>
             <div class="card__body">
                 <?php if (!$requests): ?><p class="hint">No new requests.</p><?php endif; ?>
                 <ul class="mini-list">
                 <?php foreach ($requests as $r): ?>
-                    <li><a href="<?= e(admin_url('custom-requests/view', ['id' => $r['id']])) ?>"><strong><?= e($r['name']) ?></strong><span><?= e($r['occasion']) ?> &middot; <?= e((string) $r['servings']) ?></span></a><span class="muted"><?= e(date('D j M', strtotime($r['event_date']))) ?></span></li>
+                    <li><a href="<?= e(admin_url('custom-requests/view', ['id' => $r['id']])) ?>"><strong><?= e($r['name']) ?></strong><span><?= e($r['occasion']) ?> &middot; serves <?= e((string) $r['servings']) ?></span></a><span class="muted"><?= e(date('D j M', strtotime($r['event_date']))) ?></span></li>
                 <?php endforeach; ?>
                 </ul>
             </div>
+            <?= $more(count($requests), $counts['requests'], admin_url('custom-requests', ['status' => 'new']), 'new requests') ?>
         </section>
         <?php endif; ?>
     </div>
