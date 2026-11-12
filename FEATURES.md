@@ -306,7 +306,7 @@ New scheduled jobs: add a function `something_task(DateTimeImmutable $now): stri
 
 | Route | What it is |
 |---|---|
-| `/admin` | Dashboard: today's orders with a progress bar and the next-step button on each, "Waiting for you" (new orders, payments to check, deliveries without a time, unread messages, custom requests: a count and the first one each), sales chart, latest orders |
+| `/admin` | Dashboard: what waits now (due today, to confirm, payments to check, deliveries without a time, messages, custom requests: counts that open their lists), then sales for the last 7, 30 or 90 days with the change against the days before (sales, orders, average order, money received), sales by day, orders by status, top cakes, pickup or delivery, payment methods and shops |
 | `orders`, `orders/new`, `orders/view`, `orders/print` | Orders, phone and shop orders, order detail, kitchen ticket |
 | `pickups` | Pickups and deliveries by day |
 | `custom-requests` | Custom cake requests and quotes |
@@ -548,4 +548,4 @@ Admin > Settings > Business > **Maintenance mode** (owners). While it is on (`sr
 
 **Order sound:** browsers only allow sound after the page has been tapped once. When sound is blocked, a black bar says "Order sound is off. Tap here to turn it on" on every screen size (phones and tablets too). Tapping it also offers desktop alerts, which keep sounding after the page reloads.
 
-**Admin look:** black sidebar and black main buttons, white cards with thin lines, underline tabs, status labels with a small coloured dot. Orders is one table (order number, customer and cakes, pickup, status, payment, total, next step) with Needs action as the first tab. The order page has the number, status and the next-step button on top, Print (receipt, thermal, kitchen ticket) and More (change status or cancel, message, customer's page); each card has its own Edit, and the payment card shows its buttons (Mark as paid or Money received, Other amount, Not received, Refund).
+**Admin look:** the shop's green sidebar, black main buttons, white cards with thin lines, underline tabs, status labels with a small coloured dot. Orders is one table (order number, customer and cakes, pickup, status, payment, total, next step) with Needs action as the first tab. The dashboard shows figures and charts only (no order lists). The order page has the number, status and the next-step button on top, Print (receipt, thermal, kitchen ticket) and More (change status or cancel, message, customer's page); each card has its own Edit, and the payment card shows its buttons (Mark as paid or Money received, Other amount, Not received, Refund).
