@@ -537,3 +537,15 @@ Admin > Settings > Business > **Maintenance mode** (owners). While it is on (`sr
 **The shop's alert never reaches the customer** (`shop_alert_address()`): new order, custom cake request, contact message, card payment and moved-order alerts go to the shop's alerts address, and are skipped when that address is the customer's own (e.g. a test order placed with the shop's address).
 
 **Inbox, not spam** (`email_delivery_checks()` in `src/mail.php`): Admin > System check > "Emails: spam check" and a warning on each shop's Email tab say why emails may land in spam: emails only saved to a file, sent by the website server (PHP mail), a Gmail address not sent through Gmail, and the domain's SPF, DKIM and DMARC records (cPanel > Email Deliverability > Repair).
+
+## 38. Order numbers, receipts, counts and the admin look (Nov 2026)
+
+**Order numbers** (`generate_order_number()` in `src/orders.php`): new orders are numbered in sequence, CC-1001, CC-1002, ... (the next is one more than the highest CC- number, worked out inside the order's transaction so two checkouts never share a number). Older orders keep their long CCS-... numbers, so old links and emails still work. Replies to order emails are matched by either kind (`order_number_in()`).
+
+**Receipts** (`public/invoice.php`): the order's receipt (a tax invoice when GST registered) at `/order/<number>/invoice?t=...` is a clean digital receipt: shop, the total in large type with Paid / to pay / Cancelled, customer, pickup or delivery, payment, items, totals, GST and every payment. It prints on A4 or saves as PDF. Add `&format=thermal` for the 80mm receipt printer version (plain black, monospace, dashed lines). Staff open both, and the kitchen ticket, from **Print** on the order page.
+
+**Counts:** the Orders badge in the menu, the bell and the live updates count each order that needs staff once (`admin_badges()['action']`, the same as the Needs action tab): a new order with a payment screenshot is one order, not two.
+
+**Order sound:** browsers only allow sound after the page has been tapped once. When sound is blocked, a black bar says "Order sound is off. Tap here to turn it on" on every screen size (phones and tablets too). Tapping it also offers desktop alerts, which keep sounding after the page reloads.
+
+**Admin look:** black sidebar and black main buttons, white cards with thin lines, underline tabs, status labels with a small coloured dot. Orders is one table (order number, customer and cakes, pickup, status, payment, total, next step) with Needs action as the first tab. The order page has the number, status and the next-step button on top, Print (receipt, thermal, kitchen ticket) and More (change status or cancel, message, customer's page); each card has its own Edit, and the payment card shows its buttons (Mark as paid or Money received, Other amount, Not received, Refund).

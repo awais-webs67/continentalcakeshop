@@ -38,6 +38,11 @@ same('money formats', '$1,234.50', money(1234.5));
 check('Australian mobile accepted', valid_au_phone('0412 345 678'));
 check('+61 number accepted', valid_au_phone('+61 2 6293 9578'));
 check('short number refused', !valid_au_phone('12345'));
+same('order number found in a reply', 'CC-1042', order_number_in('Re: Update on order cc-1042 - The Continental Cake Shop'));
+same('older order number still found', 'CCS-261113-58AF4', order_number_in('Re: Order CCS-261113-58AF4 confirmed'));
+same('no order number in a plain subject', null, order_number_in('Question about cakes for 2026'));
+check('next order number is short and in sequence', (bool) preg_match('/^CC-\d{4,}$/', $next = generate_order_number())
+    && (int) substr($next, 3) === max(ORDER_NUMBER_START, (int) db_value("SELECT MAX(CAST(SUBSTRING(order_number, 4) AS UNSIGNED)) FROM orders WHERE order_number LIKE 'CC-%'") + 1), $next);
 same('notice in days', '2 days', notice_label(48));
 same('notice in hours', '6 hours', notice_label(6));
 same('one hour of notice', '1 hour', notice_label(1));

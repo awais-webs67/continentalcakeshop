@@ -123,7 +123,7 @@ function inbox_import(array $branch, array $mail, string $ownAddress): bool
     $thread = null;
     // A reply to an order email: the order number is in the subject, and it comes from that customer
     // (so nobody can write into someone else's order chat).
-    if (preg_match('/\bCCS-\d{6}-[A-Z0-9]{4,6}\b/i', $mail['subject'], $m) && ($order = get_order_by_number(strtoupper($m[0])))
+    if (($number = order_number_in($mail['subject'])) !== null && ($order = get_order_by_number($number))
         && strcasecmp((string) $order['customer_email'], $from) === 0) {
         $thread = order_thread($order);
     }

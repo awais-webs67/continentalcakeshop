@@ -1,7 +1,7 @@
 <?php
 /**
- * One order in the Orders table: when it was placed, customer and cakes, pickup, status,
- * payment, total and the next step. The whole row opens the order.
+ * One order in the Orders table: number and when it was placed, customer and cakes, pickup,
+ * status, payment, total and the next step. The whole row opens the order.
  *
  * @var array $o order row with a "summary" of its cakes
  */
@@ -25,9 +25,12 @@ $time = $o['pickup_time'] ? format_time($o['pickup_time']) : '';
 $url = admin_url('orders/view', ['id' => $o['id']]);
 ?>
 <div class="otr otr--<?= e($o['order_status']) ?><?= $overdue ? ' is-overdue' : '' ?>">
-    <span class="otr__placed" title="<?= e(date('j M Y, g:ia', strtotime($o['created_at']))) ?>"><?php if ($o['order_status'] === 'new'): ?><i class="otr__dot" aria-label="New"></i><?php endif; ?><?= e(time_ago($o['created_at'])) ?></span>
+    <span class="otr__placed">
+        <strong><?php if ($o['order_status'] === 'new'): ?><i class="otr__dot" aria-label="New"></i><?php endif; ?><?= e($o['order_number']) ?></strong>
+        <small title="<?= e(date('j M Y, g:ia', strtotime($o['created_at']))) ?>"><?= e(time_ago($o['created_at'])) ?></small>
+    </span>
     <a class="otr__who" href="<?= e($url) ?>">
-        <strong><?= e($o['customer_name']) ?> <small><?= e($o['order_number']) ?></small></strong>
+        <strong><?= e($o['customer_name']) ?></strong>
         <span><?= e((string) ($o['summary'] ?: 'No items')) ?></span>
     </a>
     <span class="otr__when">

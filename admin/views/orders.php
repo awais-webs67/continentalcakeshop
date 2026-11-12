@@ -1,30 +1,22 @@
 <?php /** @var array $result @var array $views @var string $current @var array $viewCounts @var bool $filtersOn */
 $link = static fn (string $key): string => admin_url('orders', $key === 'ongoing' ? [] : ['view' => $key]);
 ?>
-<div class="page-head">
-    <div><h1>Orders</h1></div>
+<div class="page-head page-head--compact">
+    <h1>Orders</h1>
     <div class="page-head__actions">
-        <a class="btn btn--secondary" href="<?= e(admin_url('pickups')) ?>"><?= icon('calendar', '', 18) ?> Pickups &amp; deliveries</a>
-        <a class="btn btn--primary" href="<?= e(admin_url('orders/new')) ?>"><?= icon('plus', '', 18) ?> New order</a>
+        <a class="btn btn--secondary" href="<?= e(admin_url('pickups')) ?>"><?= icon('calendar', '', 17) ?> Pickups &amp; deliveries</a>
+        <a class="btn btn--primary" href="<?= e(admin_url('orders/new')) ?>"><?= icon('plus', '', 17) ?> New order</a>
     </div>
-</div>
-
-<div data-live="views">
-    <?php if ($viewCounts['action'] && $current !== 'action'): ?>
-        <a class="action-bar" href="<?= e($link('action')) ?>">
-            <span class="action-bar__icon"><?= icon('bell', '', 18) ?></span>
-            <span><strong><?= $viewCounts['action'] ?> order<?= $viewCounts['action'] === 1 ? ' needs' : 's need' ?> action</strong><small>New orders, payments to check and deliveries without a time</small></span>
-            <span class="action-bar__go">Show <?= icon('arrow', '', 15) ?></span>
-        </a>
-    <?php endif; ?>
 </div>
 
 <section class="card">
     <div data-live="tabs">
         <nav class="tabs order-tabs" aria-label="Orders">
-            <?php foreach (ORDER_TABS as $key): ?>
-                <a href="<?= e($link($key)) ?>" class="<?= $current === $key ? 'is-active' : '' ?>"<?= $current === $key ? ' aria-current="page"' : '' ?> title="<?= e($views[$key][1]) ?>"><?= e($views[$key][0]) ?> <span><?= $viewCounts[$key] ?></span></a>
+            <?php $tabs = $viewCounts['action'] || $current === 'action' ? array_merge(['action'], ORDER_TABS) : ORDER_TABS; ?>
+            <?php foreach ($tabs as $key): ?>
+                <a href="<?= e($link($key)) ?>" class="<?= $current === $key ? 'is-active' : '' ?><?= $key === 'action' ? ' order-tabs__action' : '' ?>"<?= $current === $key ? ' aria-current="page"' : '' ?> title="<?= e($views[$key][1]) ?>"><?= e($views[$key][0]) ?> <span><?= $viewCounts[$key] ?></span></a>
             <?php endforeach; ?>
+            <?php if (!in_array($current, $tabs, true)): ?><a href="<?= e($link($current)) ?>" class="is-active" aria-current="page"><?= e($views[$current][0]) ?> <span><?= $viewCounts[$current] ?></span></a><?php endif; ?>
         </nav>
     </div>
     <form class="order-filters" method="get" action="<?= e(admin_url('orders')) ?>">
@@ -77,10 +69,6 @@ $link = static fn (string $key): string => admin_url('orders', $key === 'ongoing
     </form>
 
     <div data-live="list">
-        <div class="list-caption">
-            <strong><?= e($views[$current][0]) ?></strong>
-            <span><?= e($views[$current][1]) ?> &middot; <?= (int) $result['total'] ?> order<?= $result['total'] === 1 ? '' : 's' ?></span>
-        </div>
         <?php if (!$result['rows']): ?>
             <div class="empty"><?= icon('bag', '', 32) ?><p><?= match (true) {
                 $filtersOn || $q !== '' => 'No orders match these filters.',
@@ -91,7 +79,7 @@ $link = static fn (string $key): string => admin_url('orders', $key === 'ongoing
             } ?></p></div>
         <?php else: ?>
             <div class="otable">
-                <div class="otr otr--head" aria-hidden="true"><span>Placed</span><span>Customer and cakes</span><span>Pickup</span><span>Status</span><span>Payment</span><span class="otr__total">Total</span><span></span></div>
+                <div class="otr otr--head" aria-hidden="true"><span>Order</span><span>Customer</span><span>Pickup</span><span>Status</span><span>Payment</span><span class="otr__total">Total</span><span></span></div>
                 <?php foreach ($result['rows'] as $o): ?>
                     <?php render_admin_partial('order-trow', ['o' => $o]); ?>
                 <?php endforeach; ?>

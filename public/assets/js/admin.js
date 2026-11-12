@@ -925,7 +925,16 @@ document.addEventListener('input', function (e) {
     document.querySelectorAll('[data-sound-test]').forEach(function (btn) {
         btn.addEventListener('click', function () { sound.unlock(); sound.play(btn.getAttribute('data-sound-test'), true); });
     });
-    if (pill) pill.addEventListener('click', function () { sound.unlock(); setTimeout(function () { sound.play('message', true); sync(); }, 60); });
+    if (pill) pill.addEventListener('click', function () {
+        sound.unlock();
+        setTimeout(function () { sound.play('order', true); sync(); }, 60);
+        // Desktop alerts keep working after the page reloads (sound needs a tap on every new page).
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission().then(function (p) { if (p === 'granted') sound.set('desktop', true); showDesktop(); });
+        } else if ('Notification' in window && Notification.permission === 'granted' && !sound.prefs().desktop) {
+            sound.set('desktop', true);
+        }
+    });
     sound.onChange(sync);
     sync();
 })();
@@ -1110,3 +1119,26 @@ document.addEventListener('input', function (e) {
         step(0);
     });
 })();
+
+// Buttons with data-open="id" show or hide that panel (Edit on order cards, payment actions).
+document.addEventListener('click', function (e) {
+    var btn = e.target.closest && e.target.closest('[data-open]');
+    if (!btn) return;
+    var panel = document.getElementById(btn.getAttribute('data-open'));
+    if (!panel) return;
+    e.preventDefault();
+    var opening = panel.hidden;
+    // Only one payment form at a time.
+    if (opening && panel.closest('#payment')) {
+        document.querySelectorAll('#payment .ov-panel').forEach(function (p) { p.hidden = true; });
+    }
+    panel.hidden = !opening;
+    var menu = btn.closest('details.dropdown');
+    if (menu) menu.open = false;
+    if (opening) {
+        var r = panel.getBoundingClientRect();
+        if (r.top < 70 || r.bottom > window.innerHeight) panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        var field = panel.querySelector('input:not([type=hidden]):not([type=checkbox]), select, textarea');
+        if (field) setTimeout(function () { field.focus({ preventScroll: true }); }, 50);
+    }
+});

@@ -39,12 +39,27 @@ final class CouponUnavailable extends RuntimeException
 {
 }
 
+/** New orders are numbered CC-1001, CC-1002, ... (older orders keep their long CCS-... numbers). */
+const ORDER_NUMBER_PREFIX = 'CC-';
+const ORDER_NUMBER_START = 1001;
+
+/**
+ * The next order number in sequence. Called inside create_order()'s transaction: the locking read
+ * holds the range until the order is saved, so two checkouts at once never get the same number.
+ */
 function generate_order_number(): string
 {
-    do {
-        $number = 'CCS-' . date('ymd') . '-' . strtoupper(substr(bin2hex(random_bytes(3)), 0, 5));
-    } while (db_value('SELECT 1 FROM orders WHERE order_number = ?', [$number]));
-    return $number;
+    $last = (int) db_value(
+        'SELECT MAX(CAST(SUBSTRING(order_number, ?) AS UNSIGNED)) FROM orders WHERE order_number LIKE ? FOR UPDATE',
+        [strlen(ORDER_NUMBER_PREFIX) + 1, ORDER_NUMBER_PREFIX . '%']
+    );
+    return ORDER_NUMBER_PREFIX . max(ORDER_NUMBER_START, $last + 1);
+}
+
+/** Finds an order number (new CC-1234 or older CCS-261113-ABC12) in an email subject. */
+function order_number_in(string $text): ?string
+{
+    return preg_match('/\b(CC-\d{3,9}|CCS-\d{6}-[A-Z0-9]{4,6})\b/i', $text, $m) ? strtoupper($m[1]) : null;
 }
 
 /**

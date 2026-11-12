@@ -1,13 +1,13 @@
 <?php /** @var array $stats @var array $counts @var array $todayOrders @var array $toSchedule @var array $toVerify @var array $recent @var ?array $requests @var ?array $threads @var ?array $chart @var bool $canOrders @var array $admin */
 $hour = (int) date('G');
 ?>
-<div class="page-head">
+<div class="page-head page-head--compact">
     <div>
         <h1>Good <?= $hour < 12 ? 'morning' : ($hour < 17 ? 'afternoon' : 'evening') ?>, <?= e(strtok($admin['name'], ' ')) ?></h1>
-        <p><?= e(date('l j F Y')) ?> &middot; <?= e(today_hours_label()) ?></p>
+        <p><?= e(date('l j F')) ?> &middot; <?= e(today_hours_label()) ?></p>
     </div>
     <div class="page-head__actions">
-        <?php if ($canOrders): ?><a class="btn btn--secondary" href="<?= e(admin_url('pickups')) ?>"><?= icon('calendar', '', 18) ?> Pickups & deliveries</a><?php endif; ?>
+        <?php if ($canOrders): ?><a class="btn btn--secondary" href="<?= e(admin_url('pickups')) ?>"><?= icon('calendar', '', 17) ?> Pickups &amp; deliveries</a><?php endif; ?>
         <?php if ($canOrders): ?><a class="btn btn--primary" href="<?= e(admin_url('orders/new')) ?>"><?= icon('plus', '', 18) ?> New order</a><?php elseif (admin_can('products', $admin)): ?><a class="btn btn--primary" href="<?= e(admin_url('products/edit')) ?>"><?= icon('plus', '', 18) ?> Add product</a><?php endif; ?>
     </div>
 </div>
@@ -18,27 +18,11 @@ $hour = (int) date('G');
 <?php endif; ?>
 
 <?php if ($canOrders): ?>
-<div class="stats">
-    <a class="stat" href="<?= e(admin_url('pickups')) ?>">
-        <span class="stat__label"><?= icon('calendar', '', 18) ?> Due today</span>
-        <span class="stat__value"><?= $stats['due_today'] ?></span>
-        <span class="stat__note">Pickups and deliveries</span>
-    </a>
-    <a class="stat<?= $stats['to_verify'] ? ' stat--dot' : '' ?>" href="<?= e(admin_url('orders', ['payment' => 'awaiting_verification'])) ?>">
-        <span class="stat__label"><?= icon('card', '', 18) ?> Payments to check</span>
-        <span class="stat__value"><?= $stats['to_verify'] ?></span>
-        <span class="stat__note">PayID and bank screenshots</span>
-    </a>
-    <a class="stat<?= $stats['new_orders'] ? ' stat--dot' : '' ?>" href="<?= e(admin_url('orders', ['status' => 'new'])) ?>">
-        <span class="stat__label"><?= icon('bag', '', 18) ?> New orders</span>
-        <span class="stat__value"><?= $stats['new_orders'] ?></span>
-        <span class="stat__note">Not confirmed yet</span>
-    </a>
-    <a class="stat" href="<?= e(admin_can('reports', $admin) ? admin_url('reports') : admin_url('orders')) ?>">
-        <span class="stat__label"><?= icon('chart', '', 18) ?> Sales this month</span>
-        <span class="stat__value"><?= e(money($stats['month_sales'])) ?></span>
-        <span class="stat__note"><?= $stats['month_orders'] ?> orders in <?= e(date('F')) ?></span>
-    </a>
+<div class="kpis">
+    <a class="kpi" href="<?= e(admin_url('orders', ['view' => 'today'])) ?>"><span>Today</span><strong><?= $stats['due_today'] ?></strong><small><?= $counts['today_done'] ?> done</small></a>
+    <a class="kpi<?= $stats['new_orders'] ? ' kpi--alert' : '' ?>" href="<?= e(admin_url('orders', ['status' => 'new'])) ?>"><span>To confirm</span><strong><?= $stats['new_orders'] ?></strong><small>New orders</small></a>
+    <a class="kpi<?= $stats['to_verify'] ? ' kpi--alert' : '' ?>" href="<?= e(admin_url('orders', ['view' => 'all', 'payment' => 'awaiting_verification'])) ?>"><span>Payments to check</span><strong><?= $stats['to_verify'] ?></strong><small>Screenshots</small></a>
+    <a class="kpi" href="<?= e(admin_can('reports', $admin) ? admin_url('reports') : admin_url('orders')) ?>"><span><?= e(date('F')) ?></span><strong><?= e(money($stats['month_sales'])) ?></strong><small><?= $stats['month_orders'] ?> orders</small></a>
 </div>
 <?php endif; ?>
 
@@ -69,7 +53,7 @@ $due = $stats['due_today'] ?? 0;
         <?php if ($canOrders): ?>
         <section class="card dash__today">
             <div class="dash-today__head">
-                <div class="card__head"><h2>Today's pickups and deliveries</h2><span class="hint"><?= $done ?> of <?= $due ?> done</span></div>
+                <div class="card__head"><h2>Today</h2><span class="hint"><?= $done ?> of <?= $due ?> done</span></div>
                 <?php if ($due): ?><div class="progress" role="progressbar" aria-label="Done today" aria-valuemin="0" aria-valuemax="<?= $due ?>" aria-valuenow="<?= $done ?>"><span class="progress__bar" style="width:<?= round($done / $due * 100, 1) ?>%"></span></div><?php endif; ?>
             </div>
             <?php if (!$todayOrders): ?>
@@ -98,7 +82,7 @@ $due = $stats['due_today'] ?? 0;
     <div class="stack">
         <?php if ($waiting): ?>
         <section class="card dash__waiting">
-            <div class="card__head"><h2>Waiting for you <?php if ($waitingTotal): ?><span class="count count--alert"><?= $waitingTotal ?></span><?php endif; ?></h2></div>
+            <div class="card__head"><h2>To do</h2></div>
             <?php if (!$waitingTotal): ?>
                 <div class="empty empty--small"><?= icon('check', '', 28) ?><p>All caught up. Nothing is waiting.</p></div>
             <?php else: ?>
@@ -117,7 +101,7 @@ $due = $stats['due_today'] ?? 0;
 
         <?php if ($chart !== null): ?>
         <section class="card dash__chart">
-            <div class="card__head"><h2>Last 14 days</h2><a href="<?= e(admin_url('reports')) ?>">Sales reports</a></div>
+            <div class="card__head"><h2>Sales, last 14 days</h2><a href="<?= e(admin_url('reports')) ?>">Reports</a></div>
             <div class="card__body">
                 <?php $max = max(1, ...array_map(static fn ($d) => $d['total'], $chart)); ?>
                 <div class="bar-chart bar-chart--small">

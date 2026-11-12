@@ -707,6 +707,9 @@ function admin_badges(): array
     return $badges ??= [
         'orders'   => (int) db_value("SELECT COUNT(*) FROM orders WHERE (order_status = 'new' OR (fulfilment = 'delivery' AND pickup_time IS NULL AND order_status NOT IN ('cancelled', 'completed'))){$b}"),
         'payments' => (int) db_value("SELECT COUNT(*) FROM orders WHERE payment_status = 'awaiting_verification'{$b}"),
+        // Each order that needs staff counted once (a new order with a payment to check is one order),
+        // the same as the Orders page "Needs action" list.
+        'action'   => (int) db_value("SELECT COUNT(*) FROM orders WHERE (order_status = 'new' OR payment_status = 'awaiting_verification' OR (fulfilment = 'delivery' AND pickup_time IS NULL AND order_status NOT IN ('cancelled', 'completed'))){$b}"),
         'custom'   => (int) db_value("SELECT COUNT(*) FROM custom_requests WHERE status = 'new'{$b}"),
         'messages' => $b === '' ? unread_thread_count() : (int) db_value("SELECT COUNT(*) FROM threads WHERE unread_admin = 1{$b}"),
     ];
@@ -720,7 +723,7 @@ function admin_live_state(array $admin): array
     $can = static fn (string $section): bool => admin_can($section, $admin);
     $badges = admin_badges();
     $counts = [
-        'orders'   => $can('orders') ? $badges['orders'] + $badges['payments'] : 0,
+        'orders'   => $can('orders') ? $badges['action'] : 0,
         'messages' => $can('messages') ? $badges['messages'] : 0,
         'custom'   => $can('custom') ? $badges['custom'] : 0,
     ];
