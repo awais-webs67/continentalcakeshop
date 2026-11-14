@@ -44,7 +44,7 @@ $overdue = $o['pickup_date'] < date('Y-m-d') && !in_array($o['order_status'], ['
     </div>
     <div class="order-row__actions">
         <?php if ($next): ?>
-            <form method="post" action="<?= e(admin_url('orders/view')) ?>">
+            <form method="post" action="<?= e(admin_url('orders/view')) ?>"<?= $next[0] === 'completed' ? collect_attrs($o) : '' ?>>
                 <?= csrf_field() ?>
                 <input type="hidden" name="id" value="<?= (int) $o['id'] ?>">
                 <input type="hidden" name="action" value="status">

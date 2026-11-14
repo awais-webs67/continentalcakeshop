@@ -237,6 +237,7 @@ $branchLocked = admin_branch_locked($admin);
     'quillCss'  => asset('vendor/quill/quill.snow.css'),
     'uploadUrl' => admin_url('upload-image'),
     'csrf'      => csrf_token(),
+    'payMethods' => staff_payment_methods(),
     'live'      => ['url' => admin_url('live'), 'icon' => asset('img/logo-email.png')] + admin_live_state($admin),
 ], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?>;</script>
 <button type="button" class="sound-unlock" data-sound-unlock hidden><?= icon('volume', '', 18) ?> Order alerts are off. Tap here to turn them on</button>

@@ -6,7 +6,7 @@ INSERT IGNORE INTO `settings` (`setting_key`, `setting_value`) VALUES
   ('payment_shop_label', 'Pay in the shop'),
   ('payment_shop_note', 'Pay by cash or card when you pick up your order.'),
   ('payment_call_enabled', '0'),
-  ('payment_call_label', 'Pay over the phone'),
+  ('payment_call_label', 'Pay on call'),
   ('payment_call_note', 'We will call you to take payment by card before we make your order.'),
   ('status_emails_enabled', '1'),
   ('pickup_lead_unit', 'hours'),

@@ -43,7 +43,7 @@ $quantity = array_sum(array_map(static fn ($i) => (int) $i['quantity'], $items))
             <div class="dropdown__panel ov-more">
                 <p class="dropdown__title">Order status</p>
                 <?php foreach ($steps as $i => $key): $isNow = $order['order_status'] === $key; ?>
-                    <form method="post">
+                    <form method="post"<?= $key === 'completed' ? collect_attrs($order) : '' ?>>
                         <?= $idField ?><input type="hidden" name="action" value="status"><input type="hidden" name="order_status" value="<?= e($key) ?>"><?= $statusMail ?>
                         <button type="submit" class="ov-more__step<?= $isNow ? ' is-now' : '' ?><?= $at !== false && $i < $at ? ' is-done' : '' ?>"<?= $isNow ? ' disabled aria-current="step"' : '' ?>>
                             <span class="ov-more__num"><?= $at !== false && $i < $at ? icon('check', '', 13) : $i + 1 ?></span>
@@ -66,7 +66,7 @@ $quantity = array_sum(array_map(static fn ($i) => (int) $i['quantity'], $items))
         <?php if ($needsTime): ?>
             <button class="btn btn--primary" type="button" data-open="ov-when"><?= icon('clock', '', 16) ?> Set delivery time</button>
         <?php elseif ($next): ?>
-            <form method="post">
+            <form method="post"<?= $next[0] === 'completed' ? collect_attrs($order) : '' ?>>
                 <?= $idField ?><input type="hidden" name="action" value="status"><input type="hidden" name="order_status" value="<?= e($next[0]) ?>"><?= $statusMail ?>
                 <button class="btn btn--primary" type="submit" title="<?= !$hasEmail ? 'No email address on this order' : (status_emails_on() ? 'Also emails the customer' : 'Status emails are off (Settings > Emails)') ?>"><?= icon('check', '', 16) ?> <?= e($next[1]) ?></button>
             </form>
@@ -86,7 +86,7 @@ $quantity = array_sum(array_map(static fn ($i) => (int) $i['quantity'], $items))
 
 <section class="card ov-panel" id="ov-status" hidden>
     <div class="card__head"><h2>Change status</h2><button class="link-btn" type="button" data-open="ov-status">Close</button></div>
-    <form class="card__body form-stack" method="post">
+    <form class="card__body form-stack" method="post"<?= collect_attrs($order) ?>>
         <?= $idField ?><input type="hidden" name="action" value="status">
         <select class="input" name="order_status">
             <?php foreach (ORDER_STATUSES as $key => $label): ?><option value="<?= e($key) ?>" <?= selected($order['order_status'] === $key) ?>><?= e(order_status_label($order, $key)) ?></option><?php endforeach; ?>
@@ -180,7 +180,7 @@ $quantity = array_sum(array_map(static fn ($i) => (int) $i['quantity'], $items))
                         <form method="post"><?= $idField ?><input type="hidden" name="action" value="status"><input type="hidden" name="order_status" value="confirmed"><?= $statusMail ?>
                             <button class="btn btn--primary" type="submit" title="Confirms the order and records the payment<?= status_emails_on() ? ', and sends the customer one email' : '' ?>"><?= icon('check', '', 16) ?> Money received, confirm</button></form>
                     <?php elseif (pays_later((string) $order['payment_method'])): ?>
-                        <?php foreach ($order['payment_method'] === PAYMENT_SHOP ? ['cash' => 'Paid by cash', 'eftpos' => 'Paid by card'] : ['phone' => 'Paid by card over the phone'] as $how => $label): ?>
+                        <?php foreach ($order['payment_method'] === PAYMENT_SHOP ? ['cash' => 'Paid by cash', 'eftpos' => 'Paid by card'] : ['phone' => 'Paid on call'] as $how => $label): ?>
                             <form method="post"><?= $idField ?><input type="hidden" name="action" value="record_payment"><input type="hidden" name="amount" value="<?= e(number_format($balance, 2, '.', '')) ?>"><input type="hidden" name="method" value="<?= e($how) ?>"><?php if ($hasEmail): ?><input type="hidden" name="notify" value="1"><?php endif; ?>
                                 <button class="btn btn--primary" type="submit" title="Records <?= e(money($balance)) ?><?= $hasEmail ? ' and emails a receipt' : '' ?>"><?= icon('check', '', 16) ?> <?= e($label) ?></button></form>
                         <?php endforeach; ?>

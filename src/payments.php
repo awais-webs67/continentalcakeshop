@@ -53,7 +53,7 @@ function payment_method_definitions(): array
             'pickup_only'  => true,
         ],
         PAYMENT_CALL => [
-            'label'        => setting('payment_call_label', 'Pay over the phone'),
+            'label'        => setting('payment_call_label', 'Pay on call'),
             'description'  => setting('payment_call_note', 'We will call you to take payment by card before we make your order.'),
             'enabled'      => setting_bool('payment_call_enabled'),
             'configured'   => true,
@@ -62,17 +62,29 @@ function payment_method_definitions(): array
     ];
 }
 
+/** How money still owing is usually taken when the order is handed over, for staff forms. */
+function collect_method(array $order): string
+{
+    $method = (string) $order['payment_method'];
+    return match (true) {
+        $method === PAYMENT_SHOP => 'cash',
+        $method === PAYMENT_CALL => 'phone',
+        isset(staff_payment_methods()[$method]) => $method,
+        default => 'cash',
+    };
+}
+
 /** True for the ways to pay later (in the shop, or when the shop calls): the order is placed unpaid. */
 function pays_later(string $method): bool
 {
     return in_array($method, [PAYMENT_SHOP, PAYMENT_CALL], true);
 }
 
-// Ways staff can record money taken in the shop or over the phone.
+// Ways staff can record money taken in the shop or on a call.
 const IN_STORE_PAYMENT_METHODS = [
     'cash'   => 'Cash',
     'eftpos' => 'Card in the shop (EFTPOS)',
-    'phone'  => 'Card over the phone',
+    'phone'  => 'Card on call',
 ];
 
 /** Every method staff can record a payment with (online methods are listed even when switched off). */
@@ -80,7 +92,7 @@ function staff_payment_methods(): array
 {
     $list = IN_STORE_PAYMENT_METHODS;
     foreach (payment_method_definitions() as $key => $method) {
-        if (!pays_later($key)) { // "Pay in the shop" is paid by cash or card; "over the phone" by card over the phone
+        if (!pays_later($key)) { // "Pay in the shop" is paid by cash or card; "Pay on call" by card on the call
             $list[$key] = $method['label'];
         }
     }

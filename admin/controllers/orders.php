@@ -17,10 +17,10 @@ $views = [
     'action'   => ['Needs action', 'New orders, payments to check and deliveries without a time',
         "(o.order_status = 'new' OR o.payment_status = 'awaiting_verification' OR (o.fulfilment = 'delivery' AND o.pickup_time IS NULL AND {$open}))", 'o.created_at DESC, o.id DESC'],
     'tomorrow' => ['Tomorrow', 'Orders for tomorrow, newest first', "o.pickup_date = '{$tomorrow}' AND o.order_status <> 'cancelled'", 'o.created_at DESC, o.id DESC'],
-    'unpaid'   => ['Money owing', 'Orders with a balance still to pay, newest first', "{$open} AND o.amount_paid - o.amount_refunded < o.total - 0.004", 'o.created_at DESC, o.id DESC'],
+    'unpaid'   => ['Unpaid', 'Open orders with money still to pay, newest first', "{$open} AND o.amount_paid - o.amount_refunded < o.total - 0.004", 'o.created_at DESC, o.id DESC'],
     'cancelled' => ['Cancelled', 'Cancelled orders, latest first', "o.order_status = 'cancelled'", 'o.created_at DESC'],
 ];
-const ORDER_TABS = ['ongoing', 'today', 'upcoming', 'done', 'history', 'all'];
+const ORDER_TABS = ['ongoing', 'today', 'upcoming', 'unpaid', 'done', 'history', 'all'];
 // Old links to "Coming up" still work.
 if (($_GET['view'] ?? '') === 'coming') {
     $_GET['view'] = 'upcoming';

@@ -226,11 +226,11 @@ $mask = static function (string $key): string {
     </div>
     <div class="pay-method">
         <div class="pay-method__head">
-            <div><h3>Pay over the phone</h3><p class="hint">The customer orders now and you call them to take the card payment. Record it on the order when paid.</p></div>
+            <div><h3>Pay on call</h3><p class="hint">The customer orders now and you call them to take the card payment. Record it on the order when paid.</p></div>
             <?= $methods['call']['enabled'] ? status_badge('active', 'Live at checkout') : status_badge('inactive', 'Off') ?>
         </div>
         <div class="form-stack">
-            <label class="switch"><input type="checkbox" name="payment_call_enabled" value="1" <?= $on('payment_call_enabled') ?>><span class="switch__track"></span><span>Offer "pay over the phone"</span></label>
+            <label class="switch"><input type="checkbox" name="payment_call_enabled" value="1" <?= $on('payment_call_enabled') ?>><span class="switch__track"></span><span>Offer "pay on call"</span></label>
             <div class="form-grid">
                 <label class="field"><span>Name at checkout</span><input class="input" name="payment_call_label" maxlength="60" value="<?= $v('payment_call_label') ?>"></label>
                 <label class="field"><span>Text under the name</span><input class="input" name="payment_call_note" maxlength="255" value="<?= $v('payment_call_note') ?>"></label>

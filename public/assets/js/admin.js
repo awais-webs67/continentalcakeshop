@@ -1227,3 +1227,59 @@ document.addEventListener('change', function (e) {
     var box = select.form.querySelector('[data-make-delivery]');
     if (box) box.hidden = select.value !== 'delivery';
 });
+
+/* Marking an order Collected / Delivered / Completed while money is owing asks first:
+   "Have you received $89.90 from Olivia?" Yes records the payment and completes the order;
+   the cross (or Esc) leaves the order as it is. */
+(function () {
+    var methods = (window.CCS_ADMIN && window.CCS_ADMIN.payMethods) || { cash: 'Cash' };
+    var ask = function (form) {
+        var box = document.createElement('div');
+        box.className = 'ask';
+        box.setAttribute('role', 'dialog');
+        box.setAttribute('aria-modal', 'true');
+        box.setAttribute('aria-labelledby', 'ask-title');
+        var options = Object.keys(methods).map(function (k) {
+            return '<option value="' + k + '"' + (k === form.getAttribute('data-collect-method') ? ' selected' : '') + '>' + methods[k].replace(/</g, '&lt;') + '</option>';
+        }).join('');
+        box.innerHTML = '<div class="ask__card">'
+            + '<button type="button" class="ask__x" data-ask-no aria-label="Not yet">&times;</button>'
+            + '<p class="ask__kicker">Payment</p>'
+            + '<h2 id="ask-title"></h2>'
+            + '<p class="ask__text">The order is only marked done once the money is in. Saying yes records it as paid.</p>'
+            + '<label class="field"><span>Paid by</span><select class="input" data-ask-method>' + options + '</select></label>'
+            + '<div class="ask__buttons"><button type="button" class="btn btn--primary" data-ask-yes></button>'
+            + '<button type="button" class="btn btn--secondary" data-ask-no>Not yet</button></div></div>';
+        box.querySelector('h2').textContent = 'Have you received ' + form.getAttribute('data-collect') + ' from ' + form.getAttribute('data-collect-name') + '?';
+        box.querySelector('[data-ask-yes]').textContent = 'Yes, received ' + form.getAttribute('data-collect');
+        var close = function () { box.remove(); document.removeEventListener('keydown', onKey); };
+        var onKey = function (e) { if (e.key === 'Escape') close(); };
+        document.addEventListener('keydown', onKey);
+        box.addEventListener('click', function (e) {
+            if (e.target === box || e.target.closest('[data-ask-no]')) return close();
+            if (e.target.closest('[data-ask-yes]')) {
+                [['paid_now', '1'], ['paid_method', box.querySelector('[data-ask-method]').value]].forEach(function (p) {
+                    var input = form.querySelector('input[name="' + p[0] + '"]') || document.createElement('input');
+                    input.type = 'hidden'; input.name = p[0]; input.value = p[1];
+                    form.appendChild(input);
+                });
+                form.setAttribute('data-collect-ok', '1');
+                close();
+                if (form.requestSubmit) form.requestSubmit(); else form.submit();
+            }
+        });
+        var menu = form.closest('details.dropdown');
+        if (menu) menu.open = false;
+        document.body.appendChild(box);
+        box.querySelector('[data-ask-yes]').focus();
+    };
+    document.addEventListener('submit', function (e) {
+        var form = e.target;
+        if (!form.hasAttribute || !form.hasAttribute('data-collect') || form.hasAttribute('data-collect-ok')) return;
+        var status = form.querySelector('[name="order_status"]');
+        if (!status || status.value !== 'completed') return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        ask(form);
+    }, true);
+})();

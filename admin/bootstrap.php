@@ -275,6 +275,19 @@ function order_next_step(array $order): ?array
     };
 }
 
+/**
+ * Attributes for a form that can mark an order Completed: while money is owing it asks
+ * "Have you received $X from Name?" first (admin.js), and only then completes it.
+ */
+function collect_attrs(array $order): string
+{
+    $owing = order_balance($order);
+    if ($owing <= 0.004 || $order['order_status'] === 'cancelled') {
+        return '';
+    }
+    return ' data-collect="' . e(money($owing)) . '" data-collect-name="' . e($order['customer_name']) . '" data-collect-method="' . e(collect_method($order)) . '"';
+}
+
 /** Prints admin/views/partials/{name}.php with its own variables. */
 function render_admin_partial(string $name, array $vars = []): void
 {

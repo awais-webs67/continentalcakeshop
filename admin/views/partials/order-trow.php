@@ -48,7 +48,7 @@ $url = admin_url('orders/view', ['id' => $o['id']]);
     <span class="otr__act">
         <a class="otr__eye" href="<?= e(invoice_url($o)) ?>" data-receipt="<?= e($o['order_number']) ?>" title="Show the receipt" aria-label="Show the receipt for <?= e($o['order_number']) ?>"><?= icon('eye', '', 17) ?></a>
         <?php if ($next): ?>
-            <form method="post" action="<?= e(admin_url('orders/view')) ?>">
+            <form method="post" action="<?= e(admin_url('orders/view')) ?>"<?= $next[0] === 'completed' ? collect_attrs($o) : '' ?>>
                 <?= csrf_field() ?>
                 <input type="hidden" name="id" value="<?= (int) $o['id'] ?>">
                 <input type="hidden" name="action" value="status">

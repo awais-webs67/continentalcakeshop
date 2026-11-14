@@ -21,10 +21,26 @@ if (is_post()) {
 
     if ($action === 'status') {
         // The same from the order page and from the quick buttons in the order lists.
-        $result = change_order_status($order, input('order_status'), $adminId, input('notify') === '1', trim(input('message')));
+        // Completing (collected or delivered) with money still owing needs staff to confirm they
+        // received it: it is then recorded as paid. "Not yet" leaves the order as it was.
+        $owing = order_balance($order);
+        $collected = 0.0;
+        $result = ['changed' => false];
+        if (input('order_status') === 'completed' && $owing > 0.004 && $order['order_status'] !== 'cancelled' && input('paid_now') !== '1') {
+            flash('error', 'Not marked done: ' . money($owing) . ' from ' . $order['customer_name'] . ' is still owing. Mark it done again and confirm the payment, or record the payment first.');
+        } else {
+            if (input('order_status') === 'completed' && $owing > 0.004 && $order['order_status'] !== 'cancelled') {
+                $how = isset(staff_payment_methods()[input('paid_method')]) ? input('paid_method') : collect_method($order);
+                record_payment($order, $owing, $how, null, 'Received at ' . (is_delivery($order) ? 'delivery' : 'pickup'), $adminId);
+                $collected = $owing;
+                $order = get_order($id);
+            }
+            $result = change_order_status($order, input('order_status'), $adminId, input('notify') === '1', trim(input('message')));
+        }
         if ($result['changed']) {
             flash('success', 'Order ' . $order['order_number'] . ' marked ' . strtolower(order_status_label($order, input('order_status'))) . '.'
                 . (($result['paid'] ?? 0) > 0 ? ' Payment of ' . money($result['paid']) . ' marked as received.' : '')
+                . ($collected > 0 ? ' ' . money($collected) . ' received by ' . payment_method_label(input('paid_method') ?: collect_method($order)) . ' and recorded.' : '')
                 . ($result['emailed'] ? ' The customer was emailed.' : (input('notify') === '1' ? ' No email sent: the order has no email address.' : '')));
         }
     }
