@@ -1811,3 +1811,19 @@ body.has-buy-bar .whatsapp-fab { bottom: 88px; }
 .pay-acc__cards img { display: block; height: 20px; width: auto; }
 .pay-acc__cards span { height: 32px; padding: 5px 9px; }
 @media (max-width: 480px) { .pay-acc__brands { display: none; } }
+
+/* Payment step: a clear "choose one" line, and short rows (the text under a name shows only when it is open). */
+.pay-choose { display: flex; align-items: center; gap: 8px; margin: -4px 0 12px; padding: 9px 12px; border-radius: 10px; background: #F3F8F6; color: var(--ink); font-size: 14.5px; }
+.pay-choose .icon { flex: none; color: var(--brand-dark, #146B5A); }
+.pay-acc { margin-bottom: 8px; border-width: 1px; border-radius: 12px; }
+.pay-acc__head { gap: 10px; min-height: 52px; padding: 8px 14px; }
+.pay-acc__icon { width: 32px; height: 32px; border-radius: 8px; }
+.pay-acc__icon .icon { width: 18px; height: 18px; }
+.pay-acc__name strong { font-size: 15px; line-height: 1.3; }
+.pay-acc:not(.is-open) .pay-acc__name > span { display: none; }
+.pay-acc__name > span { font-size: 13px; }
+.pay-acc__brands img { width: 34px; height: 22px; }
+.pay-acc__body { margin: 0 14px 14px; padding: 12px 14px; }
+@media (max-width: 480px) { .pay-acc__head { padding: 8px 12px; min-height: 50px; } }
+#payment-options { gap: 6px; }
+#payment-options .pay-acc { margin: 0; }

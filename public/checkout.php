@@ -471,6 +471,7 @@ render('header', compact('page'));
 
                 <fieldset class="checkout-step" id="step-payment" data-step>
                     <legend class="checkout-step__title"><span class="checkout-step__num"><b><?= 3 + $shopStep ?></b><?= icon('check', '', 16) ?></span> Payment</legend>
+                    <?php if (count($visibleMethods) > 1 || $paymentsDiffer): ?><p class="pay-choose"><?= icon('info', '', 16) ?><span>Choose <strong>one</strong> way to pay to place your order.</span></p><?php endif; ?>
                     <?= $fieldError('payment_method') ?>
                     <?php if ($paymentsDiffer): ?><p class="field-help payments-wait" data-payments-wait <?= $selectedBranch ? 'hidden' : '' ?>><?= icon('info', '', 16) ?> Choose your shop above to see how to pay.</p><?php endif; ?>
                     <div class="option-cards" id="payment-options" tabindex="-1">
