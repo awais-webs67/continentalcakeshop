@@ -1799,3 +1799,15 @@ body.has-buy-bar .whatsapp-fab { bottom: 88px; }
 .pay-acc__cards span { padding: 3px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--white); color: var(--ink); font-size: 12px; font-weight: 700; }
 .pay-acc__proof .proof-fields { margin-top: 14px; }
 @media (max-width: 480px) { .pay-acc__head { padding: 12px; gap: 10px; } .pay-acc__icon { display: none; } .pay-acc__body { margin: 0 12px 12px; padding: 12px; } }
+
+/* Closed lines are short, so every way to pay is visible at once; logos are small and real. */
+.pay-acc__head { padding: 12px 16px; }
+.pay-acc:not(.is-open) .pay-acc__name > span { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.pay-acc__icon--logo { background: #fff; border: 1px solid var(--line); }
+.pay-acc__icon--logo img { display: block; width: 34px; height: auto; }
+.pay-acc__brands { flex: none; display: flex; gap: 4px; }
+.pay-acc__brands img { display: block; width: 38px; height: 24px; padding: 3px 5px; border: 1px solid var(--line); border-radius: 4px; background: #fff; object-fit: contain; }
+.pay-acc__cards span { display: inline-flex; align-items: center; height: 28px; padding: 4px 8px; }
+.pay-acc__cards img { display: block; height: 20px; width: auto; }
+.pay-acc__cards span { height: 32px; padding: 5px 9px; }
+@media (max-width: 480px) { .pay-acc__brands { display: none; } }

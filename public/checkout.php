@@ -256,9 +256,10 @@ $selectedDeliveryDate = old('delivery_date', $firstDelivery ?? '');
 $slots = $selectedDate !== '' ? pickup_slots($selectedDate, $leadHours, $selectedBranch) : [];
 $selectedFulfilment = old('fulfilment', $fulfilmentOptions[0] ?? 'pickup');
 $visibleMethods = $paymentsDiffer ? ($selectedBranch ? $branchMethods[$selectedBranch] : []) : $methods;
-$selectedMethod = old('payment_method', (string) array_key_first($visibleMethods));
-if (!isset($visibleMethods[$selectedMethod])) {
-    $selectedMethod = (string) array_key_first($visibleMethods);
+// Nothing is chosen at first, so every way to pay shows as one closed line (only one: it is chosen).
+$selectedMethod = old('payment_method', count($visibleMethods) === 1 ? (string) array_key_first($visibleMethods) : '');
+if ($selectedMethod !== '' && !isset($visibleMethods[$selectedMethod])) {
+    $selectedMethod = '';
 }
 $totals = order_totals($subtotal, $selectedFulfilment, $coupon);
 $closedDays = array_map(static fn ($d) => DAY_NAMES[$d], closed_week_days());
@@ -479,8 +480,17 @@ render('header', compact('page'));
                                 <label class="pay-acc__head">
                                     <input type="radio" name="payment_method" value="<?= e($key) ?>" <?= $open ? 'checked' : '' ?> <?= $shown ? '' : 'disabled' ?> data-payment-method data-needs-proof="<?= $method['needs_proof'] ? '1' : '0' ?>">
                                     <span class="pay-acc__radio" aria-hidden="true"></span>
-                                    <span class="pay-acc__icon"><?= icon(match ($key) { PAYMENT_STRIPE => 'card', PAYMENT_SHOP => 'store', PAYMENT_CALL => 'phone', default => 'upload' }, '', 20) ?></span>
+                                    <?php if ($key === PAYMENT_PAYID): ?>
+                                        <span class="pay-acc__icon pay-acc__icon--logo"><img src="<?= e(asset('img/pay/payid.png')) ?>" width="34" height="17" alt="PayID"></span>
+                                    <?php else: ?>
+                                        <span class="pay-acc__icon"><?= icon(match ($key) { PAYMENT_STRIPE => 'card', PAYMENT_SHOP => 'store', PAYMENT_CALL => 'phone', PAYMENT_BANK => 'bank', default => 'card' }, '', 20) ?></span>
+                                    <?php endif; ?>
                                     <span class="pay-acc__name"><strong><?= e($method['label']) ?></strong><span><?= e($method['description']) ?></span></span>
+                                    <?php if ($key === PAYMENT_STRIPE): ?>
+                                        <span class="pay-acc__brands" aria-label="Visa, Mastercard, American Express">
+                                            <?php foreach (['visa' => 'Visa', 'mastercard' => 'Mastercard', 'amex' => 'American Express'] as $logo => $alt): ?><img src="<?= e(asset('img/pay/' . $logo . '.svg')) ?>" alt="<?= e($alt) ?>" width="38" height="24"><?php endforeach; ?>
+                                        </span>
+                                    <?php endif; ?>
                                     <?php if (!empty($method['pickup_only'])): ?><span class="pay-acc__tag">Pickup only</span><?php endif; ?>
                                 </label>
                                 <div class="pay-acc__body payment-details" data-payment-details="<?= e($key) ?>" <?= $open ? '' : 'hidden' ?>>
@@ -498,7 +508,9 @@ render('header', compact('page'));
                                         <div class="pay-acc__proof" data-proof-slot></div>
                                     <?php elseif ($key === PAYMENT_STRIPE): ?>
                                         <p class="pay-acc__text"><?= icon('lock', '', 16) ?> After you press the button below you enter your card on Stripe's secure payment page, then come straight back here. We never see or store your card number.</p>
-                                        <p class="pay-acc__cards" aria-label="Cards accepted"><span>Visa</span><span>Mastercard</span><span>Amex</span><span>Apple Pay</span><span>Google Pay</span></p>
+                                        <p class="pay-acc__cards" aria-label="Cards accepted">
+                                            <?php foreach (['visa' => 'Visa', 'mastercard' => 'Mastercard', 'amex' => 'American Express', 'applepay' => 'Apple Pay', 'googlepay' => 'Google Pay'] as $logo => $alt): ?><span><img src="<?= e(asset('img/pay/' . $logo . '.svg')) ?>" alt="<?= e($alt) ?>" height="18"></span><?php endforeach; ?>
+                                        </p>
                                     <?php elseif ($key === PAYMENT_SHOP): ?>
                                         <p class="pay-acc__text"><?= icon('store', '', 16) ?> Nothing to pay now. Pay <strong data-pay-amount><?= e(money($totals['total'])) ?></strong> by cash or card when you pick up your order.</p>
                                     <?php elseif ($key === PAYMENT_CALL): ?>
