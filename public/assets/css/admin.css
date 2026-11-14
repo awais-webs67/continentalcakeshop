@@ -1697,3 +1697,4 @@ body.has-modal { overflow: hidden; }
 .ov-proof .ov-proof__peek { width: 340px; max-width: none; height: auto; max-height: 70vh; border-radius: 10px; }
 .modal--image img { min-width: min(420px, 100%); }
 .modal--image .modal__body { background: rgba(17, 17, 19, .35); }
+.notice-input { display: grid; grid-template-columns: minmax(0, 1fr) 110px; gap: 8px; }

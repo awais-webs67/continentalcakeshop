@@ -74,7 +74,18 @@ $mask = static function (string $key): string {
 
 <?php elseif ($tab === 'ordering'): ?>
     <div class="card__body form-grid">
-        <label class="field"><span>Notice needed for orders <small>hours</small></span><input class="input" type="number" min="1" max="720" name="min_lead_hours" value="<?= $v('min_lead_hours') ?>"><small class="hint">How long you need to get a cake ready. 1 or 2 lets customers order for today; 24 means from tomorrow. A cake can have its own notice in its product page.</small></label>
+        <?php foreach (['pickup' => ['Notice for pickup', 'min_lead_hours'], 'delivery' => ['Notice for delivery', 'delivery_lead_hours']] as $kind => [$label, $key]):
+            $unit = ($s[$kind . '_lead_unit'] ?? 'hours') === 'days' ? 'days' : 'hours';
+            $hours = max(1, (int) ($s[$key] ?? $s['min_lead_hours'] ?? 24)); ?>
+            <div class="field"><span><?= e($label) ?></span>
+                <div class="notice-input">
+                    <input class="input" type="number" min="1" max="720" name="<?= $kind ?>_lead_value" value="<?= $unit === 'days' ? max(1, intdiv($hours, 24)) : $hours ?>" aria-label="<?= e($label) ?>">
+                    <select class="input" name="<?= $kind ?>_lead_unit" aria-label="<?= e($label) ?> in"><option value="hours" <?= selected($unit === 'hours') ?>>hours</option><option value="days" <?= selected($unit === 'days') ?>>days</option></select>
+                </div>
+                <small class="hint"><?= $kind === 'pickup' ? 'Hours: from that many hours after ordering (2 lets customers order for later today). Days: from that day onwards, any time.' : 'The first day customers can choose for a delivery.' ?></small>
+            </div>
+        <?php endforeach; ?>
+        <p class="hint" style="grid-column:1/-1;margin:0">A cake can need more notice of its own (set in the cake's page); the longer notice is used.</p>
         <label class="field"><span>Notice for custom cakes <small>days</small></span><input class="input" type="number" min="0" name="custom_lead_days" value="<?= $v('custom_lead_days') ?>"></label>
         <label class="field"><span>Take orders up to <small>days ahead</small></span><input class="input" type="number" min="1" name="max_advance_days" value="<?= $v('max_advance_days') ?>"></label>
         <label class="field"><span>Pickup time steps <small>minutes</small></span>
@@ -199,6 +210,34 @@ $mask = static function (string $key): string {
             <?= field_error($errors, 'bank_bsb') ?>
         </div>
     </div>
+    <div class="pay-method">
+        <div class="pay-method__head">
+            <div><h3>Pay in the shop</h3><p class="hint">The customer pays by cash or card when they pick up. Only offered for pickup orders. Record the payment on the order when they pay.</p></div>
+            <?= $methods['shop']['enabled'] ? status_badge('active', 'Live at checkout') : status_badge('inactive', 'Off') ?>
+        </div>
+        <div class="form-stack">
+            <label class="switch"><input type="checkbox" name="payment_shop_enabled" value="1" <?= $on('payment_shop_enabled') ?>><span class="switch__track"></span><span>Offer "pay in the shop"</span></label>
+            <div class="form-grid">
+                <label class="field"><span>Name at checkout</span><input class="input" name="payment_shop_label" maxlength="60" value="<?= $v('payment_shop_label') ?>"></label>
+                <label class="field"><span>Text under the name</span><input class="input" name="payment_shop_note" maxlength="255" value="<?= $v('payment_shop_note') ?>"></label>
+            </div>
+            <?= field_error($errors, 'payment_shop_label') ?>
+        </div>
+    </div>
+    <div class="pay-method">
+        <div class="pay-method__head">
+            <div><h3>Pay over the phone</h3><p class="hint">The customer orders now and you call them to take the card payment. Record it on the order when paid.</p></div>
+            <?= $methods['call']['enabled'] ? status_badge('active', 'Live at checkout') : status_badge('inactive', 'Off') ?>
+        </div>
+        <div class="form-stack">
+            <label class="switch"><input type="checkbox" name="payment_call_enabled" value="1" <?= $on('payment_call_enabled') ?>><span class="switch__track"></span><span>Offer "pay over the phone"</span></label>
+            <div class="form-grid">
+                <label class="field"><span>Name at checkout</span><input class="input" name="payment_call_label" maxlength="60" value="<?= $v('payment_call_label') ?>"></label>
+                <label class="field"><span>Text under the name</span><input class="input" name="payment_call_note" maxlength="255" value="<?= $v('payment_call_note') ?>"></label>
+            </div>
+            <?= field_error($errors, 'payment_call_label') ?>
+        </div>
+    </div>
 
 <?php elseif ($tab === 'emails'): ?>
     <div class="card__body shared-note">
@@ -215,6 +254,7 @@ $mask = static function (string $key): string {
     <div class="card__body form-stack" style="border-top:1px solid var(--line)">
         <h3 class="label">Customer emails <small class="muted">(every shop)</small></h3>
         <label class="switch"><input type="checkbox" name="send_customer_emails" value="1" <?= $on('send_customer_emails') ?>><span class="switch__track"></span><span>Email customers their order confirmation and updates</span></label>
+        <label class="switch"><input type="checkbox" name="status_emails_enabled" value="1" <?= $on('status_emails_enabled') ?>><span class="switch__track"></span><span>Email customers when their order status changes<small>Confirmed, being prepared, ready, completed and cancelled. When off, customers get only the "we have your order" email, and you can still tick "Email the customer" for one order on its page.</small></span></label>
         <label class="field"><span>Thank-you line <small>shown at the bottom of customer emails</small></span><input class="input" name="email_accent_note" value="<?= $v('email_accent_note') ?>"></label>
     </div>
     <div class="card__body form-stack" style="border-top:1px solid var(--line)">

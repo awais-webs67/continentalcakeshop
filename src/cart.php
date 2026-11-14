@@ -254,10 +254,26 @@ function cart_subtotal(array $items): float
     return round(array_sum(array_column($items, 'line_total')), 2);
 }
 
-/** Longest notice period needed by anything in the cart. */
-function cart_lead_hours(array $items): int
+/**
+ * Hours of notice the shop needs for a pickup or a delivery (Admin > Settings > Ordering).
+ * Notice in days means "from that day onwards, any time": 2 days ordered at 3pm allows the
+ * morning two days later, not only from 3pm.
+ */
+function order_notice_hours(string $fulfilment = 'pickup'): int
 {
-    $hours = (int) setting('min_lead_hours', '24');
+    $delivery = $fulfilment === 'delivery';
+    $hours = max(1, (int) setting($delivery ? 'delivery_lead_hours' : 'min_lead_hours', setting('min_lead_hours', '24')));
+    if (setting($delivery ? 'delivery_lead_unit' : 'pickup_lead_unit', 'hours') === 'days') {
+        $start = (new DateTimeImmutable('today'))->modify('+' . max(1, intdiv($hours, 24)) . ' days');
+        return max(1, (int) ceil(($start->getTimestamp() - time()) / 3600));
+    }
+    return $hours;
+}
+
+/** Longest notice period needed by anything in the cart, for a pickup or a delivery. */
+function cart_lead_hours(array $items, string $fulfilment = 'pickup'): int
+{
+    $hours = order_notice_hours($fulfilment);
     foreach ($items as $item) {
         if (($item['lead_time_hours'] ?? null) !== null) {
             $hours = max($hours, (int) $item['lead_time_hours']);

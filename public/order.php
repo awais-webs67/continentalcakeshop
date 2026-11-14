@@ -63,6 +63,10 @@ render('header', compact('page'));
                 <p>Your order number is <strong><?= e($order['order_number']) ?></strong>. We have sent the details to <?= e($order['customer_email']) ?>.</p>
                 <?php if ($order['payment_status'] === 'awaiting_verification'): ?>
                     <p class="order-hero__note"><?= icon('info', '', 18) ?> We have received your payment screenshot and will confirm your order once we have checked it.</p>
+                <?php elseif ($order['payment_method'] === PAYMENT_SHOP && $balance > 0 && $order['order_status'] !== 'cancelled'): ?>
+                    <p class="order-hero__note"><?= icon('store', '', 18) ?> Nothing to pay now. Please pay <?= e(money($balance)) ?> by cash or card when you pick up your order.</p>
+                <?php elseif ($order['payment_method'] === PAYMENT_CALL && $balance > 0 && $order['order_status'] !== 'cancelled'): ?>
+                    <p class="order-hero__note"><?= icon('phone', '', 18) ?> We will call you on <?= e($order['customer_phone']) ?> to take <?= e(money($balance)) ?> by card, then confirm your order.</p>
                 <?php endif; ?>
             <?php endif; ?>
         </div>

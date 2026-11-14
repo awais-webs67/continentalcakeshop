@@ -326,6 +326,12 @@ const ORDER_STATUS_MESSAGES = [
     'cancelled'   => 'Your order has been cancelled. If you have any questions, please give us a call.',
 ];
 
+/** Whether customers get an email when staff change their order's status (Settings > Emails). */
+function status_emails_on(): bool
+{
+    return setting('status_emails_enabled', '1') === '1';
+}
+
 /**
  * Whether confirming this order also records its payment: a new PayID or bank transfer order
  * with money still owing (staff confirm once they see the transfer). Card orders are paid by

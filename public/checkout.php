@@ -23,7 +23,9 @@ if ($soldOutNames) {
 }
 $lines = cart_order_lines();
 
-$leadHours = cart_lead_hours($items);
+// Notice can differ for pickup and delivery (Admin > Settings > Ordering).
+$leadHours = cart_lead_hours($items, 'pickup');
+$deliveryLead = cart_lead_hours($items, 'delivery');
 $methods = available_payment_methods();
 $pickupEnabled = setting_bool('pickup_enabled');
 $deliveryEnabled = setting_bool('delivery_enabled');
@@ -145,7 +147,7 @@ if (is_post()) {
         } elseif (!delivery_postcode_allowed($data['delivery_postcode'])) {
             $errors['delivery_postcode'] = 'Sorry, we do not deliver to this postcode yet. Please choose pickup or call us.';
         }
-        if ($dateError = delivery_date_error($data['pickup_date'], $leadHours, $data['branch_id'])) {
+        if ($dateError = delivery_date_error($data['pickup_date'], $deliveryLead, $data['branch_id'])) {
             $errors['delivery_date'] = $dateError;
         }
         if ($deliveryMin > 0 && $subtotal < $deliveryMin) {
@@ -158,6 +160,8 @@ if (is_post()) {
     $method = $methods[$data['payment_method']] ?? null;
     if (!$method) {
         $errors['payment_method'] = 'Please choose how you would like to pay.';
+    } elseif (!empty($method['pickup_only']) && $data['fulfilment'] === 'delivery') {
+        $errors['payment_method'] = $method['label'] . ' is for pickup orders. Please choose another way to pay.';
     } elseif ($method['needs_proof'] && !has_upload('payment_proof') && !async_upload(input('payment_proof_token'), 'payment')) {
         $errors['payment_proof'] = 'Please upload a screenshot of your payment.';
     }
@@ -247,7 +251,7 @@ unset($_SESSION['form_errors']);
 $selectedBranch = valid_branch_id(old('branch_id', (string) (chosen_branch_id() ?? ($multiBranch ? 0 : $onlyBranchId))));
 $pickupBranch = $selectedBranch ? get_branch($selectedBranch) : null;
 $selectedDate = old('pickup_date', first_available_date($leadHours, $selectedBranch) ?? '');
-$firstDelivery = $deliveryEnabled ? first_delivery_date($leadHours, $selectedBranch) : null;
+$firstDelivery = $deliveryEnabled ? first_delivery_date($deliveryLead, $selectedBranch) : null;
 $selectedDeliveryDate = old('delivery_date', $firstDelivery ?? '');
 $slots = $selectedDate !== '' ? pickup_slots($selectedDate, $leadHours, $selectedBranch) : [];
 $selectedFulfilment = old('fulfilment', $fulfilmentOptions[0] ?? 'pickup');
@@ -425,7 +429,7 @@ render('header', compact('page'));
                             <div class="field">
                                 <label class="field-label" for="delivery_date">Delivery date</label>
                                 <input class="input" id="delivery_date" name="delivery_date" type="date" value="<?= e($selectedDeliveryDate) ?>"
-                                       min="<?= e($firstDelivery ?? earliest_pickup($leadHours)->format('Y-m-d')) ?>" max="<?= e(latest_pickup_date()->format('Y-m-d')) ?>"
+                                       min="<?= e($firstDelivery ?? earliest_pickup($deliveryLead)->format('Y-m-d')) ?>" max="<?= e(latest_pickup_date()->format('Y-m-d')) ?>"
                                        data-delivery-date data-check-url="<?= e(url('api/slots')) ?>" <?= $invalid('delivery_date') ?>>
                                 <?= $fieldError('delivery_date') ?: '<p class="field-error" data-delivery-date-error hidden></p>' ?>
                             </div>
@@ -461,7 +465,7 @@ render('header', compact('page'));
                     <?php endif; ?>
 
                     <?php if (!$multiBranch): ?><input type="hidden" name="branch_id" value="<?= $onlyBranchId ?>"><?php endif; ?>
-                    <p class="field-help"><?= icon('info', '', 16) ?> Please order at least <?= e(notice_label($leadHours)) ?> ahead. You can book up to <?= (int) setting('max_advance_days', '60') ?> days in advance.<?= $closedDays ? ' We are closed on ' . e(implode(', ', $closedDays)) . '.' : '' ?></p>
+                    <p class="field-help"><?= icon('info', '', 16) ?> <?php if (!$deliveryEnabled || notice_label($leadHours) === notice_label($deliveryLead)): ?>Please order at least <?= e(notice_label($leadHours)) ?> ahead.<?php else: ?>Pickup: order at least <?= e(notice_label($leadHours)) ?> ahead. Delivery: at least <?= e(notice_label($deliveryLead)) ?> ahead.<?php endif; ?> You can book up to <?= (int) setting('max_advance_days', '60') ?> days in advance.<?= $closedDays ? ' We are closed on ' . e(implode(', ', $closedDays)) . '.' : '' ?></p>
                 </fieldset>
 
                 <fieldset class="checkout-step" id="step-payment" data-step>
@@ -470,17 +474,17 @@ render('header', compact('page'));
                     <?php if ($paymentsDiffer): ?><p class="field-help payments-wait" data-payments-wait <?= $selectedBranch ? 'hidden' : '' ?>><?= icon('info', '', 16) ?> Choose your shop above to see how to pay.</p><?php endif; ?>
                     <div class="option-cards" id="payment-options" tabindex="-1">
                         <?php foreach ($paymentsDiffer ? $branchMethods : [0 => $methods] as $payShop => $shopMethods): $shown = !$payShop || $payShop === $selectedBranch; ?>
-                        <?php foreach ($shopMethods as $key => $method): ?>
-                            <div class="payment-option" <?= $payShop ? 'data-for-branch="' . (int) $payShop . '"' . ($shown ? '' : ' hidden') : '' ?>>
-                                <label class="option-card">
-                                    <input type="radio" name="payment_method" value="<?= e($key) ?>" <?= $shown && $selectedMethod === $key ? 'checked' : '' ?> <?= $shown ? '' : 'disabled' ?> data-payment-method data-needs-proof="<?= $method['needs_proof'] ? '1' : '0' ?>">
-                                    <span class="option-card__box">
-                                        <?= icon($key === PAYMENT_STRIPE ? 'card' : 'upload', '', 22) ?>
-                                        <span><strong><?= e($method['label']) ?></strong><span><?= e($method['description']) ?></span></span>
-                                    </span>
+                        <?php foreach ($shopMethods as $key => $method): $open = $shown && $selectedMethod === $key; ?>
+                            <div class="payment-option pay-acc<?= $open ? ' is-open' : '' ?>" data-pay-option="<?= e($key) ?>"<?= !empty($method['pickup_only']) ? ' data-pay-pickup-only' : '' ?> <?= $payShop ? 'data-for-branch="' . (int) $payShop . '"' . ($shown ? '' : ' hidden') : '' ?>>
+                                <label class="pay-acc__head">
+                                    <input type="radio" name="payment_method" value="<?= e($key) ?>" <?= $open ? 'checked' : '' ?> <?= $shown ? '' : 'disabled' ?> data-payment-method data-needs-proof="<?= $method['needs_proof'] ? '1' : '0' ?>">
+                                    <span class="pay-acc__radio" aria-hidden="true"></span>
+                                    <span class="pay-acc__icon"><?= icon(match ($key) { PAYMENT_STRIPE => 'card', PAYMENT_SHOP => 'store', PAYMENT_CALL => 'phone', default => 'upload' }, '', 20) ?></span>
+                                    <span class="pay-acc__name"><strong><?= e($method['label']) ?></strong><span><?= e($method['description']) ?></span></span>
+                                    <?php if (!empty($method['pickup_only'])): ?><span class="pay-acc__tag">Pickup only</span><?php endif; ?>
                                 </label>
-                                <?php if (!empty($method['details'])): ?>
-                                    <div class="payment-details" data-payment-details="<?= e($key) ?>" <?= $selectedMethod === $key ? '' : 'hidden' ?>>
+                                <div class="pay-acc__body payment-details" data-payment-details="<?= e($key) ?>" <?= $open ? '' : 'hidden' ?>>
+                                    <?php if (!empty($method['details'])): ?>
                                         <dl>
                                             <?php foreach ($method['details'] as $label => $value): ?>
                                                 <div>
@@ -490,9 +494,17 @@ render('header', compact('page'));
                                             <?php endforeach; ?>
                                             <div><dt>Amount</dt><dd><strong data-pay-amount><?= e(money($totals['total'])) ?></strong></dd></div>
                                         </dl>
-                                        <p class="field-help">Please use your name as the payment reference.</p>
-                                    </div>
-                                <?php endif; ?>
+                                        <p class="field-help">Pay now from your banking app, use your name as the reference, then add the screenshot below.</p>
+                                        <div class="pay-acc__proof" data-proof-slot></div>
+                                    <?php elseif ($key === PAYMENT_STRIPE): ?>
+                                        <p class="pay-acc__text"><?= icon('lock', '', 16) ?> After you press the button below you enter your card on Stripe's secure payment page, then come straight back here. We never see or store your card number.</p>
+                                        <p class="pay-acc__cards" aria-label="Cards accepted"><span>Visa</span><span>Mastercard</span><span>Amex</span><span>Apple Pay</span><span>Google Pay</span></p>
+                                    <?php elseif ($key === PAYMENT_SHOP): ?>
+                                        <p class="pay-acc__text"><?= icon('store', '', 16) ?> Nothing to pay now. Pay <strong data-pay-amount><?= e(money($totals['total'])) ?></strong> by cash or card when you pick up your order.</p>
+                                    <?php elseif ($key === PAYMENT_CALL): ?>
+                                        <p class="pay-acc__text"><?= icon('phone', '', 16) ?> Nothing to pay now. We will call you on the phone number above to take <strong data-pay-amount><?= e(money($totals['total'])) ?></strong> by card, then confirm your order.</p>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         <?php endforeach; ?>
                         <?php endforeach; ?>

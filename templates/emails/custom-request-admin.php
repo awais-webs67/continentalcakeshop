@@ -9,7 +9,7 @@ Email: <a href="mailto:<?= e($request['email']) ?>" style="color:#1E9B82"><?= e(
         <strong>Serves:</strong> <?= e($request['servings'] ?: 'Not given') ?><br>
         <strong>Pickup or delivery:</strong> <?= ($request['fulfilment'] ?? '') === 'delivery' ? 'Delivery' : 'Pickup' ?><br>
         <strong>Flavour:</strong> <?= e($request['flavour'] ?: 'Not given') ?><br>
-        <strong>Budget:</strong> <?= e($request['budget'] ?: 'Not given') ?><br>
+        <?php if (!empty($request['budget'])): ?><strong>Budget:</strong> <?= e($request['budget']) ?><br><?php endif; ?>
         <strong>Details:</strong> <?= nl2br(e($request['details'])) ?>
         <?php if ($request['reference_image']): ?><br><strong>Reference photo:</strong> attached in the admin panel<?php endif; ?>
     </td></tr>

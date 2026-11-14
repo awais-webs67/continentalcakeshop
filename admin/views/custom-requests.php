@@ -19,7 +19,7 @@
         <div class="empty"><?= icon('gift', '', 32) ?><p>No custom cake requests here yet.</p></div>
     <?php else: ?>
         <div class="table-wrap"><table class="table">
-            <thead><tr><th>Customer</th><th>Occasion</th><th>Needed by</th><th>Budget</th><th>Status</th><th class="num">Received</th></tr></thead>
+            <thead><tr><th>Customer</th><th>Occasion</th><th>Needed by</th><th>Price</th><th>Status</th><th class="num">Received</th></tr></thead>
             <tbody>
             <?php foreach ($result['rows'] as $r): ?>
                 <?php $days = (int) floor((strtotime($r['event_date']) - strtotime('today')) / 86400); ?>
@@ -27,7 +27,7 @@
                     <td><a class="row-link" href="<?= e(admin_url('custom-requests/view', ['id' => $r['id']])) ?>"><?= e($r['name']) ?></a> <?= branch_tag((int) $r['branch_id']) ?><div class="muted"><?= e($r['phone']) ?></div></td>
                     <td><?= e($r['occasion']) ?><div class="muted"><?= e((string) $r['servings']) ?></div></td>
                     <td><?= e(date('D j M Y', strtotime($r['event_date']))) ?><div class="muted"><?= $days < 0 ? 'Date has passed' : ($days === 0 ? 'Today' : 'In ' . $days . ' day' . ($days === 1 ? '' : 's')) ?></div></td>
-                    <td><?= e($r['budget'] ?: '-') ?><?php if ($r['quoted_price']): ?><div class="muted">Quoted <?= e(money($r['quoted_price'])) ?></div><?php endif; ?></td>
+                    <td><?= $r['quoted_price'] ? e(money($r['quoted_price'])) : ($r['budget'] ? '<span class="muted">Budget ' . e($r['budget']) . '</span>' : '-') ?><?php if (!empty($r['order_id'])): ?><div class="muted">In orders</div><?php endif; ?></td>
                     <td><?= status_badge($r['status'], CUSTOM_STATUSES[$r['status']]) ?></td>
                     <td class="num muted"><?= e(time_ago($r['created_at'])) ?></td>
                 </tr>

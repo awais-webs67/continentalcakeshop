@@ -386,6 +386,19 @@
             deliveryFields.forEach(function (el) { el.hidden = !delivery; });
             pickupFields.forEach(function (el) { el.hidden = delivery; });
             if (feeRow) feeRow.hidden = !delivery;
+            // "Pay in the shop" is for pickups: greyed out for a delivery.
+            var moved = false;
+            $$('.pay-acc[data-pay-pickup-only]', checkout).forEach(function (opt) {
+                var input = $('[data-payment-method]', opt);
+                opt.classList.toggle('is-unavailable', delivery);
+                if (opt.hidden) return;
+                input.disabled = delivery;
+                if (delivery && input.checked) { input.checked = false; moved = true; }
+            });
+            if (moved) {
+                var other = $$('[data-payment-method]', checkout).filter(function (r) { return !r.disabled; })[0];
+                if (other) { other.checked = true; other.dispatchEvent(new Event('change', { bubbles: true })); }
+            }
             updateTotals();
         };
         $$('[data-fulfilment]', checkout).forEach(function (r) { r.addEventListener('change', updateFulfilment); });
@@ -446,8 +459,14 @@
         var updatePayment = function () {
             var checked = $('[data-payment-method]:checked', checkout);
             if (!checked) return;
+            // Only the chosen way to pay is open; its screenshot box moves inside it.
             $$('[data-payment-details]', checkout).forEach(function (el) {
-                el.hidden = el.getAttribute('data-payment-details') !== checked.value;
+                var card = el.closest('.pay-acc');
+                var open = el.getAttribute('data-payment-details') === checked.value && !(card && card.hidden);
+                el.hidden = !open;
+                if (card) card.classList.toggle('is-open', open);
+                var slot = open ? $('[data-proof-slot]', el) : null;
+                if (slot && proofFields && proofFields.parentNode !== slot) slot.appendChild(proofFields);
             });
             if (proofFields) proofFields.hidden = checked.getAttribute('data-needs-proof') !== '1';
             submitBtns.forEach(function (btn) {
@@ -456,6 +475,9 @@
             });
         };
         $$('[data-payment-method]', checkout).forEach(function (r) { r.addEventListener('change', updatePayment); });
+        // Start in the right state (the page may open with delivery already chosen).
+        updateFulfilment();
+        updatePayment();
 
         // Coupon code: apply or remove without reloading the page.
         var couponBox = $('[data-coupon]', checkout);

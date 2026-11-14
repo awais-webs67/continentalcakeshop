@@ -85,3 +85,47 @@ function order_for_quote(array $request, array $data): array
     }
     return $order;
 }
+
+/**
+ * Staff confirm a custom cake the customer agreed to by phone, email or in the shop: it becomes a
+ * confirmed order (Orders > Upcoming, sales reports, receipts), with any deposit already taken.
+ *
+ * $opts: price, date (Y-m-d), time (H:i or ''), fulfilment, delivery_address, delivery_suburb,
+ * delivery_postcode, payment_method (how the rest will be paid), deposit, deposit_method, notify.
+ */
+function confirm_request_as_order(array $request, array $opts, ?int $adminId): array
+{
+    $price = round((float) $opts['price'], 2);
+    $delivery = ($opts['fulfilment'] ?? $request['fulfilment'] ?? 'pickup') === 'delivery';
+    db_run('UPDATE custom_requests SET quoted_price = ?, event_date = ?, fulfilment = ? WHERE id = ?',
+        [$price, $opts['date'], $delivery ? 'delivery' : 'pickup', $request['id']]);
+    $request = db_one('SELECT * FROM custom_requests WHERE id = ?', [$request['id']]);
+    $order = order_for_quote($request, [
+        'payment_method'    => $opts['payment_method'],
+        'payment_proof'     => null,
+        'delivery_address'  => $opts['delivery_address'] ?? '',
+        'delivery_suburb'   => $opts['delivery_suburb'] ?? '',
+        'delivery_postcode' => $opts['delivery_postcode'] ?? '',
+    ]);
+    $id = (int) $order['id'];
+    db_run("UPDATE orders SET order_status = 'confirmed', pickup_time = ?, notes = ? WHERE id = ?", [
+        ($opts['time'] ?? '') !== '' ? $opts['time'] . ':00' : null,
+        'Custom cake quote agreed with the shop.',
+        $id,
+    ]);
+    log_order_event($id, 'status', 'Confirmed by the shop from the custom cake request.', $adminId);
+    $deposit = round(min($price, max(0, (float) ($opts['deposit'] ?? 0))), 2);
+    if ($deposit > 0) {
+        record_payment(get_order($id), $deposit, (string) $opts['deposit_method'], null, $deposit < $price ? 'Deposit' : 'Paid in full', $adminId);
+    }
+    $order = get_order($id);
+    if (!empty($opts['notify']) && valid_email((string) $order['customer_email'])) {
+        $balance = order_balance($order);
+        send_order_update_email($order, 'Your custom cake is confirmed',
+            'Thank you, your ' . strtolower($request['occasion']) . ' cake is booked for ' . order_when($order) . '. The price is ' . money($order['total']) . '.'
+            . ($deposit > 0 ? ' We have received ' . money($deposit) . ($balance > 0.004 ? ', and ' . money($balance) . ' is due before ' . ($delivery ? 'delivery' : 'pickup') . '.' : ', so it is fully paid.') : '')
+            . "\n\nYour receipt: " . invoice_url($order));
+        log_order_event($id, 'email', 'Customer emailed the confirmation.', $adminId);
+    }
+    return $order;
+}

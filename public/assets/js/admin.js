@@ -1219,3 +1219,11 @@ document.addEventListener('click', function (e) {
         show(lb);
     });
 })();
+
+// Custom request > Confirm as an order: the address fields show for a delivery.
+document.addEventListener('change', function (e) {
+    var select = e.target.closest && e.target.closest('[data-make-fulfilment]');
+    if (!select) return;
+    var box = select.form.querySelector('[data-make-delivery]');
+    if (box) box.hidden = select.value !== 'delivery';
+});

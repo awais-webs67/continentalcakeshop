@@ -19,7 +19,7 @@
                     <dt>Serves</dt><dd><?= e($request['servings'] ?: 'Not given') ?></dd>
                     <dt>Pickup or delivery</dt><dd><?= ($request['fulfilment'] ?? '') === 'delivery' ? 'Delivery' : 'Pickup' ?></dd>
                     <dt>Flavour</dt><dd><?= e($request['flavour'] ?: 'Not given') ?></dd>
-                    <dt>Budget</dt><dd><?= e($request['budget'] ?: 'Not given') ?></dd>
+                    <?php if ($request['budget']): ?><dt>Budget</dt><dd><?= e($request['budget']) ?></dd><?php endif; ?>
                 </dl>
                 <div class="note-box" style="margin-top:16px"><?= nl2br(e($request['details'])) ?></div>
                 <?php if ($request['reference_image']): ?>
@@ -35,6 +35,36 @@
 
         <?php if ($linkedOrder): ?>
             <div class="alert alert--success">The customer accepted this quote. <a href="<?= e(admin_url('orders/view', ['id' => $linkedOrder['id']])) ?>">Open order <?= e($linkedOrder['order_number']) ?></a> &middot; <?= e(PAYMENT_STATUSES[$linkedOrder['payment_status']]) ?><?= order_balance($linkedOrder) > 0 && (float) $linkedOrder['amount_paid'] > 0 ? ', ' . e(money(order_balance($linkedOrder))) . ' still owing' : '' ?>.</div>
+        <?php endif; ?>
+        <?php if (!$linkedOrder): $isDelivery = ($request['fulfilment'] ?? 'pickup') === 'delivery'; ?>
+        <section class="card" id="make-order">
+            <div class="card__head"><h2>Confirm as an order</h2><span class="hint">Agreed by phone, email or in the shop</span></div>
+            <form class="card__body form-stack" method="post">
+                <?= csrf_field() ?><input type="hidden" name="action" value="make_order">
+                <p class="hint" style="margin:0">The cake goes into Orders (Upcoming) and the sales figures, with its receipt. Any money taken now is recorded as paid.</p>
+                <div class="form-grid">
+                    <label class="field"><span>Price</span><div class="input-prefix"><span>$</span><input class="input" name="price" inputmode="decimal" required value="<?= e($request['quoted_price'] ? number_format((float) $request['quoted_price'], 2, '.', '') : '') ?>" placeholder="0.00"></div></label>
+                    <label class="field"><span>Pickup or delivery</span>
+                        <select class="input" name="fulfilment" data-make-fulfilment><option value="pickup" <?= selected(!$isDelivery) ?>>Pickup</option><option value="delivery" <?= selected($isDelivery) ?>>Delivery</option></select></label>
+                    <label class="field"><span>Date</span><input class="input" type="date" name="date" required value="<?= e($request['event_date']) ?>"></label>
+                    <label class="field"><span>Time <small>optional</small></span><input class="input" type="time" name="time" step="300"></label>
+                </div>
+                <div class="form-grid" data-make-delivery <?= $isDelivery ? '' : 'hidden' ?>>
+                    <label class="field span-2"><span>Delivery address</span><input class="input" name="delivery_address" maxlength="255"></label>
+                    <label class="field"><span>Suburb</span><input class="input" name="delivery_suburb" maxlength="80"></label>
+                    <label class="field"><span>Postcode</span><input class="input" name="delivery_postcode" maxlength="4" inputmode="numeric"></label>
+                </div>
+                <div class="form-grid">
+                    <label class="field"><span>Paid now <small>deposit or full, 0 if nothing yet</small></span><div class="input-prefix"><span>$</span><input class="input" name="deposit" inputmode="decimal" value="<?= e($request['deposit_amount'] ? number_format((float) $request['deposit_amount'], 2, '.', '') : '0') ?>"></div></label>
+                    <label class="field"><span>Paid by</span>
+                        <select class="input" name="deposit_method"><?php foreach (staff_payment_methods() as $key => $label): ?><option value="<?= e($key) ?>"><?= e($label) ?></option><?php endforeach; ?></select></label>
+                    <label class="field span-2"><span>The rest will be paid</span>
+                        <select class="input" name="payment_method"><?php foreach (payment_method_definitions() as $key => $m): ?><option value="<?= e($key) ?>" <?= selected($key === ($isDelivery ? PAYMENT_CALL : PAYMENT_SHOP)) ?>><?= e($m['label']) ?></option><?php endforeach; ?></select></label>
+                </div>
+                <label class="switch"><input type="checkbox" name="notify" value="1" checked><span class="switch__track"></span><span>Email the customer the confirmation and receipt</span></label>
+                <div><button class="btn btn--primary" type="submit"><?= icon('check', '', 17) ?> Confirm and add to orders</button></div>
+            </form>
+        </section>
         <?php endif; ?>
         <section class="card">
             <div class="card__head"><h2>Send a quote or reply</h2></div>

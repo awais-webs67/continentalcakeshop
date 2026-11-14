@@ -26,7 +26,7 @@ if (is_post()) {
         'servings'   => preg_replace('/\D/', '', input('servings')),
         'fulfilment' => input('fulfilment') === 'delivery' && setting_bool('delivery_enabled') ? 'delivery' : 'pickup',
         'flavour'    => str_limit(input('flavour'), 120),
-        'budget'     => str_limit(input('budget'), 40),
+        'budget'     => '', // no longer asked: the shop sends the price in its quote
         'details'    => str_limit(input('details'), 3000),
         // Two shops: the request goes to the one the customer chose.
         'branch_id'  => valid_branch_id(input('branch_id')) ?? (multi_branch() ? null : (int) active_branches()[0]['id']),
@@ -200,10 +200,6 @@ render('header', compact('page'));
                 <div class="field">
                     <label class="field-label" for="flavour">Flavour</label>
                     <input class="input" id="flavour" name="flavour" type="text" placeholder="e.g. Red velvet" value="<?= e(old('flavour')) ?>">
-                </div>
-                <div class="field">
-                    <label class="field-label" for="budget">Budget <span class="field-hint">Optional</span></label>
-                    <input class="input" id="budget" name="budget" type="text" placeholder="e.g. $150" value="<?= e(old('budget')) ?>">
                 </div>
             </div>
             <div class="serving-picks" aria-label="Quick pick for number of people">

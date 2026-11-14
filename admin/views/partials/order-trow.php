@@ -53,9 +53,9 @@ $url = admin_url('orders/view', ['id' => $o['id']]);
                 <input type="hidden" name="id" value="<?= (int) $o['id'] ?>">
                 <input type="hidden" name="action" value="status">
                 <input type="hidden" name="order_status" value="<?= e($next[0]) ?>">
-                <input type="hidden" name="notify" value="1">
+                <?php if (status_emails_on()): ?><input type="hidden" name="notify" value="1"><?php endif; ?>
                 <input type="hidden" name="back" value="<?= e(admin_back_path()) ?>">
-                <button class="btn btn--sm <?= $o['order_status'] === 'new' ? 'btn--primary' : 'btn--secondary' ?>" type="submit" title="<?= valid_email((string) $o['customer_email']) ? 'Also emails the customer' : 'No email address on this order' ?>"><?= e($next[1]) ?></button>
+                <button class="btn btn--sm <?= $o['order_status'] === 'new' ? 'btn--primary' : 'btn--secondary' ?>" type="submit" title="<?= !valid_email((string) $o['customer_email']) ? 'No email address on this order' : (status_emails_on() ? 'Also emails the customer' : 'Status emails are off') ?>"><?= e($next[1]) ?></button>
             </form>
         <?php else: ?>
             <a class="btn btn--ghost btn--sm" href="<?= e($url) ?>" tabindex="-1">Open</a>

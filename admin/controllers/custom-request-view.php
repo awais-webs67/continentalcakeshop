@@ -36,7 +36,65 @@ if (is_post()) {
         } else {
             flash('error', 'The quote was saved but the email could not be sent. Check the mail settings in config.php.');
         }
+    } elseif ($action === 'make_order') {
+        // The customer agreed the price with the shop: make it a confirmed order.
+        if ($request['order_id'] && get_order((int) $request['order_id'])) {
+            redirect(admin_url('orders/view', ['id' => $request['order_id']]));
+        }
+        $price = (float) str_replace(['$', ','], '', input('price'));
+        $deposit = (float) str_replace(['$', ','], '', input('deposit'));
+        $delivery = input('fulfilment') === 'delivery';
+        $methods = payment_method_definitions();
+        $errors = [];
+        if ($price <= 0) {
+            $errors[] = 'Enter the price of the cake.';
+        }
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', input('date'))) {
+            $errors[] = 'Choose the date.';
+        }
+        if (input('time') !== '' && !preg_match('/^\d{2}:\d{2}$/', input('time'))) {
+            $errors[] = 'Check the time.';
+        }
+        if ($delivery && (trim(input('delivery_address')) === '' || trim(input('delivery_suburb')) === '' || !preg_match('/^\d{4}$/', preg_replace('/\D/', '', input('delivery_postcode'))))) {
+            $errors[] = 'Enter the delivery address, suburb and 4 digit postcode.';
+        }
+        if (!isset($methods[input('payment_method')])) {
+            $errors[] = 'Choose how the customer pays the rest.';
+        }
+        if ($deposit < 0 || ($price > 0 && $deposit > $price + 0.004)) {
+            $errors[] = 'The amount paid now cannot be more than the price.';
+        }
+        if ($deposit > 0 && !isset(staff_payment_methods()[input('deposit_method')])) {
+            $errors[] = 'Choose how the deposit was paid.';
+        }
+        if ($errors) {
+            flash('error', implode(' ', $errors));
+            redirect($self . '#make-order');
+        }
+        $order = confirm_request_as_order($request, [
+            'price' => $price, 'date' => input('date'), 'time' => input('time'), 'fulfilment' => $delivery ? 'delivery' : 'pickup',
+            'delivery_address' => str_limit(trim(input('delivery_address')), 255), 'delivery_suburb' => str_limit(trim(input('delivery_suburb')), 80),
+            'delivery_postcode' => preg_replace('/\D/', '', input('delivery_postcode')),
+            'payment_method' => input('payment_method'), 'deposit' => $deposit, 'deposit_method' => input('deposit_method'),
+            'notify' => input('notify') === '1',
+        ], (int) $admin['id']);
+        flash('success', 'Order ' . $order['order_number'] . ' is confirmed and in Orders.' . ($deposit > 0 ? ' ' . money($deposit) . ' recorded.' : ''));
+        redirect(admin_url('orders/view', ['id' => $order['id']]));
     } elseif ($action === 'status' && isset(CUSTOM_STATUSES[input('status')])) {
+        // "Confirmed" without an order yet: make the order, so it is in Orders and the sales figures.
+        if (input('status') === 'confirmed' && !($request['order_id'] && get_order((int) $request['order_id']))) {
+            if ((float) $request['quoted_price'] <= 0) {
+                flash('error', 'Add the price in "Confirm as an order" below, so the cake goes into your orders.');
+                redirect($self . '#make-order');
+            }
+            $order = confirm_request_as_order($request, [
+                'price' => (float) $request['quoted_price'], 'date' => $request['event_date'], 'time' => '',
+                'fulfilment' => $request['fulfilment'] ?? 'pickup', 'payment_method' => ($request['fulfilment'] ?? 'pickup') === 'delivery' ? PAYMENT_CALL : PAYMENT_SHOP,
+                'deposit' => 0, 'deposit_method' => '', 'notify' => false,
+            ], (int) $admin['id']);
+            flash('success', 'Confirmed. Order ' . $order['order_number'] . ' is now in Orders. Set the time and record any payment there.');
+            redirect(admin_url('orders/view', ['id' => $order['id']]));
+        }
         db_run('UPDATE custom_requests SET status = ? WHERE id = ?', [input('status'), $request['id']]);
         flash('success', 'Status changed to ' . CUSTOM_STATUSES[input('status')] . '.');
     } elseif ($action === 'notes') {

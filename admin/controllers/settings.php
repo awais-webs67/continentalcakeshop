@@ -14,8 +14,8 @@ const SETTINGS_TABS = [
 const SETTINGS_FIELDS = [
     // Each shop's address, phone, email and map are in Admin > Branches > shop > Shop details.
     'store'    => ['store_name' => 120, 'store_short_name' => 80, 'store_founded' => 4, 'store_abn' => 20, 'whatsapp_number' => 20, 'whatsapp_message' => 160, 'maintenance_message' => 300],
-    'ordering' => ['min_lead_hours' => 4, 'custom_lead_days' => 3, 'max_advance_days' => 4, 'slot_interval_minutes' => 3, 'last_slot_buffer_minutes' => 4, 'max_orders_per_slot' => 4, 'max_deliveries_per_day' => 4, 'delivery_fee' => 10, 'delivery_free_over' => 10, 'delivery_min_order' => 10, 'delivery_note' => 255, 'delivery_postcodes' => 255, 'ordering_paused_until' => 10, 'ordering_paused_message' => 255],
-    'payments' => ['payment_stripe_label' => 60, 'payment_stripe_note' => 255, 'payment_payid_label' => 60, 'payment_payid_note' => 255, 'payment_bank_label' => 60, 'payment_bank_note' => 255, 'payid_identifier' => 120, 'payid_account_name' => 120, 'bank_account_name' => 120, 'bank_bsb' => 7, 'bank_account_number' => 20, 'stripe_publishable_key' => 255],
+    'ordering' => ['min_lead_hours' => 4, 'delivery_lead_hours' => 4, 'pickup_lead_unit' => 5, 'delivery_lead_unit' => 5, 'custom_lead_days' => 3, 'max_advance_days' => 4, 'slot_interval_minutes' => 3, 'last_slot_buffer_minutes' => 4, 'max_orders_per_slot' => 4, 'max_deliveries_per_day' => 4, 'delivery_fee' => 10, 'delivery_free_over' => 10, 'delivery_min_order' => 10, 'delivery_note' => 255, 'delivery_postcodes' => 255, 'ordering_paused_until' => 10, 'ordering_paused_message' => 255],
+    'payments' => ['payment_stripe_label' => 60, 'payment_stripe_note' => 255, 'payment_payid_label' => 60, 'payment_payid_note' => 255, 'payment_bank_label' => 60, 'payment_bank_note' => 255, 'payment_shop_label' => 60, 'payment_shop_note' => 255, 'payment_call_label' => 60, 'payment_call_note' => 255, 'payid_identifier' => 120, 'payid_account_name' => 120, 'bank_account_name' => 120, 'bank_bsb' => 7, 'bank_account_number' => 20, 'stripe_publishable_key' => 255],
     // Each shop's email account, order alerts, inbox and automatic emails are in Admin > Branches > shop > Email.
     'emails'   => ['email_accent_note' => 255, 'daily_email_to' => 190, 'daily_email_minutes_before' => 4, 'reminder_send_hour' => 2],
     'homepage' => ['hero_eyebrow' => 120, 'hero_title' => 120, 'hero_subtitle' => 400, 'announcement_text' => 200, 'google_rating' => 3, 'google_review_count' => 10, 'google_reviews_url' => 500],
@@ -24,8 +24,8 @@ const SETTINGS_FIELDS = [
 
 const SETTINGS_SWITCHES = [
     'ordering' => ['pickup_enabled', 'delivery_enabled', 'ordering_paused'],
-    'payments' => ['payment_stripe_enabled', 'payment_payid_enabled', 'payment_bank_enabled'],
-    'emails'   => ['send_customer_emails', 'daily_email_enabled'],
+    'payments' => ['payment_stripe_enabled', 'payment_payid_enabled', 'payment_bank_enabled', 'payment_shop_enabled', 'payment_call_enabled'],
+    'emails'   => ['send_customer_emails', 'status_emails_enabled', 'daily_email_enabled'],
     'store'    => ['gst_registered', 'maintenance_mode'],
 ];
 
@@ -112,7 +112,14 @@ if (is_post()) {
     }
 
     if ($tab === 'ordering') {
-        foreach (['min_lead_hours' => [1, 720], 'custom_lead_days' => [0, 60], 'max_advance_days' => [1, 365], 'slot_interval_minutes' => [10, 120], 'last_slot_buffer_minutes' => [0, 240], 'max_orders_per_slot' => [0, 99], 'max_deliveries_per_day' => [0, 999]] as $key => [$min, $max]) {
+        // Notice for pickup and for delivery: a number of hours or of days, kept in hours.
+        foreach (['pickup' => 'min_lead_hours', 'delivery' => 'delivery_lead_hours'] as $kind => $key) {
+            $unit = input($kind . '_lead_unit') === 'days' ? 'days' : 'hours';
+            $amount = (int) input($kind . '_lead_value');
+            $values[$kind . '_lead_unit'] = $unit;
+            $values[$key] = (string) ($unit === 'days' ? 24 * min(30, max(1, $amount)) : min(720, max(1, $amount)));
+        }
+        foreach (['min_lead_hours' => [1, 720], 'delivery_lead_hours' => [1, 720], 'custom_lead_days' => [0, 60], 'max_advance_days' => [1, 365], 'slot_interval_minutes' => [10, 120], 'last_slot_buffer_minutes' => [0, 240], 'max_orders_per_slot' => [0, 99], 'max_deliveries_per_day' => [0, 999]] as $key => [$min, $max]) {
             $values[$key] = (string) min($max, max($min, (int) $values[$key]));
         }
         $values['delivery_fee'] = number_format(max(0, (float) str_replace(['$', ','], '', $values['delivery_fee'])), 2, '.', '');
@@ -150,7 +157,7 @@ if (is_post()) {
         if ($values['stripe_publishable_key'] !== '' && !preg_match('/^pk_(test|live)_[A-Za-z0-9]+$/', $values['stripe_publishable_key'])) {
             $errors['stripe_publishable_key'] = 'The publishable key starts with pk_live_ or pk_test_.';
         }
-        foreach (['stripe', 'payid', 'bank'] as $method) {
+        foreach (['stripe', 'payid', 'bank', 'shop', 'call'] as $method) {
             if ($values["payment_{$method}_label"] === '') {
                 $errors["payment_{$method}_label"] = 'Please give each payment method a name.';
             }
@@ -173,7 +180,7 @@ if (is_post()) {
         if ($values['payment_bank_enabled'] === '1' && ($values['bank_bsb'] === '' || $values['bank_account_number'] === '')) {
             $errors['payment_bank_enabled'] = 'Add the BSB and account number before switching bank transfer on.';
         }
-        if (!$errors && $values['payment_stripe_enabled'] === '0' && $values['payment_payid_enabled'] === '0' && $values['payment_bank_enabled'] === '0') {
+        if (!$errors && !in_array('1', [$values['payment_stripe_enabled'], $values['payment_payid_enabled'], $values['payment_bank_enabled'], $values['payment_shop_enabled'], $values['payment_call_enabled']], true)) {
             $errors['payments'] = 'Keep at least one payment method switched on, or customers cannot check out.';
         }
     }

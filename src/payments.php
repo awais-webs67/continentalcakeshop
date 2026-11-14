@@ -7,6 +7,9 @@ declare(strict_types=1);
 const PAYMENT_STRIPE = 'stripe';
 const PAYMENT_PAYID = 'payid';
 const PAYMENT_BANK = 'bank';
+// Ways to pay later: in the shop at pickup, or by card when the shop calls. Nothing is paid online.
+const PAYMENT_SHOP = 'shop';
+const PAYMENT_CALL = 'call';
 
 function payment_method_definitions(): array
 {
@@ -41,13 +44,35 @@ function payment_method_definitions(): array
                 'Account number' => setting('bank_account_number'),
             ],
         ],
+        PAYMENT_SHOP => [
+            'label'        => setting('payment_shop_label', 'Pay in the shop'),
+            'description'  => setting('payment_shop_note', 'Pay by cash or card when you pick up your order.'),
+            'enabled'      => setting_bool('payment_shop_enabled'),
+            'configured'   => true,
+            'needs_proof'  => false,
+            'pickup_only'  => true,
+        ],
+        PAYMENT_CALL => [
+            'label'        => setting('payment_call_label', 'Pay over the phone'),
+            'description'  => setting('payment_call_note', 'We will call you to take payment by card before we make your order.'),
+            'enabled'      => setting_bool('payment_call_enabled'),
+            'configured'   => true,
+            'needs_proof'  => false,
+        ],
     ];
+}
+
+/** True for the ways to pay later (in the shop, or when the shop calls): the order is placed unpaid. */
+function pays_later(string $method): bool
+{
+    return in_array($method, [PAYMENT_SHOP, PAYMENT_CALL], true);
 }
 
 // Ways staff can record money taken in the shop or over the phone.
 const IN_STORE_PAYMENT_METHODS = [
     'cash'   => 'Cash',
     'eftpos' => 'Card in the shop (EFTPOS)',
+    'phone'  => 'Card over the phone',
 ];
 
 /** Every method staff can record a payment with (online methods are listed even when switched off). */
@@ -55,7 +80,9 @@ function staff_payment_methods(): array
 {
     $list = IN_STORE_PAYMENT_METHODS;
     foreach (payment_method_definitions() as $key => $method) {
-        $list[$key] = $method['label'];
+        if (!pays_later($key)) { // "Pay in the shop" is paid by cash or card; "over the phone" by card over the phone
+            $list[$key] = $method['label'];
+        }
     }
     return $list;
 }

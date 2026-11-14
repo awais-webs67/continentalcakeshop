@@ -37,6 +37,8 @@ if (is_post() && !$closed) {
     ];
     if (!$method) {
         $errors['payment_method'] = 'Please choose how you would like to pay.';
+    } elseif (!empty($method['pickup_only']) && $delivery) {
+        $errors['payment_method'] = $method['label'] . ' is for pickup orders. Please choose another way to pay.';
     } elseif ($method['needs_proof'] && !has_upload('payment_proof') && !async_upload(input('payment_proof_token'), 'payment')) {
         $errors['payment_proof'] = 'Please upload a screenshot of your payment.';
     }
@@ -69,6 +71,15 @@ if (is_post() && !$closed) {
     $order = order_for_quote($request, $address + ['payment_method' => input('payment_method'), 'payment_proof' => $proof]);
     forget_async_upload(input('payment_proof_token'));
     forget_input();
+    if (pays_later(input('payment_method'))) {
+        // Pay in the shop, or when the shop calls: the cake is booked now and paid later.
+        db_run("UPDATE orders SET payment_method = ?, admin_notes = CONCAT_WS('\n', admin_notes, ?) WHERE id = ?", [
+            input('payment_method'), 'Customer accepted the quote and will pay ' . ($amount < $price ? 'the deposit of ' . money($amount) . ' ' : '') . strtolower(payment_method_label(input('payment_method'))) . '.', $order['id'],
+        ]);
+        send_order_emails(get_order((int) $order['id']));
+        flash('success', 'Thank you! Your cake is booked. ' . (input('payment_method') === PAYMENT_CALL ? 'We will call you to take the payment.' : 'Please pay when you pick it up.'));
+        redirect(order_url(get_order((int) $order['id'])));
+    }
     if ($proof !== null) {
         // PayID or bank: the shop checks the screenshot and records the payment.
         db_run("UPDATE orders SET payment_method = ?, payment_proof = ?, payment_status = 'awaiting_verification', payment_reference = ?, admin_notes = CONCAT_WS('\n', admin_notes, ?) WHERE id = ?", [

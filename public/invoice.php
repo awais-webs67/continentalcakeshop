@@ -26,6 +26,10 @@ $docTitle = $gst ? 'Tax invoice' : 'Receipt';
 $gstAmount = round(((float) $order['total']) / 11, 2);
 $balance = order_balance($order);
 $cancelled = $order['order_status'] === 'cancelled';
+// A custom cake quote can ask for a deposit first: the receipt says how much is due now.
+$quoteRequest = !empty($order['custom_request_id']) ? db_one('SELECT deposit_amount FROM custom_requests WHERE id = ?', [(int) $order['custom_request_id']]) : null;
+$depositDue = $quoteRequest && $quoteRequest['deposit_amount'] !== null && !$cancelled
+    ? round(max(0, (float) $quoteRequest['deposit_amount'] - order_net_paid($order)), 2) : 0.0;
 $settled = !$cancelled && $balance <= 0.004 && ($payments || $order['payment_status'] === 'paid');
 $delivery = is_delivery($order);
 $when = date('D j M Y', strtotime($order['pickup_date'])) . ($order['pickup_time'] ? ', ' . format_time($order['pickup_time']) : '');
@@ -105,6 +109,7 @@ $self = invoice_url($order);
         <div class="row"><span><?= $p['kind'] === 'refund' ? 'Refund' : 'Paid' ?> <?= e(payment_method_label($p['method'])) ?></span><span><?= $p['kind'] === 'refund' ? '+' : '-' ?><?= e(money($p['amount'])) ?></span></div>
     <?php endforeach; ?>
     <?php if (!$payments && $order['payment_status'] === 'paid'): ?><div class="row"><span>Paid <?= e(payment_method_label($order['payment_method'])) ?></span><span>-<?= e(money($order['total'])) ?></span></div><?php endif; ?>
+    <?php if ($depositDue > 0.004 && $depositDue < $balance - 0.004): ?><div class="row" style="font-weight:700"><span>Deposit due now</span><span><?= e(money($depositDue)) ?></span></div><?php endif; ?>
     <?php if (!$cancelled): ?><div class="row" style="font-weight:700"><span>Balance due</span><span><?= e(money(max(0, $balance))) ?></span></div><?php endif; ?>
     <div class="box"><?= e(strtoupper($statusLabel)) ?></div>
     <div class="row"><span><?= $delivery ? 'Delivery' : 'Pickup' ?></span><span><?= e($when) ?></span></div>
@@ -234,7 +239,10 @@ $self = invoice_url($order);
             <div class="sum"><span><?= $p['kind'] === 'refund' ? 'Refunded' : 'Paid' ?> <?= e(date('j M', strtotime($p['created_at']))) ?> &middot; <?= e(payment_method_label($p['method'])) ?></span><span><?= $p['kind'] === 'refund' ? '+' : '-' ?><?= e(money($p['amount'])) ?></span></div>
         <?php endforeach; ?>
         <?php if (!$payments && $order['payment_status'] === 'paid'): ?><div class="sum"><span>Paid</span><span>-<?= e(money($order['total'])) ?></span></div><?php endif; ?>
-        <?php if (!$cancelled && $balance > 0.004): ?>
+        <?php if ($depositDue > 0.004 && $depositDue < $balance - 0.004): ?>
+            <div class="sum sum--due"><span>Deposit to pay now</span><span><?= e(money($depositDue)) ?></span></div>
+            <div class="sum"><span>Balance due</span><span><?= e(money($balance)) ?></span></div>
+        <?php elseif (!$cancelled && $balance > 0.004): ?>
             <div class="sum sum--due"><span>Balance due</span><span><?= e(money($balance)) ?></span></div>
         <?php elseif ($settled): ?>
             <div class="sum sum--paid"><span>Balance</span><span><?= e(money(0)) ?></span></div>

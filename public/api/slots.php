@@ -10,7 +10,7 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
 $date = input('date');
-$leadHours = cart_lead_hours(cart_items());
+$leadHours = cart_lead_hours(cart_items(), input('type') === 'delivery' ? 'delivery' : 'pickup');
 $branchId = valid_branch_id(input('branch')); // each shop has its own bookings
 
 if (input('type') === 'delivery') {

@@ -17,6 +17,8 @@ $steps = ['new', 'confirmed', 'in_progress', 'ready', 'completed'];
 $at = array_search($order['order_status'], $steps, true);
 $ordinal = static fn (int $n): string => $n . (in_array($n % 100, [11, 12, 13], true) ? 'th' : (['th', 'st', 'nd', 'rd'][$n % 10] ?? 'th'));
 $idField = csrf_field() . '<input type="hidden" name="id" value="' . $id . '">';
+// Status buttons email the customer only while status emails are on (Settings > Emails).
+$statusMail = status_emails_on() ? '<input type="hidden" name="notify" value="1">' : '';
 $quantity = array_sum(array_map(static fn ($i) => (int) $i['quantity'], $items));
 ?>
 <div class="ov-top">
@@ -42,7 +44,7 @@ $quantity = array_sum(array_map(static fn ($i) => (int) $i['quantity'], $items))
                 <p class="dropdown__title">Order status</p>
                 <?php foreach ($steps as $i => $key): $isNow = $order['order_status'] === $key; ?>
                     <form method="post">
-                        <?= $idField ?><input type="hidden" name="action" value="status"><input type="hidden" name="order_status" value="<?= e($key) ?>"><input type="hidden" name="notify" value="1">
+                        <?= $idField ?><input type="hidden" name="action" value="status"><input type="hidden" name="order_status" value="<?= e($key) ?>"><?= $statusMail ?>
                         <button type="submit" class="ov-more__step<?= $isNow ? ' is-now' : '' ?><?= $at !== false && $i < $at ? ' is-done' : '' ?>"<?= $isNow ? ' disabled aria-current="step"' : '' ?>>
                             <span class="ov-more__num"><?= $at !== false && $i < $at ? icon('check', '', 13) : $i + 1 ?></span>
                             <?= e(order_status_label($order, $key)) ?><?= $key === 'confirmed' && $confirmPays ? ' &amp; paid' : '' ?><?= $isNow ? ' <small>now</small>' : '' ?>
@@ -51,7 +53,7 @@ $quantity = array_sum(array_map(static fn ($i) => (int) $i['quantity'], $items))
                 <?php endforeach; ?>
                 <?php if (!$cancelled): ?>
                     <form method="post" data-confirm="Cancel order <?= e($order['order_number']) ?>? The customer will be emailed.">
-                        <?= $idField ?><input type="hidden" name="action" value="status"><input type="hidden" name="order_status" value="cancelled"><input type="hidden" name="notify" value="1">
+                        <?= $idField ?><input type="hidden" name="action" value="status"><input type="hidden" name="order_status" value="cancelled"><?= $statusMail ?>
                         <button type="submit" class="ov-more__cancel"><?= icon('close', '', 15) ?> Cancel order</button>
                     </form>
                 <?php endif; ?>
@@ -65,8 +67,8 @@ $quantity = array_sum(array_map(static fn ($i) => (int) $i['quantity'], $items))
             <button class="btn btn--primary" type="button" data-open="ov-when"><?= icon('clock', '', 16) ?> Set delivery time</button>
         <?php elseif ($next): ?>
             <form method="post">
-                <?= $idField ?><input type="hidden" name="action" value="status"><input type="hidden" name="order_status" value="<?= e($next[0]) ?>"><input type="hidden" name="notify" value="1">
-                <button class="btn btn--primary" type="submit" title="<?= $hasEmail ? 'Also emails the customer' : 'No email address on this order' ?>"><?= icon('check', '', 16) ?> <?= e($next[1]) ?></button>
+                <?= $idField ?><input type="hidden" name="action" value="status"><input type="hidden" name="order_status" value="<?= e($next[0]) ?>"><?= $statusMail ?>
+                <button class="btn btn--primary" type="submit" title="<?= !$hasEmail ? 'No email address on this order' : (status_emails_on() ? 'Also emails the customer' : 'Status emails are off (Settings > Emails)') ?>"><?= icon('check', '', 16) ?> <?= e($next[1]) ?></button>
             </form>
         <?php endif; ?>
     </div>
@@ -89,7 +91,7 @@ $quantity = array_sum(array_map(static fn ($i) => (int) $i['quantity'], $items))
         <select class="input" name="order_status">
             <?php foreach (ORDER_STATUSES as $key => $label): ?><option value="<?= e($key) ?>" <?= selected($order['order_status'] === $key) ?>><?= e(order_status_label($order, $key)) ?></option><?php endforeach; ?>
         </select>
-        <label class="switch"><input type="checkbox" name="notify" value="1" checked><span class="switch__track"></span><span>Email the customer</span></label>
+        <label class="switch"><input type="checkbox" name="notify" value="1" <?= checked(status_emails_on()) ?>><span class="switch__track"></span><span>Email the customer</span></label>
         <textarea class="input" name="message" rows="2" placeholder="Message to the customer (optional)"></textarea>
         <div><button class="btn btn--primary" type="submit">Save status</button></div>
     </form>
@@ -175,8 +177,13 @@ $quantity = array_sum(array_map(static fn ($i) => (int) $i['quantity'], $items))
             <div class="ov-actions">
                 <?php if ($balance > 0.004): ?>
                     <?php if ($confirmPays): ?>
-                        <form method="post"><?= $idField ?><input type="hidden" name="action" value="status"><input type="hidden" name="order_status" value="confirmed"><input type="hidden" name="notify" value="1">
-                            <button class="btn btn--primary" type="submit" title="Confirms the order, records the payment and sends the customer one email"><?= icon('check', '', 16) ?> Money received, confirm</button></form>
+                        <form method="post"><?= $idField ?><input type="hidden" name="action" value="status"><input type="hidden" name="order_status" value="confirmed"><?= $statusMail ?>
+                            <button class="btn btn--primary" type="submit" title="Confirms the order and records the payment<?= status_emails_on() ? ', and sends the customer one email' : '' ?>"><?= icon('check', '', 16) ?> Money received, confirm</button></form>
+                    <?php elseif (pays_later((string) $order['payment_method'])): ?>
+                        <?php foreach ($order['payment_method'] === PAYMENT_SHOP ? ['cash' => 'Paid by cash', 'eftpos' => 'Paid by card'] : ['phone' => 'Paid by card over the phone'] as $how => $label): ?>
+                            <form method="post"><?= $idField ?><input type="hidden" name="action" value="record_payment"><input type="hidden" name="amount" value="<?= e(number_format($balance, 2, '.', '')) ?>"><input type="hidden" name="method" value="<?= e($how) ?>"><?php if ($hasEmail): ?><input type="hidden" name="notify" value="1"><?php endif; ?>
+                                <button class="btn btn--primary" type="submit" title="Records <?= e(money($balance)) ?><?= $hasEmail ? ' and emails a receipt' : '' ?>"><?= icon('check', '', 16) ?> <?= e($label) ?></button></form>
+                        <?php endforeach; ?>
                     <?php else: ?>
                         <form method="post"><?= $idField ?><input type="hidden" name="action" value="record_payment"><input type="hidden" name="amount" value="<?= e(number_format($balance, 2, '.', '')) ?>"><input type="hidden" name="method" value="<?= e($order['payment_method']) ?>"><?php if ($hasEmail): ?><input type="hidden" name="notify" value="1"><?php endif; ?>
                             <button class="btn btn--primary" type="submit" title="Records the full amount<?= $hasEmail ? ' and emails a receipt' : '' ?>"><?= icon('check', '', 16) ?> Mark as paid</button></form>
