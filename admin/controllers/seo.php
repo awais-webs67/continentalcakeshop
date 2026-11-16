@@ -38,6 +38,10 @@ if (is_post()) {
     } elseif ($action === 'suggest_keywords') {
         $count = db_run("UPDATE products SET focus_keyword = LOWER(CONCAT(name, ' canberra')) WHERE (focus_keyword IS NULL OR focus_keyword = '') AND is_active = 1")->rowCount();
         flash('success', $count . ' cakes got a suggested focus keyword. Open each cake to check it and follow its checklist.');
+    } elseif ($action === 'send_all') {
+        @set_time_limit(90);
+        [$ok, $report] = search_engines_sync(true);
+        flash($ok ? 'success' : 'error', $report);
     } elseif ($action === 'ignore') {
         db_run('DELETE FROM not_found_log WHERE path = ?', [input('path')]);
         flash('success', 'Removed from the list.');

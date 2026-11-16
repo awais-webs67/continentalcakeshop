@@ -39,6 +39,7 @@ Read it before changing anything. For putting the site live, see [DEPLOY.md](DEP
 32. [Shop front photo and search-ready new cakes](#32-shop-front-photo-and-search-ready-new-cakes)
 33. [Menu, review switches and the Custom Cake Gallery](#33-menu-review-switches-and-the-custom-cake-gallery)
 34. [Two shops: branches](#34-two-shops-branches)
+40. [AI SEO agent, Google and Bing](#40-ai-seo-agent-google-and-bing)
 
 ## 1. How the code is organised
 
@@ -272,6 +273,7 @@ cPanel runs `cron/run.php` every 15 minutes. It calls `run_scheduled_tasks()` in
 | `review_request_task` | A set number of hours after an order is marked Completed (`orders.completed_at`): asks for a Google review (`review-request` email). Each customer at most once every 120 days; never for refunded orders or orders older than 14 days. | `review_email_enabled`, `review_delay_hours`, `google_reviews_url` |
 | `backup_task` | After 2am, once a night: full database backup (`src/backup.php`). | `backup_enabled`, `backup_keep_days` |
 | `cleanup_task` | Once a day: removes "not found" entries older than 90 days and expired password links. | |
+| `search_engine_task` | Every run: sends new, changed and removed addresses to Bing (IndexNow) and the sitemap to Google Search Console when connected (section 40). | `indexnow_enabled`, `gsc_service_account` |
 
 New scheduled jobs: add a function `something_task(DateTimeImmutable $now): string` and add its name to the list in `run_scheduled_tasks()`.
 
@@ -290,7 +292,7 @@ New scheduled jobs: add a function `something_task(DateTimeImmutable $now): stri
 - Each offer also carries the return policy (fresh food: no change-of-mind returns, linked to the Refund page) and, with delivery on, the delivery fee, postcodes and notice in days (`offer_policies()`), which Google asks for on product pages. A cake priced on request gets no `Product` data (Google rejects it without a price), only the breadcrumb.
 - **Other search words** (`products.search_words`, update 030): comma separated words per cake, e.g. "chocolate cherry cake". The website search finds them, and they go to Google as the product's `keywords`. Left empty, they are filled in on save: name, focus keyword, "<name> canberra", "<category> canberra", "halal cakes canberra" (`product_default_search_words()`); also in the products import/export (`search_words`). There is no `<meta name="keywords">`: Google ignores it.
 - Cake pages also have Open Graph product tags (price, currency, availability, brand, photo text) for Facebook, Pinterest and WhatsApp (`product_meta_tags()`, `$page['meta']`). The accordion titles ("About this <cake>", "Dietary and allergens", "Pickup...") are `h2` headings.
-- `/sitemap.xml` with every product photo and the landing pages (`public/sitemap.php`) and `/robots.txt` (`public/robots.php`).
+- `/sitemap.xml` with every product photo and the landing pages (`sitemap_entries()` in `src/indexing.php`, shown by `public/sitemap.php`) and `/robots.txt` (`public/robots.php`). Built from the database on each visit, so a new or changed cake is in it at once and a hidden or deleted one drops out. Sending it to Google and Bing: see section 40.
 - **Homepage.** The title starts with "Cake Shop Canberra", like the old site. The hero's small line is part of the `h1`, so the main heading reads "Cake shop in Greenway, Canberra since 2015 / Fresh cakes for every celebration".
 - **Old website links.** All 16 pages of the old Wix site (`/allcakes`, `/mud-cakes`, `/gallery-06`, `/about-us`...) are sent with a 301 to their new page. Built-in list: `LEGACY_REDIRECTS`. The old gallery pages go to the landing pages (or Custom Cakes when a landing page is off). Staff can add more in Settings (`seo_redirects`) or from Admin > SEO. Applied in `public/404.php` through `legacy_redirect_target()`.
 - **Automatic redirects.** Changing the web address of a cake, category or landing page adds a redirect from the old address (`add_seo_redirect()`), so rankings and old links keep working.
@@ -396,7 +398,7 @@ Settings tabs in the admin: shop details (including the WhatsApp number for the 
 **A new website page with its own code**
 1. Create `public/your-page.php` starting with the bootstrap require, set `$page`, include the header and footer.
 2. Add a rewrite rule in `public/.htaccess` (and in `public/router.php` for the PHP built-in server).
-3. Add it to `public/sitemap.php` if Google should find it.
+3. Add it to `sitemap_entries()` in `src/indexing.php` if Google should find it.
 
 **A new admin page**
 1. Add the route to `ADMIN_ROUTES` in `public/admin/index.php`.
@@ -576,3 +578,25 @@ Admin > Settings > Business > **Maintenance mode** (owners). While it is on (`sr
 **Notice time** (Admin > Settings > Ordering): separate notice for pickup and for delivery, each in hours or days (`order_notice_hours()` in `src/cart.php`). Hours: from that many hours after ordering. Days: from that day onwards, any time (2 days ordered on Monday afternoon allows Wednesday from opening). A cake's own longer notice still wins. Checkout's dates and times follow the notice of the chosen way (the delivery date picker and the slot check use the delivery notice), and the help text shows both when they differ.
 
 **Done means paid** (Nov 2026): confirming an order never marks a pay-in-the-shop or pay-on-call order paid. Marking any order Collected / Delivered / Completed while money is owing first asks "Have you received $X from Name?" with how it was paid (cash for pay in the shop, card on call for pay on call, otherwise the order's method). Yes records the payment and completes the order; the cross or "Not yet" leaves it as it was. The server refuses to complete an owing order without that answer (`collect_attrs()` in `admin/bootstrap.php`, the status action in `admin/controllers/order-view.php`). Orders has an **Unpaid** tab: open orders with money still to pay.
+
+## 40. AI SEO agent, Google and Bing
+
+**Admin > AI SEO agent** (owner only, `admin/controllers/ai-seo.php`, `src/ai.php`). Tabs:
+- **AI services**: free AI services that speak the OpenAI "chat completions" format: Groq, Google Gemini, OpenRouter, Cerebras, Mistral, AgentRouter or any other (`AI_SERVICES`). The owner pastes their own API key (stored encrypted with `secret_encrypt()`, never shown again) and can change the model. **Test** lists the service's models and asks for a one-word answer. Services are tried from the top (`ai_chat()`): when one fails (wrong key, free limit reached, down, empty or wrongly formatted answer) the next one writes instead; one that answered "too many requests" goes last for a minute. Each service shows how it did last time.
+- **Shop knowledge**: the owner's description of the shop for the AI (`ai_shop_profile`, with "Write a draft from my website"). The AI is not trained once: every request sends it this profile, today's facts read from the website (`ai_shop_facts()`: shops, hours, notice, delivery, categories, FAQs), two of our own cake descriptions as a style example, the pages it may link to and the SEO rules (`ai_seo_rules()`).
+- **Many cakes**: tick cakes (or "below 9/11") and the AI writes and saves their SEO one after another (`ai_rewrite_product()`), keeping each old text as an earlier version.
+- **Google & Bing**: see below.
+
+**AI SEO writer in the product editor** (`admin/controllers/product-ai.php`, route `products/ai`). Optional notes ("cherry filling, chocolate shavings") and **Write with AI**: it fills the focus keyword, page title, search description, short and full description, search words and photo text from the name, sizes, options, category and current text. The checklist score updates at once; **Undo** puts the old text back; nothing is saved until Save product. The answer is tidied before use (`ai_clean_fields()`): title up to 60 and description up to 160 characters, safe HTML only, links only to our own pages from the list (`ai_keep_links()`), and only the placeholders `{store_phone}`, `{store_address}`, `{min_lead_hours}`. No prices are written (they change).
+
+**Earlier versions** (`product_seo_history`, update 032, `seo_history_save()` in `src/seo.php`). Whenever a cake's SEO text changes (an edit, the AI writer, the many-cakes button or a restore), the text it replaces is kept (the last 15 per cake). The product editor lists them under "Earlier versions of the SEO text" with **Restore this version**.
+
+**Sending changes to search engines** (`src/indexing.php`). The cron job (`search_engine_task`, every run) compares the sitemap with the one it sent last (`sitemap_snapshot` setting, `sitemap_changes()`) and sends new, changed and removed addresses:
+- to **IndexNow** (`indexnow_submit()`), which shares them with Bing, Yandex, Naver and Seznam. ChatGPT search and Microsoft Copilot use Bing's index. The key is made once (`indexnow_key()`) and served at `/{key}.txt` (`public/indexnow.php`). Can be switched off on the Google & Bing tab.
+- to **Google Search Console**, when connected: the sitemap is submitted again through the Search Console API (`gsc_submit_sitemap()`), at most once an hour. Connecting: a Google Cloud service account with the Search Console API on, added as Owner in Search Console, and its JSON key uploaded on the Google & Bing tab (stored encrypted; the steps are on the page). The property (`sc-domain:...` or the https address) is found by itself. The tab shows what Google reports about the sitemap (last read, addresses, errors). Google has no instant "ping" any more and its Indexing API is only for job and live video pages, so this is the official way.
+- Nothing is sent while `app_url` is not a public https address (`site_is_public()`). **Send everything now** (on that tab and on Admin > SEO) sends every address at once. The last 20 results are listed (`search_engine_log`).
+
+**`/llms.txt`** (`public/llms.php`, `llms_txt()`): a short plain summary of the shop, its pages and every cake with price and link, for AI assistants. Built from the database on each visit.
+
+AI only runs in the admin panel when staff press a button; the website customers use does no extra work.
+

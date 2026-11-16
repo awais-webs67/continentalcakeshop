@@ -56,6 +56,8 @@ DirectoryIndex index.php
     RewriteRule ^stripe-webhook$        stripe-webhook.php [L,QSA]
     RewriteRule ^sitemap\.xml$          sitemap.php [L]
     RewriteRule ^robots\.txt$           robots.php [L]
+    RewriteRule ^llms\.txt$             llms.php [L]
+    RewriteRule ^([a-f0-9]{32})\.txt$   indexnow.php?key=$1 [L]
 
     # Pages written in Admin > Pages (policies and landing pages such as /birthday-cakes-canberra).
     # page.php shows the 404 page (and old website redirects) when no page has that address.

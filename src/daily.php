@@ -84,7 +84,7 @@ function run_scheduled_tasks(?DateTimeImmutable $now = null): string
     $now ??= new DateTimeImmutable();
     setting_save('cron_last_run', $now->format('Y-m-d H:i:s'));
     $report = [];
-    foreach (['morning_email_task', 'reminder_email_task', 'review_request_task', 'inbox_task', 'backup_task', 'cleanup_task'] as $job) {
+    foreach (['morning_email_task', 'reminder_email_task', 'review_request_task', 'inbox_task', 'backup_task', 'cleanup_task', 'search_engine_task'] as $job) {
         if (!function_exists($job)) {
             continue;
         }

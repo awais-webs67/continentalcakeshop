@@ -226,6 +226,12 @@
         }
         quill.clipboard.dangerouslyPasteHTML(value || '');
         quill.history.clear();
+        // The AI writer (product editor) reads and replaces the text through these two.
+        area.richHtml = function () { return sourceMode ? area.value : html(); };
+        area.setRichHtml = function (value) {
+            area.value = value;
+            if (!sourceMode) quill.clipboard.dangerouslyPasteHTML(value);
+        };
 
         // HTML view, for pasting or checking the code.
         var bar = wrap.querySelector('.ql-toolbar');
@@ -1283,4 +1289,216 @@ document.addEventListener('change', function (e) {
         e.stopImmediatePropagation();
         ask(form);
     }, true);
+})();
+
+/* ---------- AI SEO writer ----------
+   Product editor: "Write with AI" fills the SEO fields from the form (nothing is saved until
+   Save product; Undo puts the old text back). AI SEO agent page: Test buttons, the shop profile
+   draft and writing many cakes one after another. */
+(function () {
+    var cfg = window.CCS_ADMIN || {};
+    var post = function (url, body) {
+        body.set('_token', cfg.csrf);
+        return fetch(url, { method: 'POST', body: body, credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
+            .then(function (r) {
+                return r.json().catch(function () { return { ok: false, error: 'The server answered with an error (' + r.status + '). Please try again.' }; });
+            })
+            .catch(function () { return { ok: false, error: 'No connection. Please try again.' }; });
+    };
+    var say = function (el, text, kind) {
+        if (!el) return;
+        el.textContent = text;
+        el.className = el.className.replace(/\bis-(ok|bad)\b/g, '').trim() + (kind ? ' is-' + kind : '');
+    };
+
+    // Product editor
+    var writer = document.querySelector('[data-ai-writer]');
+    var writeBtn = writer && writer.querySelector('[data-ai-write]');
+    if (writeBtn) {
+        var form = writer.closest('form');
+        var status = writer.querySelector('[data-ai-status]');
+        var undoBtn = writer.querySelector('[data-ai-undo]');
+        var written = writer.querySelector('[data-ai-written]');
+        var notes = writer.querySelector('[data-ai-notes]');
+        var FIELDS = ['focus_keyword', 'meta_title', 'meta_description', 'short_description', 'description', 'search_words', 'image_alt'];
+        var input = function (name) { return form.querySelector('[name="' + name + '"]'); };
+        var read = function (name) {
+            var el = input(name);
+            if (!el) return '';
+            return name === 'description' && el.richHtml ? el.richHtml() : el.value;
+        };
+        var write = function (name, value) {
+            var el = input(name);
+            if (!el) return;
+            if (name === 'description' && el.setRichHtml) el.setRichHtml(value); else el.value = value;
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            var shown = name === 'description' ? (el.parentNode.querySelector('.rich-editor') || el) : el;
+            shown.classList.add('is-ai-filled');
+            setTimeout(function () { shown.classList.remove('is-ai-filled'); }, 2500);
+        };
+        var before = null;
+        var refresh = function () { form.dispatchEvent(new Event('input', { bubbles: true })); };
+
+        writeBtn.addEventListener('click', function () {
+            var name = input('name');
+            if (!name || !name.value.trim()) { say(status, 'Type the cake name first.', 'bad'); name && name.focus(); return; }
+            var body = new FormData(form);
+            body.delete('image');
+            body.delete('gallery[]');
+            body.set('description', read('description'));
+            body.set('ai_notes', notes ? notes.value : '');
+            body.set('action', 'write');
+            writer.classList.add('is-busy');
+            say(status, 'Writing... this takes 5 to 30 seconds.');
+            post(writer.getAttribute('data-url'), body).then(function (data) {
+                writer.classList.remove('is-busy');
+                if (!data.ok) { say(status, data.error || 'The AI could not write it. Please try again.', 'bad'); return; }
+                before = {};
+                FIELDS.forEach(function (f) { before[f] = read(f); });
+                FIELDS.forEach(function (f) { if (typeof data.fields[f] === 'string' && data.fields[f] !== '') write(f, data.fields[f]); });
+                if (written) written.value = '1';
+                if (undoBtn) undoBtn.hidden = false;
+                refresh();
+                var skipped = Object.keys(data.failed || {});
+                say(status, 'Written by ' + data.service + (skipped.length ? ' (' + skipped.join(', ') + ' did not answer)' : '') + '. Read it, change anything you like, then press Save product.', 'ok');
+            });
+        });
+        undoBtn && undoBtn.addEventListener('click', function () {
+            if (!before) return;
+            FIELDS.forEach(function (f) { write(f, before[f]); });
+            before = null;
+            if (written) written.value = '0';
+            undoBtn.hidden = true;
+            refresh();
+            say(status, 'The text from before is back.');
+        });
+    }
+
+    // AI SEO agent page: add form follows the chosen service
+    var preset = document.querySelector('[data-ai-preset]');
+    if (preset) {
+        var addForm = preset.form;
+        var pick = function () {
+            var opt = preset.options[preset.selectedIndex];
+            var model = addForm.querySelector('[data-ai-model]');
+            var link = addForm.querySelector('[data-ai-keys-link]');
+            model.placeholder = opt.getAttribute('data-model') || 'model name';
+            model.required = !opt.getAttribute('data-model');
+            link.hidden = !opt.getAttribute('data-keys');
+            if (opt.getAttribute('data-keys')) link.href = opt.getAttribute('data-keys');
+            addForm.querySelector('[data-ai-url]').hidden = preset.value !== 'custom';
+            addForm.querySelector('[data-ai-name]').hidden = preset.value !== 'custom';
+            addForm.querySelector('[name="base_url"]').required = preset.value === 'custom';
+        };
+        preset.addEventListener('change', pick);
+        pick();
+    }
+
+    // Test buttons
+    document.querySelectorAll('[data-ai-test]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var row = btn.closest('[data-ai-service]');
+            var id = row.getAttribute('data-ai-service');
+            var result = row.querySelector('[data-ai-result]');
+            result.textContent = 'Testing...';
+            btn.disabled = true;
+            var body = new FormData();
+            body.set('action', 'test');
+            body.set('id', id);
+            post(location.pathname + location.search, body).then(function (data) {
+                btn.disabled = false;
+                result.textContent = '';
+                var badge = document.createElement('span');
+                badge.className = 'badge badge--' + (data.ok ? 'active' : 'failed');
+                badge.textContent = data.ok ? 'Working' : 'Failed';
+                var note = document.createElement('small');
+                note.textContent = data.message || data.error || '';
+                result.appendChild(badge);
+                result.appendChild(note);
+                var list = document.getElementById('models-' + id);
+                if (list && data.models && data.models.length) {
+                    list.innerHTML = '';
+                    data.models.forEach(function (m) { var o = document.createElement('option'); o.value = m; list.appendChild(o); });
+                    note.textContent += ' ' + data.models.length + ' models available: open "Change model or key" to choose another.';
+                }
+            });
+        });
+    });
+
+    // Shop profile draft
+    var draftBtn = document.querySelector('[data-ai-draft]');
+    if (draftBtn) {
+        var profile = document.querySelector('[data-ai-profile]');
+        var draftStatus = document.querySelector('[data-ai-draft-status]');
+        draftBtn.addEventListener('click', function () {
+            if (profile.value.trim() && !window.confirm('Replace the text in the box with a new draft? It is not saved until you press Save.')) return;
+            var body = new FormData();
+            body.set('action', 'profile_draft');
+            draftBtn.disabled = true;
+            say(draftStatus, 'Writing a draft...');
+            post(location.pathname + location.search, body).then(function (data) {
+                draftBtn.disabled = false;
+                if (!data.ok) { say(draftStatus, data.error, 'bad'); return; }
+                profile.value = data.text;
+                say(draftStatus, 'Draft written. Correct anything that is not right, then press Save.', 'ok');
+            });
+        });
+    }
+
+    // Many cakes
+    var table = document.querySelector('[data-bulk-table]');
+    var runBtn = document.querySelector('[data-bulk-run]');
+    if (table && runBtn) {
+        var rows = Array.prototype.slice.call(table.querySelectorAll('[data-bulk-row]'));
+        var bulkStatus = document.querySelector('[data-bulk-status]');
+        document.querySelectorAll('[data-bulk-select]').forEach(function (b) {
+            b.addEventListener('click', function () {
+                var mode = b.getAttribute('data-bulk-select');
+                rows.forEach(function (r) {
+                    r.querySelector('input').checked = mode === 'all' || (mode === 'weak' && parseInt(r.getAttribute('data-score'), 10) < 9);
+                });
+            });
+        });
+        var running = false;
+        runBtn.addEventListener('click', function () {
+            if (running) return;
+            var todo = rows.filter(function (r) { return r.querySelector('input').checked; });
+            if (!todo.length) { say(bulkStatus, 'Tick the cakes first.', 'bad'); return; }
+            if (!window.confirm('Write and save new SEO text for ' + todo.length + ' cakes? Each old text is kept under Earlier versions on the cake.')) return;
+            running = true;
+            runBtn.disabled = true;
+            var done = 0, failed = 0;
+            var next = function () {
+                var row = todo.shift();
+                if (!row) {
+                    running = false;
+                    runBtn.disabled = false;
+                    say(bulkStatus, 'Finished: ' + done + ' written' + (failed ? ', ' + failed + ' failed (try those again later)' : '') + '.', failed ? 'bad' : 'ok');
+                    return;
+                }
+                var cell = row.querySelector('[data-bulk-result]');
+                cell.textContent = 'Writing...';
+                say(bulkStatus, 'Writing ' + (done + failed + 1) + ' of ' + (done + failed + 1 + todo.length) + '...');
+                var body = new FormData();
+                body.set('action', 'rewrite');
+                body.set('id', row.getAttribute('data-bulk-row'));
+                post(runBtn.getAttribute('data-url'), body).then(function (data) {
+                    if (data.ok) {
+                        done++;
+                        var score = row.querySelector('[data-bulk-score]');
+                        score.textContent = data.score;
+                        score.className = 'seo-score seo-score--' + data.level;
+                        cell.textContent = 'Done: ' + (data.title || '');
+                        row.querySelector('input').checked = false;
+                    } else {
+                        failed++;
+                        cell.textContent = data.error || 'Failed';
+                    }
+                    // A short pause keeps free services within their per-minute limits.
+                    setTimeout(next, 1500);
+                });
+            };
+            next();
+        });
+    }
 })();

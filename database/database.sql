@@ -602,6 +602,22 @@ LOCK TABLES `product_options` WRITE;
 /*!40000 ALTER TABLE `product_options` DISABLE KEYS */;
 /*!40000 ALTER TABLE `product_options` ENABLE KEYS */;
 UNLOCK TABLES;
+DROP TABLE IF EXISTS `product_seo_history`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `product_seo_history` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `product_id` int(10) unsigned NOT NULL,
+  `fields` mediumtext NOT NULL COMMENT 'JSON: the SEO fields as they were before the change',
+  `replaced_by` varchar(20) NOT NULL DEFAULT 'edit' COMMENT 'edit, ai or restore: what replaced this version',
+  `admin_name` varchar(120) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_seo_history_product` (`product_id`),
+  CONSTRAINT `fk_seo_history_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
 DROP TABLE IF EXISTS `product_sizes`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;

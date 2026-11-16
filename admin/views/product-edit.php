@@ -1,4 +1,4 @@
-<?php /** @var array $product @var array $categories @var array $sizeRows @var array $optionRows @var array $extraPhotos @var array $errors @var int $id */
+<?php /** @var array $product @var array $categories @var array $sizeRows @var array $optionRows @var array $extraPhotos @var array $errors @var int $id @var array $versions @var array $admin */
 $seoChecks = product_seo_checks($product + ['slug' => $product['slug'] ?? ''], count($extraPhotos), array_map(static fn ($r) => ['label' => $r['label'] ?? '', 'servings' => $r['servings'] ?? '', 'price' => (float) ($r['price'] ?? 0)], array_values(array_filter($sizeRows, static fn ($r) => ($r['label'] ?? '') !== '' && (float) ($r['price'] ?? 0) > 0))));
 [$seoPassed, $seoTotal, $seoLevel] = seo_score($seoChecks);
 $sizesForSeo = array_values(array_filter($sizeRows, static fn ($r) => ($r['label'] ?? '') !== '' && (float) ($r['price'] ?? 0) > 0));
@@ -102,6 +102,20 @@ $sizesForSeo = array_values(array_filter($sizeRows, static fn ($r) => ($r['label
             <section class="card" id="seo" data-seo-box data-store="<?= e(setting('store_short_name')) ?>" data-base-url="<?= e(url('cakes/')) ?>">
                 <div class="card__head"><h2>Google and search engines</h2><span class="seo-score seo-score--<?= e($seoLevel) ?>" data-seo-score><?= $seoPassed ?>/<?= $seoTotal ?></span></div>
                 <div class="card__body form-stack">
+                    <div class="ai-writer" data-ai-writer data-url="<?= e(admin_url('products/ai')) ?>">
+                        <div class="ai-writer__head"><?= icon('spark', '', 18) ?><div><strong>AI SEO writer</strong><small>Writes the keyword, title, search description, short and full description, search words and photo text from the name, sizes and what you type here. Nothing is saved until you press Save product.</small></div></div>
+                        <?php if (ai_ready()): ?>
+                            <textarea class="input" rows="2" maxlength="1500" data-ai-notes placeholder="Optional: tell the AI about this cake, e.g. chocolate sponge, cherry filling, fresh cream, chocolate shavings. Popular for birthdays."></textarea>
+                            <div class="ai-writer__actions">
+                                <button type="button" class="btn btn--primary btn--sm" data-ai-write><?= icon('spark', '', 16) ?> Write with AI</button>
+                                <button type="button" class="btn btn--secondary btn--sm" data-ai-undo hidden>Undo</button>
+                                <span class="ai-writer__status" data-ai-status role="status"></span>
+                            </div>
+                            <input type="hidden" name="ai_written" value="0" data-ai-written>
+                        <?php else: ?>
+                            <p class="hint" style="margin:0">Add a free AI service first<?= $admin['role'] === 'owner' ? ' in <a href="' . e(admin_url('ai-seo')) . '">AI SEO agent</a>' : ' (ask the owner: Admin > AI SEO agent)' ?>.</p>
+                        <?php endif; ?>
+                    </div>
                     <label class="field"><span>Focus keyword <small>what people type into Google, e.g. "red velvet cake canberra"</small></span>
                         <input class="input" name="focus_keyword" maxlength="80" value="<?= e((string) ($product['focus_keyword'] ?? '')) ?>" placeholder="e.g. <?= e(mb_strtolower($product['name'] !== '' ? $product['name'] : 'chocolate cake')) ?> canberra" data-seo-keyword></label>
                     <label class="field"><span>Other search words <small>comma separated, e.g. chocolate cherry cake, black forest gateau. Empty = filled in automatically</small></span>
@@ -191,6 +205,32 @@ $sizesForSeo = array_values(array_filter($sizeRows, static fn ($r) => ($r['label
         <a class="btn btn--ghost" href="<?= e(admin_url('products')) ?>">Cancel</a>
     </div></div>
 </form>
+<?php if ($versions): ?>
+    <section class="card" id="seo-versions" style="margin-top:16px">
+        <div class="card__head"><h2>Earlier versions of the SEO text</h2><span class="hint">Last <?= count($versions) ?>, newest first</span></div>
+        <div class="card__body seo-versions">
+            <?php foreach ($versions as $v): $f = $v['fields']; ?>
+                <details class="seo-version">
+                    <summary>
+                        <span><strong><?= e(date('j M Y, g:ia', strtotime($v['created_at']))) ?></strong>
+                            <small>Before <?= e(['ai' => 'the AI writer', 'restore' => 'restoring a version', 'edit' => 'an edit'][$v['replaced_by']] ?? 'an edit') ?><?= $v['admin_name'] ? ' by ' . e($v['admin_name']) : '' ?></small></span>
+                        <span class="seo-version__title"><?= e(($f['meta_title'] ?? '') ?: ($f['short_description'] ?? '') ?: 'Automatic title') ?></span>
+                    </summary>
+                    <dl>
+                        <?php foreach (['focus_keyword' => 'Focus keyword', 'meta_title' => 'Page title', 'meta_description' => 'Search description', 'short_description' => 'Short description', 'search_words' => 'Search words', 'image_alt' => 'Photo text'] as $key => $label): ?>
+                            <dt><?= e($label) ?></dt><dd><?= e(($f[$key] ?? '') ?: '(empty)') ?></dd>
+                        <?php endforeach; ?>
+                        <dt>Full description</dt><dd><?= e(str_limit(content_text((string) ($f['description'] ?? '')), 400) ?: '(empty)') ?></dd>
+                    </dl>
+                    <form method="post" data-confirm="Put this version back? The text on the cake now is kept as another earlier version.">
+                        <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $id ?>"><input type="hidden" name="action" value="restore_seo"><input type="hidden" name="version" value="<?= (int) $v['id'] ?>">
+                        <button class="btn btn--secondary btn--sm" type="submit">Restore this version</button>
+                    </form>
+                </details>
+            <?php endforeach; ?>
+        </div>
+    </section>
+<?php endif; ?>
 <?php if ($id): ?>
     <form method="post" style="margin-top:16px" data-confirm="Delete this product? Past orders keep their details.">
         <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $id ?>"><input type="hidden" name="action" value="delete">

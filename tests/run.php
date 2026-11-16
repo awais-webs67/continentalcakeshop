@@ -155,6 +155,36 @@ try {
     }
 }
 
+// --- AI writer and search engines ---------------------------------------------------------------
+same('AI answer inside a code fence is read', 'x', ai_json("Sure!\n```json\n{\"a\": \"x\"}\n```")['a'] ?? null);
+check('AI answer without JSON is refused', ai_json('Sorry, I cannot help.') === null);
+same('links to unknown pages become text', '<p>See <a href="https://shop.test/cakes/a">A</a> and B.</p>',
+    ai_keep_links('<p>See <a href="https://shop.test/cakes/a">A</a> and <a href="https://evil.test">B</a>.</p>', ['https://shop.test/cakes/a']));
+$fields = ai_clean_fields([
+    'focus_keyword' => ' "Red Velvet Cake Canberra" ', 'meta_title' => 'Red Velvet Cake Canberra | Fresh and Halal | The Continental Cake Shop',
+    'meta_description' => str_repeat('Soft red velvet layers. ', 10), 'short_description' => 'A soft cake.',
+    'description' => '<p>Call {store_phone} or {secret_token}.</p><script>x</script>', 'search_words' => ['Red Velvet', 'red velvet', 'velvet cake canberra'],
+    'image_alt' => 'Red velvet cake',
+], []);
+same('AI keyword tidied', 'red velvet cake canberra', $fields['focus_keyword']);
+check('AI title fits 60 characters', mb_strlen($fields['meta_title']) <= 60 && str_starts_with($fields['meta_title'], 'Red Velvet Cake Canberra'), $fields['meta_title']);
+check('AI search description fits 160 characters', mb_strlen($fields['meta_description']) <= 160);
+check('only the website placeholders are kept', str_contains($fields['description'], '{store_phone}') && !str_contains($fields['description'], 'secret_token') && !str_contains($fields['description'], 'script'));
+same('AI search words tidied', 'red velvet, velvet cake canberra', $fields['search_words']);
+[$changed, $snapshot] = sitemap_changes([['https://s.test/', '2026-01-02'], ['https://s.test/cakes/new', '2026-01-02'], ['https://s.test/cakes/same', '2026-01-01']],
+    ['https://s.test/' => '2026-01-01', 'https://s.test/cakes/same' => '2026-01-01', 'https://s.test/cakes/gone' => '2026-01-01']);
+same('sitemap changes: changed, new and removed addresses', ['https://s.test/', 'https://s.test/cakes/new', 'https://s.test/cakes/gone'], $changed);
+same('sitemap snapshot has the current addresses', 3, count($snapshot));
+$key = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+openssl_pkey_export($key, $pem);
+[$account] = gsc_parse_account(json_encode(['type' => 'service_account', 'client_email' => 'site@p.iam.gserviceaccount.com', 'private_key' => $pem, 'private_key_id' => 'x']));
+check('service account key accepted', $account !== null && !isset($account['private_key_id']));
+check('other JSON refused as a service account', gsc_parse_account('{"type":"authorized_user"}')[0] === null);
+$jwt = explode('.', gsc_jwt($account, 'https://oauth2.googleapis.com/token', 1700000000));
+$claims = json_decode(base64_decode(strtr($jwt[1], '-_', '+/')), true);
+check('Google token request is signed with the key', openssl_verify($jwt[0] . '.' . $jwt[1], base64_decode(strtr($jwt[2], '-_', '+/') . str_repeat('=', (4 - strlen($jwt[2]) % 4) % 4)), openssl_pkey_get_details($key)['key'], OPENSSL_ALGO_SHA256) === 1);
+same('Google token request asks for Search Console only', 'https://www.googleapis.com/auth/webmasters', $claims['scope'] ?? null);
+
 echo "\n\n{$passed} passed";
 if ($failed) {
     echo ', ' . count($failed) . " failed:\n - " . implode("\n - ", $failed) . "\n";

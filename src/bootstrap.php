@@ -79,6 +79,8 @@ require __DIR__ . '/branches.php';
 require __DIR__ . '/inbox.php';
 require __DIR__ . '/menu.php';
 require __DIR__ . '/seo.php';
+require __DIR__ . '/indexing.php';
+require __DIR__ . '/ai.php';
 require __DIR__ . '/icons.php';
 require __DIR__ . '/migrations.php';
 require __DIR__ . '/maintenance.php';

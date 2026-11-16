@@ -13,12 +13,12 @@ const ADMIN_SECTIONS = [
     'customers' => ['Customers', ['customers', 'customers/view']],
     'reports'   => ['Sales reports and exports', ['reports', 'reports/export']],
     'coupons'   => ['Coupons', ['coupons']],
-    'products'  => ['Products, categories and extras', ['products', 'products/edit', 'products/import', 'categories', 'categories/edit', 'addons']],
+    'products'  => ['Products, categories and extras', ['products', 'products/edit', 'products/ai', 'products/import', 'categories', 'categories/edit', 'addons']],
     'gallery'   => ['Gallery and reviews', ['gallery', 'reviews']],
     'content'   => ['Homepage, menu, popup, pages, FAQs and SEO', ['homepage', 'menu', 'popup', 'pages', 'pages/edit', 'faqs', 'upload-image', 'seo']],
 ];
 // Settings hold the bank and PayID details, the email password and the Stripe keys, so only owners open them.
-const OWNER_ONLY_ROUTES = ['admins', 'system', 'settings', 'branches'];
+const OWNER_ONLY_ROUTES = ['admins', 'system', 'settings', 'branches', 'ai-seo'];
 
 const CUSTOM_STATUSES = ['new' => 'New', 'quoted' => 'Quoted', 'confirmed' => 'Confirmed', 'closed' => 'Closed'];
 

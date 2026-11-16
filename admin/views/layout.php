@@ -38,6 +38,7 @@ foreach ($nav as $group => $links) {
     }
 }
 if ($admin['role'] === 'owner') {
+    $nav['Website'][] = ['ai-seo', 'AI SEO agent', 'spark', null];
     $nav['Website'][] = ['settings', 'Settings', 'pen', null];
     $nav['Website'][] = ['admins', 'Staff accounts', 'user', null];
     $nav['Website'][] = ['system', 'System check', 'check', null];

@@ -241,3 +241,28 @@ function is_spam_submission(string $form, int $limit = 5, int $minutes = 10): bo
     $_SESSION['form_sends'][$form] = array_values($recent);
     return false;
 }
+
+/**
+ * A web request to another service (AI writers, Google, Bing). Returns [status, body, error];
+ * status 0 means the service could not be reached.
+ */
+function http_request(string $method, string $url, array $headers = [], ?string $body = null, int $timeout = 30): array
+{
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_CUSTOMREQUEST  => $method,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CONNECTTIMEOUT => 8,
+        CURLOPT_TIMEOUT        => $timeout,
+        CURLOPT_HTTPHEADER     => $headers,
+        CURLOPT_FOLLOWLOCATION => false,
+    ]);
+    if ($body !== null) {
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+    }
+    $response = curl_exec($ch);
+    $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch);
+    curl_close($ch);
+    return [$response === false ? 0 : $status, $response === false ? '' : (string) $response, $error];
+}

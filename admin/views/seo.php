@@ -1,4 +1,4 @@
-<?php /** @var array $checks @var array $oldPages @var array $missing @var array $redirects @var array $targets */
+<?php /** @var array $checks @var array $oldPages @var array $missing @var array $redirects @var array $targets @var array $admin */
 $passed = count(array_filter($checks, static fn ($c) => $c[1]));
 ?>
 <div class="page-head">
@@ -66,6 +66,15 @@ $passed = count(array_filter($checks, static fn ($c) => $c[1]));
     </div>
 
     <div class="stack">
+        <section class="card">
+            <div class="card__head"><h2>Google, Bing and AI search</h2></div>
+            <div class="card__body form-stack">
+                <?php $lastSent = (json_decode(setting('search_engine_log', '[]'), true) ?: [])[0] ?? null; ?>
+                <p class="hint" style="margin:0">New, changed and deleted cakes and pages are sent by themselves every 15 minutes: to Bing<?= gsc_account() ? ' and Google Search Console' : '' ?>.<?= $admin['role'] === 'owner' ? ' Set up in <a href="' . e(admin_url('ai-seo', ['tab' => 'search'])) . '">AI SEO agent</a>.' : '' ?></p>
+                <?php if ($lastSent): ?><p style="margin:0;font-size:13.5px"><?= status_badge($lastSent['ok'] ? 'active' : 'failed', $lastSent['ok'] ? 'Sent' : 'Failed') ?> <?= e(time_ago($lastSent['at'])) ?>: <?= e($lastSent['text']) ?></p><?php endif; ?>
+                <form method="post"><?= csrf_field() ?><input type="hidden" name="action" value="send_all"><button class="btn btn--secondary btn--sm" type="submit"><?= icon('upload', '', 16) ?> Send everything now</button></form>
+            </div>
+        </section>
         <section class="card">
             <div class="card__head"><h2>Old website addresses</h2><span class="hint"><?= count(array_filter($oldPages, static fn ($p) => $p['ok'])) ?>/<?= count($oldPages) ?> OK</span></div>
             <div class="card__body">

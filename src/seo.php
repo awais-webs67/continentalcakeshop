@@ -620,3 +620,41 @@ function product_seo_autofill(array $data, array $sizes, string $categorySlug, b
     }
     return $data;
 }
+
+// ---------------------------------------------------------------------------
+// Version history of a cake's SEO text (product editor > "Earlier versions"). Whenever the
+// text changes (typed, written by the AI or restored), the text it replaces is kept, so any
+// version can be brought back. The last 15 per cake are kept.
+// ---------------------------------------------------------------------------
+
+/** Keeps $old's SEO fields when $new changes any of them. $by: 'edit', 'ai' or 'restore'. */
+function seo_history_save(int $productId, array $old, array $new, string $by, string $who = ''): void
+{
+    $before = [];
+    $changed = false;
+    foreach (AI_PRODUCT_FIELDS as $field) {
+        $before[$field] = (string) ($old[$field] ?? '');
+        $changed = $changed || (array_key_exists($field, $new) && (string) ($new[$field] ?? '') !== $before[$field]);
+    }
+    if (!$changed || implode('', $before) === '') {
+        return;
+    }
+    db_run('INSERT INTO product_seo_history (product_id, fields, replaced_by, admin_name) VALUES (?, ?, ?, ?)',
+        [$productId, json_encode($before, JSON_UNESCAPED_UNICODE), $by, str_limit($who, 120) ?: null]);
+    $keep = array_column(db_all('SELECT id FROM product_seo_history WHERE product_id = ? ORDER BY id DESC LIMIT 15', [$productId]), 'id');
+    db_run('DELETE FROM product_seo_history WHERE product_id = ? AND id NOT IN (' . implode(',', array_map('intval', $keep)) . ')', [$productId]);
+}
+
+/** Earlier versions of a cake's SEO text, newest first, each with its fields decoded. */
+function seo_history(int $productId): array
+{
+    try {
+        $rows = db_all('SELECT * FROM product_seo_history WHERE product_id = ? ORDER BY id DESC', [$productId]);
+    } catch (PDOException) {
+        return [];
+    }
+    foreach ($rows as &$row) {
+        $row['fields'] = json_decode((string) $row['fields'], true) ?: [];
+    }
+    return $rows;
+}

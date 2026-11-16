@@ -43,6 +43,19 @@ if (is_post()) {
         redirect(admin_url('products/edit', ['id' => $newId]));
     }
 
+    // Bring back an earlier version of the SEO text (the one it replaces is kept too).
+    if (input('action') === 'restore_seo' && $product) {
+        $version = db_one('SELECT * FROM product_seo_history WHERE id = ? AND product_id = ?', [post_int('version'), $product['id']]);
+        $fields = $version ? array_intersect_key(json_decode((string) $version['fields'], true) ?: [], array_flip(AI_PRODUCT_FIELDS)) : [];
+        if ($fields) {
+            $fields = array_map(static fn ($v) => (string) $v !== '' ? (string) $v : null, $fields);
+            seo_history_save((int) $product['id'], $product, $fields, 'restore', (string) current_admin()['name']);
+            db_run('UPDATE products SET ' . implode(', ', array_map(static fn ($c) => "{$c} = ?", array_keys($fields))) . ' WHERE id = ?', [...array_values($fields), $product['id']]);
+            flash('success', 'The earlier version is back. The text it replaced is kept under "Earlier versions".');
+        }
+        redirect(admin_url('products/edit', ['id' => $product['id']]) . '#seo-versions');
+    }
+
     $data = [
         'name'              => str_limit(input('name'), 160),
         'slug'              => slugify(input('slug') ?: input('name')),
@@ -126,6 +139,7 @@ if (is_post()) {
         $pdo->beginTransaction();
         $columns = array_keys($data);
         if ($product) {
+            seo_history_save((int) $product['id'], $product, $data, input('ai_written') === '1' ? 'ai' : 'edit', (string) current_admin()['name']);
             db_run('UPDATE products SET ' . implode(', ', array_map(static fn ($c) => "{$c} = ?", $columns)) . ' WHERE id = ?', [...array_values($data), $product['id']]);
             $productId = (int) $product['id'];
         } else {
@@ -184,4 +198,5 @@ if (is_post()) {
 }
 
 $product ??= ['name' => '', 'slug' => '', 'category_id' => 0, 'short_description' => '', 'description' => '', 'badge' => '', 'is_featured' => 0, 'is_active' => 1, 'allow_message' => 1, 'is_enquiry' => 0, 'lead_time_hours' => null, 'sold_out_until' => null, 'sort_order' => 0, 'meta_title' => '', 'meta_description' => '', 'image' => null, 'image_alt' => '', 'focus_keyword' => '', 'search_words' => ''];
-admin_view('product-edit', compact('product', 'categories', 'sizeRows', 'optionRows', 'extraPhotos', 'errors', 'id') + ['title' => $id ? 'Edit ' . $product['name'] : 'Add product']);
+$versions = $id ? seo_history($id) : [];
+admin_view('product-edit', compact('product', 'categories', 'sizeRows', 'optionRows', 'extraPhotos', 'errors', 'id', 'versions') + ['title' => $id ? 'Edit ' . $product['name'] : 'Add product']);

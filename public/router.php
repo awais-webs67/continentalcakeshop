@@ -51,6 +51,8 @@ $routes = [
     '#^/stripe-webhook$#'           => ['stripe-webhook.php', []],
     '#^/sitemap\.xml$#'             => ['sitemap.php', []],
     '#^/robots\.txt$#'              => ['robots.php', []],
+    '#^/llms\.txt$#'                => ['llms.php', []],
+    '#^/([a-f0-9]{32})\.txt$#'      => ['indexnow.php', ['key']],
     '#^/([a-z0-9-]+)/?$#'           => ['page.php', ['slug']],
 ];
 
