@@ -25,7 +25,7 @@ $providers = ai_providers();
                         <span class="ai-service__order"><?= $i + 1 ?></span>
                         <div class="ai-service__name">
                             <strong><?= e($p['name']) ?></strong>
-                            <small><?= e($p['model'] ?: 'no model chosen') ?></small>
+                            <small data-ai-model-name><?= e($p['model'] ?: 'no model chosen') ?></small>
                         </div>
                         <div class="ai-service__state" data-ai-result>
                             <?php if (empty($p['enabled'])): ?><?= status_badge('inactive', 'Off') ?>

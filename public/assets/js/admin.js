@@ -1415,6 +1415,10 @@ document.addEventListener('change', function (e) {
                 note.textContent = data.message || data.error || '';
                 result.appendChild(badge);
                 result.appendChild(note);
+                if (data.model) {
+                    row.querySelector('[data-ai-model-name]').textContent = data.model;
+                    row.querySelector('input[name="model"]').value = data.model;
+                }
                 var list = document.getElementById('models-' + id);
                 if (list && data.models && data.models.length) {
                     list.innerHTML = '';

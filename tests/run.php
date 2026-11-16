@@ -158,6 +158,10 @@ try {
 // --- AI writer and search engines ---------------------------------------------------------------
 same('AI answer inside a code fence is read', 'x', ai_json("Sure!\n```json\n{\"a\": \"x\"}\n```")['a'] ?? null);
 check('AI answer without JSON is refused', ai_json('Sorry, I cannot help.') === null);
+same('a retired model is replaced by the best chat model offered', 'openai/gpt-oss-120b',
+    ai_pick_model(['whisper-large-v3', 'llama-3.1-8b-instant', 'meta-llama/llama-prompt-guard-2-86m', 'openai/gpt-oss-120b', 'openai/gpt-oss-20b']));
+same('Gemini moves to its newest Flash model', 'gemini-flash-latest', ai_pick_model(['gemini-3.8-flash-tts', 'gemini-flash-latest', 'gemini-3.8-flash']));
+check('no model is picked from a list of speech models only', ai_pick_model(['whisper-large-v3', 'playai-tts']) === null);
 same('links to unknown pages become text', '<p>See <a href="https://shop.test/cakes/a">A</a> and B.</p>',
     ai_keep_links('<p>See <a href="https://shop.test/cakes/a">A</a> and <a href="https://evil.test">B</a>.</p>', ['https://shop.test/cakes/a']));
 $fields = ai_clean_fields([

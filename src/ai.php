@@ -16,10 +16,10 @@ declare(strict_types=1);
 
 /** Services with their address, a good free model and where to get a key. */
 const AI_SERVICES = [
-    'groq'        => ['name' => 'Groq', 'url' => 'https://api.groq.com/openai/v1', 'model' => 'llama-3.3-70b-versatile', 'keys' => 'https://console.groq.com/keys'],
-    'gemini'      => ['name' => 'Google Gemini', 'url' => 'https://generativelanguage.googleapis.com/v1beta/openai', 'model' => 'gemini-2.5-flash', 'keys' => 'https://aistudio.google.com/apikey'],
-    'openrouter'  => ['name' => 'OpenRouter', 'url' => 'https://openrouter.ai/api/v1', 'model' => 'meta-llama/llama-3.3-70b-instruct:free', 'keys' => 'https://openrouter.ai/settings/keys'],
-    'cerebras'    => ['name' => 'Cerebras', 'url' => 'https://api.cerebras.ai/v1', 'model' => 'llama-3.3-70b', 'keys' => 'https://cloud.cerebras.ai'],
+    'groq'        => ['name' => 'Groq', 'url' => 'https://api.groq.com/openai/v1', 'model' => 'openai/gpt-oss-120b', 'keys' => 'https://console.groq.com/keys'],
+    'gemini'      => ['name' => 'Google Gemini', 'url' => 'https://generativelanguage.googleapis.com/v1beta/openai', 'model' => 'gemini-flash-latest', 'keys' => 'https://aistudio.google.com/apikey'],
+    'openrouter'  => ['name' => 'OpenRouter', 'url' => 'https://openrouter.ai/api/v1', 'model' => 'openrouter/free', 'keys' => 'https://openrouter.ai/settings/keys'],
+    'cerebras'    => ['name' => 'Cerebras', 'url' => 'https://api.cerebras.ai/v1', 'model' => 'gpt-oss-120b', 'keys' => 'https://cloud.cerebras.ai'],
     'mistral'     => ['name' => 'Mistral', 'url' => 'https://api.mistral.ai/v1', 'model' => 'mistral-small-latest', 'keys' => 'https://console.mistral.ai/api-keys'],
     'agentrouter' => ['name' => 'AgentRouter', 'url' => 'https://agentrouter.org/v1', 'model' => '', 'keys' => 'https://agentrouter.org'],
     'custom'      => ['name' => 'Other (OpenAI compatible)', 'url' => '', 'model' => '', 'keys' => ''],
@@ -139,7 +139,16 @@ function ai_chat(array $messages, int $maxTokens = 2500, float $temperature = 0.
     foreach ($usable as $p) {
         $started = microtime(true);
         try {
-            $text = ai_call($p, $messages, $maxTokens, $temperature);
+            try {
+                $text = ai_call($p, $messages, $maxTokens, $temperature);
+            } catch (RuntimeException $e) {
+                // The service retired the model: move to the best one it still has and ask again.
+                if ($e->getCode() !== 404 || !($newer = ai_switch_model($p))) {
+                    throw $e;
+                }
+                $p = $newer;
+                $text = ai_call($p, $messages, $maxTokens, $temperature);
+            }
             if ($accept && !$accept($text)) {
                 throw new RuntimeException('The answer was not in the right format.');
             }
@@ -166,20 +175,61 @@ function ai_models(array $p): array
     return $ids;
 }
 
-/** The Test button: lists the models and asks for a one-word answer. */
+/**
+ * The best chat model in a service's list: services retire models often, so a fixed name stops
+ * working one day. Speech, image, safety and embedding models are skipped.
+ */
+function ai_pick_model(array $models): ?string
+{
+    $chat = array_values(array_filter($models, static fn ($m) => !preg_match('#whisper|tts|speech|audio|transcri|guard|embed|rerank|moderation|image|vision|live|ocr|code|batch#i', $m)));
+    foreach (['gpt-oss-120b', 'flash-latest', 'llama-3.3-70b', 'mistral-small-latest', 'qwen', 'gpt-oss-20b', 'llama-4', 'flash', '70b'] as $want) {
+        foreach ($chat as $m) {
+            if (stripos($m, $want) !== false) {
+                return $m;
+            }
+        }
+    }
+    return $chat[0] ?? null;
+}
+
+/** When a service no longer offers the chosen model: saves the best one it has and returns the service with it (null if nothing to change). */
+function ai_switch_model(array $p, ?array $models = null): ?array
+{
+    $models ??= ai_models($p);
+    $pick = $models && !in_array($p['model'], $models, true) ? ai_pick_model($models) : null;
+    if ($pick === null) {
+        return null;
+    }
+    $list = ai_providers();
+    foreach ($list as &$row) {
+        if (($row['id'] ?? '') === $p['id']) {
+            $row['model'] = $pick;
+        }
+    }
+    unset($row);
+    ai_providers_save($list);
+    return ['model' => $pick] + $p;
+}
+
+/** The Test button: lists the models (moving off a retired one) and asks for a one-word answer. */
 function ai_test(array $p): array
 {
     $models = ai_models($p);
+    $changed = '';
+    if ($newer = ai_switch_model($p, $models)) {
+        $changed = ' The model "' . $p['model'] . '" is no longer offered, so it now uses "' . $newer['model'] . '".';
+        $p = $newer;
+    }
     $started = microtime(true);
     try {
-        $answer = ai_call($p, [['role' => 'user', 'content' => 'Reply with the single word OK.']], 20, 0, 30);
+        // Room for "thinking" models, which use part of the answer length before they reply.
+        $answer = ai_call($p, [['role' => 'user', 'content' => 'Reply with the single word OK.']], 800, 0, 40);
         $ms = (int) ((microtime(true) - $started) * 1000);
         ai_note_result($p['id'], true, 'Test passed', $ms);
-        return ['ok' => true, 'message' => 'Working. It answered "' . str_limit($answer, 30) . '" in ' . number_format($ms / 1000, 1) . ' seconds.', 'models' => $models];
+        return ['ok' => true, 'message' => 'Working. It answered "' . str_limit($answer, 30) . '" in ' . number_format($ms / 1000, 1) . ' seconds.' . $changed, 'models' => $models, 'model' => $p['model']];
     } catch (Throwable $e) {
         ai_note_result($p['id'], false, $e->getMessage(), (int) ((microtime(true) - $started) * 1000), $e->getCode() === 429);
-        $tip = $models && !in_array($p['model'], $models, true) ? ' The model "' . $p['model'] . '" is not in this service\'s list: choose one from the list.' : '';
-        return ['ok' => false, 'message' => $e->getMessage() . $tip, 'models' => $models];
+        return ['ok' => false, 'message' => $e->getMessage() . $changed, 'models' => $models, 'model' => $p['model']];
     }
 }
 
@@ -361,7 +411,7 @@ function ai_write_product(array $p, array $sizes, array $options, string $notes 
         . "\n\nCAKE DETAILS:\n" . $details
         . "\n\nNOTES FROM THE SHOP ABOUT THIS CAKE:\n" . (trim($notes) !== '' ? trim($notes) : '(none)');
 
-    $answer = ai_chat([['role' => 'system', 'content' => ai_seo_rules()], ['role' => 'user', 'content' => $user]], 2500, 0.6,
+    $answer = ai_chat([['role' => 'system', 'content' => ai_seo_rules()], ['role' => 'user', 'content' => $user]], 4000, 0.6,
         static fn ($text) => ($d = ai_json($text)) !== null && trim((string) ($d['description'] ?? '')) !== '' && trim((string) ($d['meta_title'] ?? '')) !== '');
     return ai_clean_fields(ai_json($answer['text']), $links) + ['service' => $answer['service'] . ' (' . $answer['model'] . ')', 'failed' => $answer['failed']];
 }
@@ -396,6 +446,6 @@ function ai_profile_draft(): string
     $answer = ai_chat([
         ['role' => 'system', 'content' => 'You help a cake shop describe itself for its SEO writer. Australian English. Only use the facts given. Plain text, no markdown headings.'],
         ['role' => 'user', 'content' => "From these website facts, write a shop profile of 120 to 220 words for our SEO writer: who we are, where we are and which suburbs we serve, what we are known for, our kinds of cakes, how ordering, pickup and delivery work, and the tone to write in. Then a line \"Always mention:\" with 3 to 5 short points.\n\n" . ai_shop_facts()],
-    ], 900, 0.5);
+    ], 2000, 0.5);
     return trim($answer['text']);
 }
