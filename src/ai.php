@@ -64,7 +64,7 @@ function ai_ready(): bool
 }
 
 /** Remembers how a service did last time (shown on the AI page) and rests it for a minute after "too many requests". */
-function ai_note_result(string $id, bool $ok, string $message, int $ms, bool $limited = false): void
+function ai_note_result(string $id, bool $ok, string $message, int $ms, bool $limited = false, int $tokens = 0): void
 {
     $list = ai_providers();
     foreach ($list as &$p) {
@@ -74,6 +74,9 @@ function ai_note_result(string $id, bool $ok, string $message, int $ms, bool $li
             $p['last_message'] = str_limit($message, 300);
             $p['last_ms'] = $ms;
             $p['rest_until'] = $limited ? time() + 60 : 0;
+            if ($tokens > 0) {
+                $p['last_tokens'] = $tokens;
+            }
         }
     }
     unset($p);
@@ -99,20 +102,30 @@ function ai_error_text(int $status, string $body, string $curlError): string
     return $hint . 'HTTP ' . $status . ($message ? ': ' . str_limit(trim((string) $message), 220) : '');
 }
 
-/** One request to one service. Returns the answer text; throws with a readable error. */
-function ai_call(array $p, array $messages, int $maxTokens = 2500, float $temperature = 0.6, int $timeout = 50): string
+/**
+ * One request to one service. Returns the answer text and sets $tokens to what the service
+ * counted (question plus answer); throws with a readable error.
+ */
+function ai_call(array $p, array $messages, int $maxTokens = 2500, float $temperature = 0.6, int $timeout = 50, ?int &$tokens = null): string
 {
     $key = secret_decrypt((string) ($p['key'] ?? ''));
     if ($key === '' || trim((string) ($p['model'] ?? '')) === '') {
         throw new RuntimeException('Add the API key and the model first.');
     }
-    $body = json_encode(['model' => $p['model'], 'messages' => $messages, 'temperature' => $temperature, 'max_tokens' => $maxTokens], JSON_UNESCAPED_UNICODE);
-    [$status, $response, $error] = http_request('POST', rtrim((string) $p['url'], '/') . '/chat/completions',
-        ['Content-Type: application/json', 'Authorization: Bearer ' . $key], $body, $timeout);
+    $request = ['model' => $p['model'], 'messages' => $messages, 'temperature' => $temperature, 'max_tokens' => $maxTokens];
+    // Thinking models: think briefly, which saves tokens. Asked again without it if the service does not know the setting.
+    $thinks = ai_model_thinks((string) $p['model']);
+    $send = static fn (array $request) => http_request('POST', rtrim((string) $p['url'], '/') . '/chat/completions',
+        ['Content-Type: application/json', 'Authorization: Bearer ' . $key], json_encode($request, JSON_UNESCAPED_UNICODE), $timeout);
+    [$status, $response, $error] = $send($thinks ? $request + ['reasoning_effort' => 'low'] : $request);
+    if ($thinks && in_array($status, [400, 422], true)) {
+        [$status, $response, $error] = $send($request);
+    }
     if ($status !== 200) {
         throw new RuntimeException(ai_error_text($status, $response, $error), $status);
     }
     $data = json_decode($response, true);
+    $tokens = (int) ($data['usage']['total_tokens'] ?? 0);
     $text = trim((string) ($data['choices'][0]['message']['content'] ?? ''));
     // Some free "thinking" models put their notes first.
     $text = trim((string) preg_replace('#<think>.*?</think>#s', '', $text));
@@ -139,21 +152,22 @@ function ai_chat(array $messages, int $maxTokens = 2500, float $temperature = 0.
     foreach ($usable as $p) {
         $started = microtime(true);
         try {
+            $tokens = 0;
             try {
-                $text = ai_call($p, $messages, $maxTokens, $temperature);
+                $text = ai_call($p, $messages, $maxTokens, $temperature, 50, $tokens);
             } catch (RuntimeException $e) {
                 // The service retired the model: move to the best one it still has and ask again.
                 if ($e->getCode() !== 404 || !($newer = ai_switch_model($p))) {
                     throw $e;
                 }
                 $p = $newer;
-                $text = ai_call($p, $messages, $maxTokens, $temperature);
+                $text = ai_call($p, $messages, $maxTokens, $temperature, 50, $tokens);
             }
             if ($accept && !$accept($text)) {
                 throw new RuntimeException('The answer was not in the right format.');
             }
-            ai_note_result($p['id'], true, 'Worked', (int) ((microtime(true) - $started) * 1000));
-            return ['text' => $text, 'service' => $p['name'], 'model' => $p['model'], 'failed' => $failed];
+            ai_note_result($p['id'], true, 'Worked', (int) ((microtime(true) - $started) * 1000), false, $tokens);
+            return ['text' => $text, 'service' => $p['name'], 'model' => $p['model'], 'tokens' => $tokens, 'failed' => $failed];
         } catch (Throwable $e) {
             ai_note_result($p['id'], false, $e->getMessage(), (int) ((microtime(true) - $started) * 1000), $e->getCode() === 429);
             $failed[$p['name']] = $e->getMessage();
@@ -162,17 +176,56 @@ function ai_chat(array $messages, int $maxTokens = 2500, float $temperature = 0.
     throw new RuntimeException('Every AI service failed. ' . implode(' | ', array_map(static fn ($n, $m) => $n . ': ' . $m, array_keys($failed), $failed)));
 }
 
-/** The models a service offers (for the model list on the AI page). */
-function ai_models(array $p): array
+/** The models a service offers, as the service describes them (empty, with $error set, when it cannot be asked). */
+function ai_models_raw(array $p, ?string &$error = null): array
 {
-    [$status, $response] = http_request('GET', rtrim((string) $p['url'], '/') . '/models', ['Authorization: Bearer ' . secret_decrypt((string) ($p['key'] ?? ''))], null, 20);
+    [$status, $response, $curlError] = http_request('GET', rtrim((string) $p['url'], '/') . '/models', ['Authorization: Bearer ' . secret_decrypt((string) ($p['key'] ?? ''))], null, 20);
     if ($status !== 200) {
+        $error = ai_error_text($status, $response, $curlError);
         return [];
     }
-    $ids = array_map(static fn ($m) => preg_replace('#^models/#', '', (string) ($m['id'] ?? '')), (array) (json_decode($response, true)['data'] ?? []));
-    $ids = array_values(array_unique(array_filter($ids)));
-    sort($ids);
-    return $ids;
+    $data = json_decode($response, true);
+    $list = [];
+    foreach ((array) ($data['data'] ?? $data['models'] ?? []) as $m) {
+        $id = is_array($m) ? preg_replace('#^models/#', '', (string) ($m['id'] ?? $m['name'] ?? '')) : '';
+        if ($id !== '' && !isset($list[$id])) {
+            $list[$id] = ['id' => $id] + $m;
+        }
+    }
+    ksort($list);
+    return array_values($list);
+}
+
+/** The model names a service offers. */
+function ai_models(array $p): array
+{
+    return array_column(ai_models_raw($p), 'id');
+}
+
+/** Models that are not for writing text (speech, images, safety checks, embeddings). */
+function ai_model_is_chat(string $id): bool
+{
+    return !preg_match('#whisper|tts|speech|audio|transcri|guard|embed|rerank|moderation|image|vision|live|ocr|code|batch#i', $id);
+}
+
+/** Models that think before they answer: better reasoning, but the thinking costs extra tokens. */
+function ai_model_thinks(string $id): bool
+{
+    return (bool) preg_match('#gpt-oss|qwen-?3|qwq|deepseek-r1|r1-distill|reason|think|magistral|(^|/)o[134](-|$)|gemini-(2\.5|[3-9])(?!.*lite)|gemini-(flash|pro)-latest|kimi-k2-thinking|grok-3-mini|nemotron.*(super|ultra)|compound#i', $id);
+}
+
+/** The best chat model in a list, by the order of preference given. */
+function ai_pick_from(array $models, array $wanted, ?callable $filter = null): ?string
+{
+    $chat = array_values(array_filter($models, static fn ($m) => ai_model_is_chat($m) && (!$filter || $filter($m))));
+    foreach ($wanted as $want) {
+        foreach ($chat as $m) {
+            if (stripos($m, $want) !== false) {
+                return $m;
+            }
+        }
+    }
+    return $chat[0] ?? null;
 }
 
 /**
@@ -181,15 +234,60 @@ function ai_models(array $p): array
  */
 function ai_pick_model(array $models): ?string
 {
-    $chat = array_values(array_filter($models, static fn ($m) => !preg_match('#whisper|tts|speech|audio|transcri|guard|embed|rerank|moderation|image|vision|live|ocr|code|batch#i', $m)));
-    foreach (['gpt-oss-120b', 'flash-latest', 'llama-3.3-70b', 'mistral-small-latest', 'qwen', 'gpt-oss-20b', 'llama-4', 'flash', '70b'] as $want) {
-        foreach ($chat as $m) {
-            if (stripos($m, $want) !== false) {
-                return $m;
-            }
+    return ai_pick_from($models, ['gpt-oss-120b', 'flash-latest', 'llama-3.3-70b', 'mistral-small-latest', 'qwen', 'gpt-oss-20b', 'llama-4', 'flash', '70b']);
+}
+
+/** The best model that answers without thinking first, so it uses the fewest tokens for a cake. */
+function ai_pick_light_model(array $models): ?string
+{
+    return ai_pick_from($models, ['llama-3.3-70b', 'llama-4-maverick', 'llama-4-scout', 'mistral-small-latest', 'mistral-medium-latest', 'flash-lite-latest', 'flash-lite', 'gemma', 'llama-3.1-8b', 'instant', 'small'],
+        static fn ($m) => !ai_model_thinks($m));
+}
+
+/**
+ * The model list for the "Choose a model" box: chat models only, the recommended ones first,
+ * each with short labels. Returns ['models' => [...], 'hidden' => number of other models].
+ */
+function ai_model_choices(array $raw): array
+{
+    $ids = array_column($raw, 'id');
+    $best = ai_pick_model($ids);
+    $light = ai_pick_light_model($ids);
+    $choices = [];
+    foreach ($raw as $m) {
+        $id = $m['id'];
+        if (!ai_model_is_chat($id)) {
+            continue;
         }
+        $tags = [];
+        if ($id === $best) {
+            $tags[] = ['Recommended', 'best'];
+        }
+        if ($id === $light) {
+            $tags[] = ['Best for fewer tokens', 'light'];
+        }
+        $thinks = ai_model_thinks($id);
+        if ($thinks) {
+            $tags[] = ['Thinks first: more tokens', 'heavy'];
+        } elseif ($id !== $light) {
+            $tags[] = ['Fewer tokens', 'plain'];
+        }
+        if (str_ends_with($id, ':free') || (isset($m['pricing']) && (float) ($m['pricing']['prompt'] ?? 1) == 0 && (float) ($m['pricing']['completion'] ?? 1) == 0)) {
+            $tags[] = ['Free', 'plain'];
+        }
+        if (preg_match('#(^|[^0-9.])[1-9]b\b|(^|[-/_.:])(instant|mini|nano|lite|small|tiny)(\b|$)#i', $id) && !$thinks) {
+            $tags[] = ['Small: simpler writing', 'plain'];
+        }
+        $context = (int) ($m['context_window'] ?? $m['context_length'] ?? $m['max_context_length'] ?? 0);
+        $choices[] = [
+            'id' => $id,
+            'tags' => $tags,
+            'note' => $context > 0 ? 'Reads up to ' . number_format($context / 1000) . 'k tokens' : '',
+            'rank' => ($id === $best ? 0 : ($id === $light ? 1 : ($thinks ? 3 : 2))),
+        ];
     }
-    return $chat[0] ?? null;
+    usort($choices, static fn ($a, $b) => [$a['rank'], $a['id']] <=> [$b['rank'], $b['id']]);
+    return ['models' => $choices, 'hidden' => count($raw) - count($choices)];
 }
 
 /** When a service no longer offers the chosen model: saves the best one it has and returns the service with it (null if nothing to change). */
@@ -211,12 +309,11 @@ function ai_switch_model(array $p, ?array $models = null): ?array
     return ['model' => $pick] + $p;
 }
 
-/** The Test button: lists the models (moving off a retired one) and asks for a one-word answer. */
+/** The Test button: moves off a retired model, then asks for a one-word answer. */
 function ai_test(array $p): array
 {
-    $models = ai_models($p);
     $changed = '';
-    if ($newer = ai_switch_model($p, $models)) {
+    if ($newer = ai_switch_model($p)) {
         $changed = ' The model "' . $p['model'] . '" is no longer offered, so it now uses "' . $newer['model'] . '".';
         $p = $newer;
     }
@@ -226,10 +323,10 @@ function ai_test(array $p): array
         $answer = ai_call($p, [['role' => 'user', 'content' => 'Reply with the single word OK.']], 800, 0, 40);
         $ms = (int) ((microtime(true) - $started) * 1000);
         ai_note_result($p['id'], true, 'Test passed', $ms);
-        return ['ok' => true, 'message' => 'Working. It answered "' . str_limit($answer, 30) . '" in ' . number_format($ms / 1000, 1) . ' seconds.' . $changed, 'models' => $models, 'model' => $p['model']];
+        return ['ok' => true, 'message' => 'Working. It answered "' . str_limit($answer, 30) . '" in ' . number_format($ms / 1000, 1) . ' seconds.' . $changed, 'model' => $p['model']];
     } catch (Throwable $e) {
         ai_note_result($p['id'], false, $e->getMessage(), (int) ((microtime(true) - $started) * 1000), $e->getCode() === 429);
-        return ['ok' => false, 'message' => $e->getMessage() . $changed, 'models' => $models, 'model' => $p['model']];
+        return ['ok' => false, 'message' => $e->getMessage() . $changed, 'model' => $p['model']];
     }
 }
 
@@ -413,7 +510,7 @@ function ai_write_product(array $p, array $sizes, array $options, string $notes 
 
     $answer = ai_chat([['role' => 'system', 'content' => ai_seo_rules()], ['role' => 'user', 'content' => $user]], 4000, 0.6,
         static fn ($text) => ($d = ai_json($text)) !== null && trim((string) ($d['description'] ?? '')) !== '' && trim((string) ($d['meta_title'] ?? '')) !== '');
-    return ai_clean_fields(ai_json($answer['text']), $links) + ['service' => $answer['service'] . ' (' . $answer['model'] . ')', 'failed' => $answer['failed']];
+    return ai_clean_fields(ai_json($answer['text']), $links) + ['service' => $answer['service'] . ' (' . $answer['model'] . ')', 'tokens' => $answer['tokens'], 'failed' => $answer['failed']];
 }
 
 /**

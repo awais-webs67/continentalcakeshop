@@ -21,53 +21,70 @@ $providers = ai_providers();
         <div class="ai-services">
             <?php foreach ($providers as $i => $p): $last = $p['last_at'] ?? null; ?>
                 <div class="ai-service <?= empty($p['enabled']) ? 'is-off' : '' ?>" data-ai-service="<?= e($p['id']) ?>">
-                    <div class="ai-service__main">
-                        <span class="ai-service__order"><?= $i + 1 ?></span>
+                    <div class="ai-service__head">
+                        <span class="ai-service__order" title="Tried in this order"><?= $i + 1 ?></span>
                         <div class="ai-service__name">
                             <strong><?= e($p['name']) ?></strong>
-                            <small data-ai-model-name><?= e($p['model'] ?: 'no model chosen') ?></small>
+                            <span class="ai-service__model" data-ai-model-name><?= e($p['model'] ?: 'no model chosen') ?></span>
                         </div>
-                        <div class="ai-service__state" data-ai-result>
-                            <?php if (empty($p['enabled'])): ?><?= status_badge('inactive', 'Off') ?>
-                            <?php elseif ($last === null): ?><?= status_badge('pending', 'Not tested') ?>
-                            <?php else: ?><?= status_badge(!empty($p['last_ok']) ? 'active' : 'failed', !empty($p['last_ok']) ? 'Working' : 'Failed') ?><small><?= e(time_ago($last)) ?><?= empty($p['last_ok']) ? ': ' . e($p['last_message'] ?? '') : '' ?></small><?php endif; ?>
+                        <div class="ai-service__actions">
+                            <button type="button" class="btn btn--secondary btn--sm" data-ai-test>Test</button>
+                            <form method="post"><?= csrf_field() ?><input type="hidden" name="id" value="<?= e($p['id']) ?>"><input type="hidden" name="action" value="toggle"><button class="btn btn--ghost btn--sm" type="submit"><?= empty($p['enabled']) ? 'Switch on' : 'Switch off' ?></button></form>
+                            <span class="ai-service__move">
+                                <form method="post"><?= csrf_field() ?><input type="hidden" name="id" value="<?= e($p['id']) ?>"><input type="hidden" name="action" value="up"><button class="icon-btn" type="submit" aria-label="Try earlier" title="Try earlier" <?= $i === 0 ? 'disabled' : '' ?>>&uarr;</button></form>
+                                <form method="post"><?= csrf_field() ?><input type="hidden" name="id" value="<?= e($p['id']) ?>"><input type="hidden" name="action" value="down"><button class="icon-btn" type="submit" aria-label="Try later" title="Try later" <?= $i === count($providers) - 1 ? 'disabled' : '' ?>>&darr;</button></form>
+                            </span>
                         </div>
                     </div>
-                    <div class="ai-service__actions">
-                        <button type="button" class="btn btn--primary btn--sm" data-ai-test>Test</button>
-                        <form method="post"><?= csrf_field() ?><input type="hidden" name="id" value="<?= e($p['id']) ?>"><input type="hidden" name="action" value="toggle"><button class="btn btn--secondary btn--sm" type="submit"><?= empty($p['enabled']) ? 'Switch on' : 'Switch off' ?></button></form>
-                        <form method="post"><?= csrf_field() ?><input type="hidden" name="id" value="<?= e($p['id']) ?>"><input type="hidden" name="action" value="up"><button class="btn btn--ghost btn--sm" type="submit" aria-label="Move up" <?= $i === 0 ? 'disabled' : '' ?>>&uarr;</button></form>
-                        <form method="post"><?= csrf_field() ?><input type="hidden" name="id" value="<?= e($p['id']) ?>"><input type="hidden" name="action" value="down"><button class="btn btn--ghost btn--sm" type="submit" aria-label="Move down" <?= $i === count($providers) - 1 ? 'disabled' : '' ?>>&darr;</button></form>
+                    <div class="ai-service__state" data-ai-result>
+                        <?php if (empty($p['enabled'])): ?><?= status_badge('inactive', 'Off') ?><small>Skipped until you switch it on.</small>
+                        <?php elseif ($last === null): ?><?= status_badge('pending', 'Not tested') ?><small>Press Test to check the key and the model.</small>
+                        <?php else: ?><?= status_badge(!empty($p['last_ok']) ? 'active' : 'failed', !empty($p['last_ok']) ? 'Working' : 'Failed') ?><small><?= e(time_ago($last)) ?><?= empty($p['last_ok']) ? ': ' . e($p['last_message'] ?? '') : '' ?><?= !empty($p['last_tokens']) && $p['last_tokens'] > 100 ? ' &middot; last cake used ' . number_format((int) $p['last_tokens']) . ' tokens' : '' ?></small><?php endif; ?>
                     </div>
-                    <details class="ai-service__edit">
-                        <summary>Change model or key</summary>
-                        <form method="post" class="form-grid">
+                    <details class="ai-service__edit" data-ai-edit>
+                        <summary>Model and API key</summary>
+                        <form method="post" class="form-stack" id="ai-edit-<?= e($p['id']) ?>">
                             <?= csrf_field() ?><input type="hidden" name="id" value="<?= e($p['id']) ?>"><input type="hidden" name="action" value="update_service">
-                            <label class="field"><span>Model <small>press Test to load the list</small></span><input class="input" name="model" value="<?= e($p['model']) ?>" list="models-<?= e($p['id']) ?>" required><datalist id="models-<?= e($p['id']) ?>"></datalist></label>
-                            <label class="field"><span>New API key <small>empty = keep the saved one</small></span><input class="input" type="password" name="api_key" autocomplete="off"></label>
-                            <?php if ($p['service'] === 'custom'): ?><label class="field span-2"><span>Address</span><input class="input" name="base_url" value="<?= e($p['url']) ?>"></label><?php endif; ?>
-                            <div class="span-2 ai-service__save"><button class="btn btn--primary btn--sm" type="submit">Save</button></div>
+                            <div class="model-picker" data-model-picker data-id="<?= e($p['id']) ?>">
+                                <label class="field"><span>Model</span><input class="input" name="model" value="<?= e($p['model']) ?>" required data-model-input></label>
+                                <div class="model-picker__list" data-model-list><p class="hint">Loading the models of <?= e($p['name']) ?>...</p></div>
+                            </div>
+                            <div class="form-grid">
+                                <label class="field"><span>New API key <small>empty = keep the saved one</small></span><input class="input" type="password" name="api_key" autocomplete="off"></label>
+                                <?php if ($p['service'] === 'custom'): ?><label class="field"><span>Address</span><input class="input" name="base_url" value="<?= e($p['url']) ?>"></label><?php endif; ?>
+                            </div>
                         </form>
-                        <form method="post" data-confirm="Remove <?= e($p['name']) ?> and its key?"><?= csrf_field() ?><input type="hidden" name="id" value="<?= e($p['id']) ?>"><input type="hidden" name="action" value="remove"><button class="btn btn--danger btn--sm" type="submit"><?= icon('trash', '', 14) ?> Remove</button></form>
+                        <div class="ai-service__save">
+                            <button class="btn btn--primary btn--sm" type="submit" form="ai-edit-<?= e($p['id']) ?>"><?= icon('check', '', 15) ?> Save</button>
+                            <form method="post" data-confirm="Remove <?= e($p['name']) ?> and its key?"><?= csrf_field() ?><input type="hidden" name="id" value="<?= e($p['id']) ?>"><input type="hidden" name="action" value="remove"><button class="btn btn--ghost btn--sm link-btn--danger" type="submit"><?= icon('trash', '', 14) ?> Remove service</button></form>
+                        </div>
                     </details>
                 </div>
             <?php endforeach; ?>
         </div>
     </div>
-    <div class="card__body" style="border-top:1px solid var(--line)">
+    <div class="card__body ai-add" style="border-top:1px solid var(--line)">
         <h2 class="card__subtitle">Add an AI service</h2>
-        <form method="post" class="form-grid" data-ai-add>
+        <form method="post" class="form-stack" data-ai-add>
             <?= csrf_field() ?><input type="hidden" name="action" value="add_service">
-            <label class="field"><span>Service</span>
-                <select class="input" name="service" data-ai-preset>
-                    <?php foreach (AI_SERVICES as $key => $s): ?><option value="<?= e($key) ?>" data-model="<?= e($s['model']) ?>" data-url="<?= e($s['url']) ?>" data-keys="<?= e($s['keys']) ?>"><?= e($s['name']) ?></option><?php endforeach; ?>
-                </select>
-            </label>
-            <label class="field"><span>API key <a href="https://console.groq.com/keys" target="_blank" rel="noopener" data-ai-keys-link>get a free key</a></span><input class="input" type="password" name="api_key" autocomplete="off" required></label>
-            <label class="field"><span>Model <small>empty = the suggested one</small></span><input class="input" name="model" placeholder="<?= e(AI_SERVICES['groq']['model']) ?>" data-ai-model></label>
-            <label class="field" data-ai-url hidden><span>Address <small>ends with /v1</small></span><input class="input" name="base_url" placeholder="https://api.example.com/v1"></label>
-            <label class="field" data-ai-name hidden><span>Name</span><input class="input" name="name" maxlength="40" placeholder="e.g. My AI"></label>
-            <div class="span-2"><button class="btn btn--primary" type="submit"><?= icon('plus', '', 16) ?> Add service</button></div>
+            <div class="form-grid">
+                <label class="field"><span>Service</span>
+                    <select class="input" name="service" data-ai-preset>
+                        <?php foreach (AI_SERVICES as $key => $s): ?><option value="<?= e($key) ?>" data-model="<?= e($s['model']) ?>" data-url="<?= e($s['url']) ?>" data-keys="<?= e($s['keys']) ?>"><?= e($s['name']) ?></option><?php endforeach; ?>
+                    </select>
+                </label>
+                <label class="field"><span>API key <a href="https://console.groq.com/keys" target="_blank" rel="noopener" data-ai-keys-link>get a free key</a></span><input class="input" type="password" name="api_key" autocomplete="off" required></label>
+                <label class="field" data-ai-url hidden><span>Address <small>ends with /v1</small></span><input class="input" name="base_url" placeholder="https://api.example.com/v1"></label>
+                <label class="field" data-ai-name hidden><span>Name</span><input class="input" name="name" maxlength="40" placeholder="e.g. My AI"></label>
+            </div>
+            <div class="model-picker" data-model-picker>
+                <div class="model-picker__row">
+                    <label class="field"><span>Model <small>empty = the suggested one</small></span><input class="input" name="model" placeholder="<?= e(AI_SERVICES['groq']['model']) ?>" data-ai-model data-model-input></label>
+                    <button type="button" class="btn btn--secondary" data-model-load><?= icon('search', '', 16) ?> Show its models</button>
+                </div>
+                <div class="model-picker__list" data-model-list hidden></div>
+            </div>
+            <div><button class="btn btn--primary" type="submit"><?= icon('plus', '', 16) ?> Add service</button></div>
         </form>
     </div>
 
@@ -124,12 +141,13 @@ $providers = ai_providers();
 <?php else: ?>
     <?php $gsc = gsc_account(); $log = json_decode(setting('search_engine_log', '[]'), true) ?: []; $public = site_is_public(); ?>
     <div class="card__body form-stack">
-        <ul class="seo-checks">
-            <li class="is-ok"><?= icon('check', '', 16) ?><span><strong>Sitemap updates itself</strong><small style="display:block">A new or changed cake is in <a href="<?= e(url('sitemap.xml')) ?>" target="_blank">sitemap.xml</a> straight away; a hidden or deleted one drops out.</small></span></li>
-            <li class="<?= $public && setting('indexnow_enabled', '1') === '1' ? 'is-ok' : 'is-todo' ?>"><?= icon($public && setting('indexnow_enabled', '1') === '1' ? 'check' : 'info', '', 16) ?><span><strong>Bing, Yandex and ChatGPT search (IndexNow)</strong><small style="display:block"><?= $public ? 'Changed addresses are sent every 15 minutes by the cron job. ChatGPT search and Microsoft Copilot use Bing.' : 'Starts once the website runs on its https address.' ?></small></span></li>
-            <li class="<?= $gsc ? 'is-ok' : 'is-todo' ?>"><?= icon($gsc ? 'check' : 'info', '', 16) ?><span><strong>Google Search Console</strong><small style="display:block"><?= $gsc ? 'Connected: the sitemap is submitted again after changes (at most once an hour).' : 'Not connected yet: follow the steps below once.' ?></small></span></li>
-            <li class="is-ok"><?= icon('check', '', 16) ?><span><strong>Summary for AI assistants</strong><small style="display:block"><a href="<?= e(url('llms.txt')) ?>" target="_blank">llms.txt</a> lists the shop, pages and cakes for ChatGPT, Perplexity, Claude and Gemini. Built from the website, always up to date.</small></span></li>
-        </ul>
+        <?php $indexNowOn = $public && setting('indexnow_enabled', '1') === '1'; ?>
+        <?= seo_checklist([
+            ['Sitemap updates itself', true, 'A new or changed cake is in <a href="' . e(url('sitemap.xml')) . '" target="_blank">sitemap.xml</a> straight away; a hidden or deleted one drops out.'],
+            ['Bing, Yandex and ChatGPT search (IndexNow)', $indexNowOn, $public ? (setting('indexnow_enabled', '1') === '1' ? 'Changed addresses are sent every 15 minutes by the cron job. ChatGPT search and Microsoft Copilot use Bing.' : 'Switched off below.') : 'Starts once the website runs on its https address.'],
+            ['Google Search Console', (bool) $gsc, $gsc ? 'Connected: the sitemap is submitted again after changes (at most once an hour).' : 'Not connected yet: follow the steps below once.'],
+            ['Summary for AI assistants', true, '<a href="' . e(url('llms.txt')) . '" target="_blank">llms.txt</a> lists the shop, pages and cakes for ChatGPT, Perplexity, Claude and Gemini. Built from the website, always up to date.'],
+        ], false, true) ?>
         <form method="post"><?= csrf_field() ?><input type="hidden" name="action" value="send_all">
             <button class="btn btn--primary" type="submit"><?= icon('upload', '', 16) ?> Send everything now</button>
             <span class="hint">Sends every address to Bing and the sitemap to Google, now.</span>

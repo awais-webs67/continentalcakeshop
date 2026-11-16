@@ -307,6 +307,34 @@ function status_badge(string $status, string $label): string
     return '<span class="badge badge--' . e($status) . '">' . e($label) . '</span>';
 }
 
+/**
+ * A checklist with a progress bar; things still to do are listed above the things done.
+ * $checks holds [label, ok, tip] rows. A tip is shown for things to do, or always with $tipsAlways
+ * (then it may hold HTML, so pass only text the code wrote). $collapseDone hides the done rows
+ * behind a "Show" link.
+ */
+function seo_checklist(array $checks, bool $collapseDone = false, bool $tipsAlways = false, string $listAttrs = ''): string
+{
+    $done = count(array_filter($checks, static fn ($c) => $c[1]));
+    $total = count($checks);
+    $ratio = $total ? $done / $total : 1;
+    $html = '<div class="checklist" data-checklist>'
+        . '<div class="seo-progress"><div class="seo-progress__text"><strong data-checklist-todo>' . ($total - $done ? ($total - $done) . ' to do' : 'All done') . '</strong>'
+        . '<span data-checklist-count>' . $done . ' of ' . $total . ' done</span></div>'
+        . '<div class="seo-meter seo-meter--' . ($ratio >= 0.8 ? 'good' : ($ratio >= 0.5 ? 'ok' : 'poor')) . '" data-checklist-meter><span style="width:' . round($ratio * 100) . '%"></span></div></div>'
+        . '<ul class="seo-checks' . ($collapseDone ? ' is-collapsed' : '') . '"' . ($listAttrs !== '' ? ' ' . $listAttrs : '') . '>';
+    foreach ($checks as [$label, $ok, $tip]) {
+        $html .= '<li class="' . ($ok ? 'is-ok' : 'is-todo') . '"><span class="check-mark" aria-hidden="true">' . icon('check', '', 12) . '</span>'
+            . '<span><strong><span class="sr-only" data-check-state>' . ($ok ? 'Done: ' : 'To do: ') . '</span>' . e($label) . '</strong>'
+            . ($tip !== '' ? '<small' . ($ok && !$tipsAlways ? ' hidden' : '') . '>' . ($tipsAlways ? $tip : e($tip)) . '</small>' : '') . '</span></li>';
+    }
+    $html .= '</ul>';
+    if ($collapseDone) {
+        $html .= '<button type="button" class="link-btn seo-checks__toggle" data-checklist-toggle' . ($done ? '' : ' hidden') . '>Show the ' . $done . ' done</button>';
+    }
+    return $html . '</div>';
+}
+
 function time_ago(string $datetime): string
 {
     $seconds = time() - strtotime($datetime);

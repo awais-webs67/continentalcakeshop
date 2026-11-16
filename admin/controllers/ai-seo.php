@@ -18,6 +18,26 @@ if (is_post()) {
         $provider = ai_provider($id);
         json_out($provider ? ai_test($provider) : ['ok' => false, 'message' => 'Service not found.']);
     }
+    if ($action === 'models') {
+        // A saved service, or the one being added (its key is used for this request only).
+        $provider = $id !== '' ? ai_provider($id) : null;
+        if ($id === '') {
+            $preset = AI_SERVICES[input('service')] ?? null;
+            $address = rtrim(trim(input('base_url')) ?: (string) ($preset['url'] ?? ''), '/');
+            if (!$preset || trim(input('api_key')) === '' || !preg_match('#^https://[^\s/]+\.[^\s]+$#', $address)) {
+                json_out(['ok' => false, 'error' => 'Choose the service and paste its API key first' . (input('service') === 'custom' ? ', with its https address.' : '.')]);
+            }
+            $provider = ['url' => $address, 'key' => secret_encrypt(trim(input('api_key')))];
+        }
+        if (!$provider) {
+            json_out(['ok' => false, 'error' => 'Service not found.']);
+        }
+        $raw = ai_models_raw($provider, $error);
+        if (!$raw) {
+            json_out(['ok' => false, 'error' => $error ?: 'This service did not list any models. Type the model name instead.']);
+        }
+        json_out(['ok' => true] + ai_model_choices($raw));
+    }
     if ($action === 'profile_draft') {
         @set_time_limit(120);
         try {

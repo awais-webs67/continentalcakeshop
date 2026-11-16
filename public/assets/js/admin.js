@@ -488,6 +488,35 @@ document.addEventListener('input', function (e) {
 
 // Product editor SEO box: live Google preview, the checklist (same rules as
 // product_seo_checks() in src/seo.php) and "Fill in for me".
+// Checklists: progress bar, counts and the "Show the done ones" link
+window.ccsChecklist = function (wrap) {
+    var items = Array.prototype.slice.call(wrap.querySelectorAll('.seo-checks li'));
+    var done = items.filter(function (li) { return li.classList.contains('is-ok'); }).length;
+    var total = items.length, ratio = total ? done / total : 1;
+    items.forEach(function (li) {
+        var state = li.querySelector('[data-check-state]');
+        if (state) state.textContent = li.classList.contains('is-ok') ? 'Done: ' : 'To do: ';
+    });
+    wrap.querySelector('[data-checklist-todo]').textContent = total - done ? (total - done) + ' to do' : 'All done';
+    wrap.querySelector('[data-checklist-count]').textContent = done + ' of ' + total + ' done';
+    var meter = wrap.querySelector('[data-checklist-meter]');
+    meter.className = 'seo-meter seo-meter--' + (ratio >= 0.8 ? 'good' : ratio >= 0.5 ? 'ok' : 'poor');
+    meter.firstElementChild.style.width = Math.round(ratio * 100) + '%';
+    var toggle = wrap.querySelector('[data-checklist-toggle]');
+    if (toggle) {
+        var collapsed = wrap.querySelector('.seo-checks').classList.contains('is-collapsed');
+        toggle.hidden = done === 0;
+        toggle.textContent = collapsed ? 'Show the ' + done + ' done' : 'Hide the done ones';
+    }
+};
+document.querySelectorAll('[data-checklist-toggle]').forEach(function (toggle) {
+    toggle.addEventListener('click', function () {
+        var wrap = toggle.closest('[data-checklist]');
+        wrap.querySelector('.seo-checks').classList.toggle('is-collapsed');
+        window.ccsChecklist(wrap);
+    });
+});
+
 (function () {
     var box = document.querySelector('[data-seo-box]');
     if (!box) return;
@@ -565,6 +594,7 @@ document.addEventListener('input', function (e) {
             var tip = items[i].querySelector('small');
             if (tip) tip.hidden = ok;
         });
+        window.ccsChecklist(box.querySelector('[data-checklist]'));
         var passed = results.filter(Boolean).length;
         var score = box.querySelector('[data-seo-score]');
         score.textContent = passed + '/' + results.length;
@@ -1360,7 +1390,7 @@ document.addEventListener('change', function (e) {
                 if (undoBtn) undoBtn.hidden = false;
                 refresh();
                 var skipped = Object.keys(data.failed || {});
-                say(status, 'Written by ' + data.service + (skipped.length ? ' (' + skipped.join(', ') + ' did not answer)' : '') + '. Read it, change anything you like, then press Save product.', 'ok');
+                say(status, 'Written by ' + data.service + (data.tokens ? ', ' + data.tokens.toLocaleString('en-AU') + ' tokens' : '') + (skipped.length ? ' (' + skipped.join(', ') + ' did not answer)' : '') + '. Read it, change anything you like, then press Save product.', 'ok');
             });
         });
         undoBtn && undoBtn.addEventListener('click', function () {
@@ -1417,17 +1447,141 @@ document.addEventListener('change', function (e) {
                 result.appendChild(note);
                 if (data.model) {
                     row.querySelector('[data-ai-model-name]').textContent = data.model;
-                    row.querySelector('input[name="model"]').value = data.model;
-                }
-                var list = document.getElementById('models-' + id);
-                if (list && data.models && data.models.length) {
-                    list.innerHTML = '';
-                    data.models.forEach(function (m) { var o = document.createElement('option'); o.value = m; list.appendChild(o); });
-                    note.textContent += ' ' + data.models.length + ' models available: open "Change model or key" to choose another.';
+                    row.querySelector('[data-model-input]').value = data.model;
                 }
             });
         });
     });
+
+    // Choose a model: the service's own list, recommended ones first, with what each costs in tokens
+    var SHOW_FIRST = 6;
+    var renderModels = function (picker, data) {
+        var list = picker.querySelector('[data-model-list]');
+        var input = picker.querySelector('[data-model-input]');
+        list.hidden = false;
+        list.textContent = '';
+        if (!data.ok) {
+            var err = document.createElement('p');
+            err.className = 'hint model-picker__error';
+            err.textContent = data.error || 'Could not load the models.';
+            list.appendChild(err);
+            return;
+        }
+        var head = document.createElement('div');
+        head.className = 'model-picker__head';
+        var count = document.createElement('span');
+        count.textContent = data.models.length + ' writing models' + (data.hidden ? ' (' + data.hidden + ' speech, image and safety models hidden)' : '') + '. Most tokens go on the shop details sent with every cake; models that think first add more.';
+        head.appendChild(count);
+        var search = document.createElement('input');
+        search.className = 'input input--sm';
+        search.type = 'search';
+        search.placeholder = 'Search models';
+        search.setAttribute('aria-label', 'Search models');
+        if (data.models.length > SHOW_FIRST) head.appendChild(search);
+        list.appendChild(head);
+
+        var group = document.createElement('div');
+        group.className = 'model-picker__options';
+        group.setAttribute('role', 'radiogroup');
+        var name = 'model-pick-' + Math.random().toString(36).slice(2);
+        var rows = data.models.map(function (m, i) {
+            var opt = document.createElement('label');
+            opt.className = 'model-opt';
+            var radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.name = name;
+            radio.value = m.id;
+            radio.checked = m.id === input.value.trim();
+            radio.addEventListener('change', function () { input.value = m.id; });
+            var main = document.createElement('span');
+            main.className = 'model-opt__main';
+            var title = document.createElement('span');
+            title.className = 'model-opt__id';
+            title.textContent = m.id;
+            main.appendChild(title);
+            var tags = document.createElement('span');
+            tags.className = 'model-opt__tags';
+            m.tags.forEach(function (t) {
+                var chip = document.createElement('span');
+                chip.className = 'mtag mtag--' + t[1];
+                chip.textContent = t[0];
+                tags.appendChild(chip);
+            });
+            if (m.note) {
+                var note = document.createElement('span');
+                note.className = 'model-opt__note';
+                note.textContent = m.note;
+                tags.appendChild(note);
+            }
+            main.appendChild(tags);
+            opt.appendChild(radio);
+            opt.appendChild(main);
+            opt.hidden = i >= SHOW_FIRST && !radio.checked;
+            group.appendChild(opt);
+            return opt;
+        });
+        list.appendChild(group);
+        input.addEventListener('input', function () {
+            rows.forEach(function (r) { r.querySelector('input').checked = r.querySelector('input').value === input.value.trim(); });
+        });
+
+        var more = document.createElement('button');
+        more.type = 'button';
+        more.className = 'link-btn';
+        more.textContent = 'Show all ' + data.models.length + ' models';
+        more.hidden = data.models.length <= SHOW_FIRST;
+        more.addEventListener('click', function () {
+            rows.forEach(function (r) { r.hidden = false; });
+            more.hidden = true;
+            group.classList.add('is-all');
+        });
+        list.appendChild(more);
+        search.addEventListener('input', function () {
+            var q = search.value.trim().toLowerCase();
+            rows.forEach(function (r, i) {
+                var id = r.querySelector('input').value.toLowerCase();
+                r.hidden = q ? id.indexOf(q) === -1 : (i >= SHOW_FIRST && more.hidden === false && !r.querySelector('input').checked);
+            });
+        });
+    };
+    var loadModels = function (picker, body, button) {
+        var list = picker.querySelector('[data-model-list]');
+        list.hidden = false;
+        list.innerHTML = '<p class="hint">Asking the service for its models...</p>';
+        if (button) button.disabled = true;
+        body.set('action', 'models');
+        post(location.pathname + location.search, body).then(function (data) {
+            if (button) button.disabled = false;
+            renderModels(picker, data);
+        });
+    };
+    document.querySelectorAll('[data-ai-edit]').forEach(function (details) {
+        var picker = details.querySelector('[data-model-picker]');
+        details.addEventListener('toggle', function () {
+            if (!details.open || picker.getAttribute('data-loaded')) return;
+            picker.setAttribute('data-loaded', '1');
+            var body = new FormData();
+            body.set('id', picker.getAttribute('data-id'));
+            loadModels(picker, body);
+        });
+    });
+    var addLoad = document.querySelector('[data-ai-add] [data-model-load]');
+    if (addLoad) {
+        addLoad.addEventListener('click', function () {
+            var form = addLoad.form;
+            var body = new FormData();
+            ['service', 'api_key', 'base_url'].forEach(function (k) { body.set(k, form.elements[k].value); });
+            loadModels(form.querySelector('[data-model-picker]'), body, addLoad);
+        });
+        // A new service or key: the list shown belongs to the old one
+        ['service', 'api_key'].forEach(function (k) {
+            addLoad.form.elements[k].addEventListener('change', function () {
+                var list = addLoad.form.querySelector('[data-model-list]');
+                list.hidden = true;
+                list.textContent = '';
+            });
+        });
+    }
 
     // Shop profile draft
     var draftBtn = document.querySelector('[data-ai-draft]');

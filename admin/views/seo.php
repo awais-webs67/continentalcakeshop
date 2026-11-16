@@ -1,6 +1,4 @@
-<?php /** @var array $checks @var array $oldPages @var array $missing @var array $redirects @var array $targets @var array $admin */
-$passed = count(array_filter($checks, static fn ($c) => $c[1]));
-?>
+<?php /** @var array $checks @var array $oldPages @var array $missing @var array $redirects @var array $targets @var array $admin */ ?>
 <div class="page-head">
     <div><h1>SEO</h1><p>Everything that helps the new website keep, and improve, the Google rankings of the old one.</p></div>
     <div class="page-head__actions"><a class="btn btn--secondary" href="<?= e(url('sitemap.xml')) ?>" target="_blank">Sitemap</a><a class="btn btn--secondary" href="<?= e(admin_url('settings', ['tab' => 'seo'])) ?>">SEO settings</a></div>
@@ -9,13 +7,9 @@ $passed = count(array_filter($checks, static fn ($c) => $c[1]));
 <div class="grid-main">
     <div class="stack">
         <section class="card">
-            <div class="card__head"><h2>Launch checklist</h2><span class="seo-score seo-score--<?= $passed === count($checks) ? 'good' : ($passed >= count($checks) / 2 ? 'ok' : 'poor') ?>"><?= $passed ?>/<?= count($checks) ?></span></div>
+            <div class="card__head"><h2>Launch checklist</h2></div>
             <div class="card__body">
-                <ul class="seo-checks">
-                    <?php foreach ($checks as [$label, $ok, $tip]): ?>
-                        <li class="<?= $ok ? 'is-ok' : 'is-todo' ?>"><?= icon($ok ? 'check' : 'info', '', 16) ?><span><strong><?= e($label) ?></strong><?php if (!$ok): ?><small><?= e($tip) ?></small><?php endif; ?></span></li>
-                    <?php endforeach; ?>
-                </ul>
+                <?= seo_checklist($checks) ?>
                 <?php $noKeyword = (int) db_value("SELECT COUNT(*) FROM products WHERE is_active = 1 AND (focus_keyword IS NULL OR focus_keyword = '')"); ?>
                 <?php if ($noKeyword > 0): ?>
                     <form method="post" class="note-box" style="margin-top:14px" data-confirm="Give <?= $noKeyword ?> cakes a focus keyword like &quot;red velvet cake canberra&quot;? You can change each one later.">

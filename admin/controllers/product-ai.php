@@ -26,7 +26,7 @@ try {
     $sizes = array_values(array_filter(array_map(static fn ($r) => ['label' => trim((string) ($r['label'] ?? '')), 'servings' => trim((string) ($r['servings'] ?? ''))], (array) ($_POST['sizes'] ?? [])), static fn ($s) => $s['label'] !== ''));
     $options = array_values(array_filter(array_map(static fn ($r) => str_limit(trim((string) ($r['name'] ?? '')), 80), (array) ($_POST['options'] ?? []))));
     $fields = ai_write_product($product, $sizes, $options, str_limit(input('ai_notes'), 1500));
-    json_out(['ok' => true, 'fields' => array_intersect_key($fields, array_flip(AI_PRODUCT_FIELDS)), 'service' => $fields['service'], 'failed' => $fields['failed']]);
+    json_out(['ok' => true, 'fields' => array_intersect_key($fields, array_flip(AI_PRODUCT_FIELDS)), 'service' => $fields['service'], 'tokens' => $fields['tokens'], 'failed' => $fields['failed']]);
 } catch (Throwable $e) {
     json_out(['ok' => false, 'error' => $e->getMessage()], 502);
 }
