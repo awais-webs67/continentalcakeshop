@@ -117,7 +117,7 @@ function customer_message(array $thread, string $body): void
         send_branch_mail(
             (int) ($thread['branch_id'] ?? 0),
             $notify,
-            'New message from ' . $thread['customer_name'] . ': ' . $thread['subject'],
+            alert_subject($thread['customer_name'], 'New message: ' . $thread['subject']),
             render_email('message-admin', ['thread' => $thread, 'body' => $body, 'title' => 'New message from ' . $thread['customer_name'], 'preheader' => mb_substr($body, 0, 90)]),
             $thread['customer_email']
         );

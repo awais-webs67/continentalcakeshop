@@ -534,7 +534,7 @@ Admin > Settings > Business > **Maintenance mode** (owners). While it is on (`sr
 
 **Status emails** (`change_order_status()` in `src/orders.php`): changing the status from the order page or with the quick button in any order list (Orders, Pickups, Dashboard) does the same thing: notes it in the order's history and emails the customer (on the order page the email can be switched off; the quick buttons always email when the order has an email address). The words are in `ORDER_STATUS_MESSAGES`.
 
-**The shop's alert never reaches the customer** (`shop_alert_address()`): new order, custom cake request, contact message, card payment and moved-order alerts go to the shop's alerts address, and are skipped when that address is the customer's own (e.g. a test order placed with the shop's address).
+**The shop's alert never reaches the customer** (`shop_alert_address()`): new order, custom cake request, contact message, card payment and moved-order alerts go to the shop's alerts address, and are skipped when that address is the customer's own (e.g. a test order placed with the shop's address). Their subject starts with the customer's name (`alert_subject()`), e.g. "Suzanna Pugh · New order CC-1009 · $59.95": the alerts are sent from the shop's own address, so Gmail shows "me" as the sender, and the name shows who wrote. Reply goes straight to the customer.
 
 **Inbox, not spam** (`email_delivery_checks()` in `src/mail.php`): Admin > System check > "Emails: spam check" and a warning on each shop's Email tab say why emails may land in spam: emails only saved to a file, sent by the website server (PHP mail), a Gmail address not sent through Gmail, and the domain's SPF, DKIM and DMARC records (cPanel > Email Deliverability > Repair).
 

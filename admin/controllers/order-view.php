@@ -237,7 +237,7 @@ if (is_post()) {
         $moved = get_order($id);
         $notify = shop_alert_address((int) $to['id'], (string) $moved['customer_email']);
         if ($notify !== '') {
-            send_branch_mail((int) $to['id'], $notify, 'Order ' . $moved['order_number'] . ' moved to ' . $to['name'],
+            send_branch_mail((int) $to['id'], $notify, alert_subject($moved['customer_name'], 'Order ' . $moved['order_number'] . ' moved to ' . $to['name']),
                 render_email('order-new-admin', ['order' => $moved, 'items' => get_order_items($id), 'title' => 'Order moved to ' . $to['name'] . ' from ' . $from, 'preheader' => $moved['customer_name'] . ', ' . order_when($moved)]),
                 $moved['customer_email']);
         }

@@ -235,6 +235,17 @@ function send_order_confirmation(array $order): bool
     ));
 }
 
+/**
+ * Subject of an email to the shop: the customer's name first, e.g. "Suzanna Pugh · New order CC-1009 · $59.95".
+ * The alerts are sent from the shop's own address, so the inbox shows "me" as the sender;
+ * the name at the start shows who it is about.
+ */
+function alert_subject(string $customerName, string $subject): string
+{
+    $name = trim(preg_replace('/\s+/', ' ', $customerName));
+    return $name !== '' ? $name . ' · ' . $subject : $subject;
+}
+
 /** Customer confirmation and shop notification for a new order. */
 function send_order_emails(array $order): void
 {
@@ -250,7 +261,7 @@ function send_order_emails(array $order): void
         send_branch_mail(
             (int) ($order['branch_id'] ?? 0),
             $notify,
-            "New order {$order['order_number']} - " . money($order['total']) . ($branch !== '' ? ' - ' . $branch : ''),
+            alert_subject($order['customer_name'], "New order {$order['order_number']} · " . money($order['total']) . ($branch !== '' ? ' · ' . $branch : '')),
             render_email('order-new-admin', ['order' => $order, 'items' => $items, 'title' => 'New online order' . ($branch !== '' ? ' for ' . $branch : ''), 'preheader' => $order['customer_name'] . ', ' . order_when($order)]),
             $order['customer_email']
         );
@@ -288,7 +299,7 @@ function send_custom_request_emails(array $request): void
     if ($notify !== '') {
         send_mail(
             $notify,
-            'Custom cake request: ' . $request['occasion'] . ' on ' . date('j M Y', strtotime($request['event_date'])) . (multi_branch() ? ' - ' . branch_name((int) $request['branch_id']) : ''),
+            alert_subject($request['name'], 'Custom cake request: ' . $request['occasion'] . ' on ' . date('j M Y', strtotime($request['event_date'])) . (multi_branch() ? ' · ' . branch_name((int) $request['branch_id']) : '')),
             render_email('custom-request-admin', ['request' => $request, 'title' => 'New custom cake request', 'preheader' => $request['name'] . ', ' . $request['occasion']]),
             null,
             $request['email']
@@ -327,7 +338,7 @@ function send_contact_notification(array $data): void
         send_branch_mail(
             isset($data['branch_id']) ? (int) $data['branch_id'] : null,
             $notify,
-            'Website message from ' . $data['name'],
+            alert_subject($data['name'], 'Website message'),
             render_email('contact-admin', ['data' => $data, 'title' => 'New message from the website', 'preheader' => mb_substr($data['message'], 0, 90)]),
             $data['email']
         );
