@@ -384,18 +384,25 @@ function ai_seo_rules(): string
 {
     $short = setting('store_short_name');
     return <<<TXT
-You are the senior SEO copywriter of {$short}, a cake shop in Canberra, Australia. You write cake pages that rank on Google for local searches, read well in AI answers (ChatGPT, Gemini, Perplexity) and turn visitors into orders.
+You are the senior SEO copywriter of {$short}, a cake shop in Canberra, Australia. You write cake pages that rank on Google for local buying searches, are quoted in AI answers (ChatGPT, Gemini, Perplexity, Copilot) and turn visitors into orders.
+
+How you work:
+1. Search intent: the reader wants to buy this cake in Canberra (pickup or delivery). Write for that person first, Google second.
+2. Keywords: KEYWORD RESEARCH lists what people really type into Google for this cake, most searched first. Pick the focus keyword from it, then use 3 to 5 of the other phrases naturally in the text, headings and search words. Never use a phrase that names another city, another shop or a recipe.
+3. Trust (E-E-A-T): show real experience with facts from the profile and facts only: made fresh in our own kitchen, how long we have been baking, 100% Halal, real sizes and servings, how to order.
+4. Semantic depth: name the real parts of the cake (sponge, cream, fruit, chocolate, texture, finish) and the occasions it suits, so Google and AI assistants understand the page fully.
+5. Easy to read: short paragraphs, clear headings, a list, one clear call to action. Each cake page is unique: never reuse sentences from the style examples.
 
 Rules:
 - Australian English (flavour, colour, personalise, favourite). Warm, clear and specific. No hype words such as "delve", "elevate", "indulge", "unleash", "tantalising", "symphony" or "look no further".
 - Only use facts from SHOP PROFILE, SHOP FACTS, CAKE DETAILS and NOTES. Never invent ingredients, allergens, awards, prices, sizes, delivery areas, discounts or reviews. When a detail is unknown, leave it out. Do not write prices: they change.
-- focus_keyword: what a Canberra customer types into Google for this cake. 2 to 5 words, lowercase, built from the words of the cake's web address plus "canberra" (for example "red velvet cake canberra").
+- focus_keyword: 2 to 5 words, lowercase. The most searched phrase in KEYWORD RESEARCH that names this cake and contains "canberra"; when there is none, the cake name plus "canberra" (for example "red velvet cake canberra"). Never "near me" and never another city.
 - meta_title: 45 to 60 characters. Start with the focus keyword in Title Case, then " | {$short}" when it fits.
-- meta_description: 130 to 155 characters. Use the focus keyword once, one real selling point (taste, sizes or servings, 100% Halal, made fresh) and a call to action such as "Order online for pickup or delivery."
+- meta_description: 130 to 155 characters. The focus keyword once near the start, one real selling point (taste, sizes or servings, 100% Halal, made fresh) and a call to action such as "Order online for pickup or delivery."
 - short_description: one appetising sentence of 80 to 160 characters. Plain text.
-- description: HTML using only <p>, <h3>, <ul>, <li>, <strong> and <a>. 200 to 350 words. Use the focus keyword in the first two sentences and once more later, never stuffed. Sections: what the cake is (taste, texture, layers, finish), sizes and servings (only the given ones), an <h3> "Perfect for" list of occasions, and an <h3> about pickup and delivery in Canberra. Add at most two links, only to addresses listed under LINKS, with natural link text. You may use these placeholders, which the website fills in: {store_phone}, {store_address}, {min_lead_hours} (as "{min_lead_hours} hours").
-- search_words: 6 to 10 lowercase phrases people search for, comma separated: other names, flavours, occasions and "canberra" variants (for example "chocolate birthday cake canberra").
-- image_alt: 8 to 15 words describing what the main photo of this cake most likely shows. Do not start with "image of" or "photo of".
+- description: HTML using only <p>, <h3>, <ul>, <li>, <strong> and <a>. 250 to 400 words. The focus keyword in the first sentence and once or twice more, never stuffed (at most about 1 in 100 words). Sections: what the cake is (taste, texture, layers, finish), sizes and servings (only the given ones), an <h3> "Perfect for" list of occasions, and an <h3> about pickup and delivery in Canberra that includes a researched phrase such as "... near me" or "... delivery" in natural words. When people search a question about this cake, answer it in one plain sentence. End with a short call to action. Add at most two links, only to addresses listed under LINKS, with natural link text. You may use these placeholders, which the website fills in: {store_phone}, {store_address}, {min_lead_hours} (as "{min_lead_hours} hours").
+- search_words: 6 to 10 lowercase phrases, comma separated: first the matching KEYWORD RESEARCH phrases, then other names, flavours, occasions and "canberra" variants (for example "chocolate birthday cake canberra"). No other cities, shops or recipe searches.
+- image_alt: 8 to 15 words describing what the main photo of this cake most likely shows, with the cake name. Do not start with "image of" or "photo of".
 
 Answer with one JSON object only, no other text, with exactly these keys: focus_keyword, meta_title, meta_description, short_description, description, search_words, image_alt.
 TXT;
@@ -473,22 +480,29 @@ function ai_clean_fields(array $raw, array $links): array
 }
 
 /**
- * Writes the SEO fields for a cake. $p holds what is known (name, slug, category_id,
- * short_description, description, focus_keyword, is_enquiry, id); $sizes rows with label and
- * servings; $options names; $notes what the owner typed for the AI.
- * Returns the fields plus 'service' (which AI wrote it) and 'failed' (services that did not).
+ * Writes the SEO fields for a cake, or with $only just that one field (the AI button beside each
+ * field). $p holds what is known (name, slug, category_id, the current SEO text, is_enquiry, id);
+ * $sizes rows with label and servings; $options names; $notes what the owner typed for the AI.
+ * Real Google searches for the cake (keyword_ideas()) are part of the question.
+ * Returns the fields plus 'service' (which AI wrote it), 'tokens', 'keywords' (the searches it
+ * was given) and 'failed' (services that did not answer).
  */
-function ai_write_product(array $p, array $sizes, array $options, string $notes = ''): array
+function ai_write_product(array $p, array $sizes, array $options, string $notes = '', ?string $only = null): array
 {
     $name = trim((string) ($p['name'] ?? ''));
     if ($name === '') {
         throw new RuntimeException('Type the cake name first.');
     }
+    if ($only !== null && !in_array($only, AI_PRODUCT_FIELDS, true)) {
+        throw new RuntimeException('Unknown field.');
+    }
     $categoryId = (int) ($p['category_id'] ?? 0) ?: null;
     $category = $categoryId ? (string) db_value('SELECT name FROM categories WHERE id = ?', [$categoryId]) : '';
     $links = ai_product_links($categoryId, (int) ($p['id'] ?? 0) ?: null);
     $sizeLines = array_map(static fn ($s) => '- ' . trim((string) $s['label']) . (trim((string) ($s['servings'] ?? '')) !== '' ? ' (' . trim((string) $s['servings']) . ')' : ''), $sizes);
+    $keywords = array_column(keyword_ideas($name, $category), 'phrase');
 
+    $current = static fn (string $key): string => trim((string) ($p[$key] ?? ''));
     $details = implode("\n", array_filter([
         'Name: ' . $name,
         'Web address: ' . url('cakes/' . (($p['slug'] ?? '') ?: slugify($name))),
@@ -496,21 +510,36 @@ function ai_write_product(array $p, array $sizes, array $options, string $notes 
         !empty($p['is_enquiry']) ? 'Price on request: customers ask for a quote; no fixed sizes.' : null,
         $sizeLines ? "Sizes:\n" . implode("\n", $sizeLines) : null,
         $options ? 'Options customers can add: ' . implode(', ', $options) : null,
-        trim((string) ($p['focus_keyword'] ?? '')) !== '' ? 'Current focus keyword: ' . $p['focus_keyword'] : null,
-        trim((string) ($p['short_description'] ?? '')) !== '' ? 'Current short description: ' . $p['short_description'] : null,
-        trim((string) ($p['description'] ?? '')) !== '' ? 'Current description (keep its facts, improve the writing): ' . str_limit(content_text((string) $p['description']), 2500) : null,
+        $current('focus_keyword') !== '' ? 'Current focus keyword: ' . $current('focus_keyword') : null,
+        $current('meta_title') !== '' ? 'Current page title: ' . $current('meta_title') : null,
+        $current('meta_description') !== '' ? 'Current search description: ' . $current('meta_description') : null,
+        $current('short_description') !== '' ? 'Current short description: ' . $current('short_description') : null,
+        $current('search_words') !== '' ? 'Current search words: ' . $current('search_words') : null,
+        $current('image_alt') !== '' ? 'Current photo text: ' . $current('image_alt') : null,
+        $current('description') !== '' ? 'Current description (keep its facts, improve the writing): ' . str_limit(content_text($current('description')), 2500) : null,
     ]));
     $profile = trim(setting('ai_shop_profile'));
     $user = "SHOP PROFILE (written by the owner):\n" . ($profile !== '' ? $profile : '(none yet)')
         . "\n\nSHOP FACTS (from the website):\n" . ai_shop_facts()
+        . "\n\nKEYWORD RESEARCH (real Google searches in Australia, most searched first):\n" . ($keywords ? '- ' . implode("\n- ", $keywords) : '(not available: use the cake name plus "canberra")')
         . "\n\nSTYLE EXAMPLES (our own pages):\n" . (ai_style_examples($categoryId, (int) ($p['id'] ?? 0) ?: null) ?: '(none)')
         . "\n\nLINKS:\n" . implode("\n", array_map(static fn ($u, $l) => '- ' . $u . ' (' . $l . ')', array_keys($links), $links))
         . "\n\nCAKE DETAILS:\n" . $details
         . "\n\nNOTES FROM THE SHOP ABOUT THIS CAKE:\n" . (trim($notes) !== '' ? trim($notes) : '(none)');
+    if ($only !== null) {
+        $user .= "\n\nWRITE ONLY: {$only}. Follow its rule above and fit the current text of the other fields. Answer with one JSON object with exactly one key: {$only}.";
+    }
 
-    $answer = ai_chat([['role' => 'system', 'content' => ai_seo_rules()], ['role' => 'user', 'content' => $user]], 4000, 0.6,
-        static fn ($text) => ($d = ai_json($text)) !== null && trim((string) ($d['description'] ?? '')) !== '' && trim((string) ($d['meta_title'] ?? '')) !== '');
-    return ai_clean_fields(ai_json($answer['text']), $links) + ['service' => $answer['service'] . ' (' . $answer['model'] . ')', 'tokens' => $answer['tokens'], 'failed' => $answer['failed']];
+    $accept = $only !== null
+        ? static fn ($text) => ($d = ai_json($text)) !== null && trim(is_array($d[$only] ?? null) ? implode(',', $d[$only]) : (string) ($d[$only] ?? '')) !== ''
+        : static fn ($text) => ($d = ai_json($text)) !== null && trim((string) ($d['description'] ?? '')) !== '' && trim((string) ($d['meta_title'] ?? '')) !== '';
+    $answer = ai_chat([['role' => 'system', 'content' => ai_seo_rules()], ['role' => 'user', 'content' => $user]],
+        $only === null ? 4000 : ($only === 'description' ? 3000 : 1200), 0.6, $accept);
+    $fields = ai_clean_fields(ai_json($answer['text']), $links);
+    if ($only !== null) {
+        $fields = [$only => $fields[$only]];
+    }
+    return $fields + ['service' => $answer['service'] . ' (' . $answer['model'] . ')', 'tokens' => $answer['tokens'], 'keywords' => $keywords, 'failed' => $answer['failed']];
 }
 
 /**

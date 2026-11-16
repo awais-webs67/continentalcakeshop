@@ -33,8 +33,8 @@ $sizesForSeo = array_values(array_filter($sizeRows, static fn ($r) => ($r['label
                     </label>
                     <label class="field"><span>Web address <small>(slug)</small></span><input class="input" name="slug" value="<?= e($product['slug']) ?>" data-slug-target placeholder="made from the name"></label>
                     <?= field_error($errors, 'category_id') ?>
-                    <label class="field span-2"><span>Short description <small>shown under the name</small></span><input class="input" name="short_description" maxlength="255" value="<?= e((string) $product['short_description']) ?>"></label>
-                    <div class="field span-2"><span class="label">Full description <small>optional, shown in "About this cake"</small></span><textarea class="input" name="description" rows="4" data-rich-editor="simple"><?= e((string) $product['description']) ?></textarea></div>
+                    <div class="field span-2"><?= ai_field_head('short_description', 'Short description', 'shown under the name') ?><input class="input" id="f-short_description" name="short_description" maxlength="255" value="<?= e((string) $product['short_description']) ?>"></div>
+                    <div class="field span-2"><?= ai_field_head('description', 'Full description', 'optional, shown in "About this cake"') ?><textarea class="input" id="f-description" name="description" rows="4" data-rich-editor="simple"><?= e((string) $product['description']) ?></textarea></div>
                 </div>
             </section>
 
@@ -116,19 +116,23 @@ $sizesForSeo = array_values(array_filter($sizeRows, static fn ($r) => ($r['label
                             <p class="hint" style="margin:0">Add a free AI service first<?= $admin['role'] === 'owner' ? ' in <a href="' . e(admin_url('ai-seo')) . '">AI SEO agent</a>' : ' (ask the owner: Admin > AI SEO agent)' ?>.</p>
                         <?php endif; ?>
                     </div>
-                    <label class="field"><span>Focus keyword <small>what people type into Google, e.g. "red velvet cake canberra"</small></span>
-                        <input class="input" name="focus_keyword" maxlength="80" value="<?= e((string) ($product['focus_keyword'] ?? '')) ?>" placeholder="e.g. <?= e(mb_strtolower($product['name'] !== '' ? $product['name'] : 'chocolate cake')) ?> canberra" data-seo-keyword></label>
-                    <label class="field"><span>Other search words <small>comma separated, e.g. chocolate cherry cake, black forest gateau. Empty = filled in automatically</small></span>
-                        <input class="input" name="search_words" maxlength="255" value="<?= e((string) ($product['search_words'] ?? '')) ?>" placeholder="<?= e($product['name'] !== '' ? product_default_search_words((string) $product['name'], (string) (array_column($categories, 'name', 'id')[$product['category_id']] ?? ''), (string) ($product['focus_keyword'] ?? '')) : 'e.g. chocolate cherry cake, black forest gateau') ?>"></label>
+                    <div class="field"><?= ai_field_head('focus_keyword', 'Focus keyword', 'what people type into Google, e.g. "red velvet cake canberra"') ?>
+                        <input class="input" id="f-focus_keyword" name="focus_keyword" maxlength="80" value="<?= e((string) ($product['focus_keyword'] ?? '')) ?>" placeholder="e.g. <?= e(mb_strtolower($product['name'] !== '' ? $product['name'] : 'chocolate cake')) ?> canberra" data-seo-keyword>
+                        <div class="kw-ideas" data-kw-ideas data-url="<?= e(admin_url('products/ai')) ?>">
+                            <button type="button" class="link-btn kw-ideas__load" data-kw-load><?= icon('search', '', 14) ?> Keyword ideas from Google</button>
+                            <div class="kw-ideas__list" data-kw-list hidden></div>
+                        </div></div>
+                    <div class="field"><?= ai_field_head('search_words', 'Other search words', 'comma separated, e.g. chocolate cherry cake, black forest gateau. Empty = filled in automatically') ?>
+                        <input class="input" id="f-search_words" name="search_words" maxlength="255" value="<?= e((string) ($product['search_words'] ?? '')) ?>" placeholder="<?= e($product['name'] !== '' ? product_default_search_words((string) $product['name'], (string) (array_column($categories, 'name', 'id')[$product['category_id']] ?? ''), (string) ($product['focus_keyword'] ?? '')) : 'e.g. chocolate cherry cake, black forest gateau') ?>"></div>
                     <div class="serp serp--live" aria-label="Preview of the Google result">
                         <span class="serp__url" data-seo-url><?= e(url('cakes/' . ($product['slug'] ?: 'your-cake'))) ?></span>
                         <span class="serp__title" data-seo-title-preview></span>
                         <span class="serp__desc" data-seo-desc-preview></span>
                     </div>
-                    <label class="field"><span>Page title <small>leave empty for an automatic title</small></span>
-                        <input class="input" name="meta_title" maxlength="160" value="<?= e((string) $product['meta_title']) ?>" data-count data-seo-title data-patterns="<?= e(json_encode(product_title_patterns())) ?>"></label>
-                    <label class="field"><span>Search description <small>120 to 160 characters</small></span>
-                        <textarea class="input" name="meta_description" rows="3" maxlength="255" data-count data-seo-desc data-default="<?= e(product_default_description(['name' => '__NAME__', 'is_enquiry' => $product['is_enquiry']], $sizesForSeo)) ?>"><?= e((string) $product['meta_description']) ?></textarea></label>
+                    <div class="field"><?= ai_field_head('meta_title', 'Page title', 'leave empty for an automatic title') ?>
+                        <input class="input" id="f-meta_title" name="meta_title" maxlength="160" value="<?= e((string) $product['meta_title']) ?>" data-count data-seo-title data-patterns="<?= e(json_encode(product_title_patterns())) ?>"></div>
+                    <div class="field"><?= ai_field_head('meta_description', 'Search description', '120 to 160 characters') ?>
+                        <textarea class="input" id="f-meta_description" name="meta_description" rows="3" maxlength="255" data-count data-seo-desc data-default="<?= e(product_default_description(['name' => '__NAME__', 'is_enquiry' => $product['is_enquiry']], $sizesForSeo)) ?>"><?= e((string) $product['meta_description']) ?></textarea></div>
                     <p style="margin:-4px 0 0"><button type="button" class="btn btn--secondary btn--sm" data-seo-fill><?= icon('pen', '', 16) ?> Fill in for me</button> <span class="hint">Writes a title and description from the name, keyword and prices. Edit them as you like.</span></p>
                     <p class="hint" style="margin:0">No time? Just save: an empty keyword, photo text or short description is filled in for Google automatically (sizes, occasions, pickup and delivery). Your own text is never removed.</p>
                     <?= seo_checklist($seoChecks, true, false, 'data-seo-checks') ?>
@@ -142,7 +146,7 @@ $sizesForSeo = array_values(array_filter($sizeRows, static fn ($r) => ($r['label
                 <div class="card__body form-stack">
                     <img id="product-preview" src="<?= e(product_image_url($product['image'])) ?>" alt="" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;border:1px solid var(--line)">
                     <input class="input" type="file" name="image" accept="image/jpeg,image/png,image/webp" data-image-input="product-preview">
-                    <label class="field"><span>Describe the main photo <small>alt text for Google Images</small></span><input class="input" name="image_alt" maxlength="160" value="<?= e((string) ($product['image_alt'] ?? '')) ?>" placeholder="e.g. Red velvet cake with cream cheese frosting" data-seo-alt></label>
+                    <div class="field"><?= ai_field_head('image_alt', 'Describe the main photo', 'alt text for Google Images') ?><input class="input" id="f-image_alt" name="image_alt" maxlength="160" value="<?= e((string) ($product['image_alt'] ?? '')) ?>" placeholder="e.g. Red velvet cake with cream cheese frosting" data-seo-alt></div>
                     <p class="hint">Square photos look best. Large photos are resized and saved as WebP automatically.</p>
                     <?= field_error($errors, 'image') ?>
                     <?php if ($product['image']): ?><label class="switch"><input type="checkbox" name="remove_image" value="1"><span class="switch__track"></span><span>Remove main photo</span></label><?php endif; ?>

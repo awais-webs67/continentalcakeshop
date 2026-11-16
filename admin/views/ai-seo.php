@@ -5,12 +5,19 @@ $providers = ai_providers();
     <div><h1>AI SEO agent</h1><p>Free AI writes the SEO of your cakes, and every change on the website is sent to Google and Bing by itself.</p></div>
 </div>
 
+<?php
+$sections = [
+    'ai'        => [$tabs['ai'], 'spark', 'Free AI services, their order and models'],
+    'knowledge' => [$tabs['knowledge'], 'store', 'What the AI knows about your shop'],
+    'bulk'      => [$tabs['bulk'], 'cake', 'Write the SEO of many cakes at once'],
+    'search'    => [$tabs['search'], 'search', 'Sitemap, Google Search Console and Bing'],
+];
+?>
+<div class="section-layout">
+<?php render_admin_partial('section-nav', ['items' => $sections, 'active' => $tab, 'label' => 'AI SEO agent sections', 'link' => static fn ($key) => admin_url('ai-seo', ['tab' => $key])]); ?>
+<div class="section-main">
 <section class="card">
-    <nav class="tabs">
-        <?php foreach ($tabs as $key => $label): ?>
-            <a href="<?= e(admin_url('ai-seo', ['tab' => $key])) ?>" class="<?= $tab === $key ? 'is-active' : '' ?>"><?= e($label) ?></a>
-        <?php endforeach; ?>
-    </nav>
+    <div class="card__head section-head"><span class="section-head__icon"><?= icon($sections[$tab][1], '', 20) ?></span><div><h2><?= e($sections[$tab][0]) ?></h2><p><?= e($sections[$tab][2]) ?></p></div></div>
 
 <?php if ($tab === 'ai'): ?>
     <div class="card__body form-stack">
@@ -213,3 +220,5 @@ $providers = ai_providers();
     <?php endif; ?>
 <?php endif; ?>
 </section>
+</div>
+</div>

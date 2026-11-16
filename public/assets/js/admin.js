@@ -111,7 +111,7 @@
         var limit = /description/.test(input.name) ? 155 : 60;
         var counter = document.createElement('span');
         counter.className = 'char-count';
-        label && label.firstElementChild.appendChild(counter);
+        label && (label.querySelector('.field__head > label') || label.firstElementChild).appendChild(counter);
         var update = function () {
             counter.textContent = ' ' + input.value.length + ' / ' + limit;
             counter.classList.toggle('is-over', input.value.length > limit);
@@ -1369,15 +1369,29 @@ document.addEventListener('change', function (e) {
         var before = null;
         var refresh = function () { form.dispatchEvent(new Event('input', { bubbles: true })); };
 
-        writeBtn.addEventListener('click', function () {
-            var name = input('name');
-            if (!name || !name.value.trim()) { say(status, 'Type the cake name first.', 'bad'); name && name.focus(); return; }
+        // The form as it is now, without the photos
+        var formBody = function (action) {
             var body = new FormData(form);
             body.delete('image');
             body.delete('gallery[]');
             body.set('description', read('description'));
             body.set('ai_notes', notes ? notes.value : '');
-            body.set('action', 'write');
+            body.set('action', action);
+            return body;
+        };
+        var hasName = function (sayIn) {
+            var name = input('name');
+            if (name && name.value.trim()) return true;
+            say(sayIn, 'Type the cake name first.', 'bad');
+            name && name.focus();
+            return false;
+        };
+        var tokens = function (data) { return data.tokens ? ', ' + data.tokens.toLocaleString('en-AU') + ' tokens' : ''; };
+        var searches = function (data) { return data.keywords && data.keywords.length ? ', using ' + data.keywords.length + ' real Google searches' : ''; };
+
+        writeBtn.addEventListener('click', function () {
+            if (!hasName(status)) return;
+            var body = formBody('write');
             writer.classList.add('is-busy');
             say(status, 'Writing... this takes 5 to 30 seconds.');
             post(writer.getAttribute('data-url'), body).then(function (data) {
@@ -1390,7 +1404,7 @@ document.addEventListener('change', function (e) {
                 if (undoBtn) undoBtn.hidden = false;
                 refresh();
                 var skipped = Object.keys(data.failed || {});
-                say(status, 'Written by ' + data.service + (data.tokens ? ', ' + data.tokens.toLocaleString('en-AU') + ' tokens' : '') + (skipped.length ? ' (' + skipped.join(', ') + ' did not answer)' : '') + '. Read it, change anything you like, then press Save product.', 'ok');
+                say(status, 'Written by ' + data.service + searches(data) + tokens(data) + (skipped.length ? ' (' + skipped.join(', ') + ' did not answer)' : '') + '. Read it, change anything you like, then press Save product.', 'ok');
             });
         });
         undoBtn && undoBtn.addEventListener('click', function () {
@@ -1401,6 +1415,112 @@ document.addEventListener('change', function (e) {
             undoBtn.hidden = true;
             refresh();
             say(status, 'The text from before is back.');
+        });
+
+        // One field at a time: the "Write with AI" button beside each field
+        form.querySelectorAll('[data-ai-field]').forEach(function (btn) {
+            var field = btn.getAttribute('data-ai-field');
+            var wrap = btn.parentNode;
+            var undo = wrap.querySelector('[data-ai-field-undo]');
+            var note = document.createElement('span');
+            note.className = 'ai-mini-note';
+            note.setAttribute('role', 'status');
+            wrap.appendChild(note);
+            var old = null;
+            btn.addEventListener('click', function () {
+                if (!hasName(note)) return;
+                var body = formBody('field');
+                body.set('field', field);
+                btn.disabled = true;
+                wrap.classList.add('is-busy');
+                say(note, 'Writing...');
+                post(writer.getAttribute('data-url'), body).then(function (data) {
+                    btn.disabled = false;
+                    wrap.classList.remove('is-busy');
+                    if (!data.ok || !data.fields || typeof data.fields[field] !== 'string' || data.fields[field] === '') {
+                        say(note, data.error || 'The AI could not write it. Please try again.', 'bad');
+                        return;
+                    }
+                    old = read(field);
+                    write(field, data.fields[field]);
+                    if (written) written.value = '1';
+                    undo.hidden = false;
+                    refresh();
+                    say(note, 'Written' + searches(data) + tokens(data) + '.', 'ok');
+                });
+            });
+            undo.addEventListener('click', function () {
+                if (old === null) return;
+                write(field, old);
+                old = null;
+                undo.hidden = true;
+                refresh();
+                say(note, 'Back as it was.');
+            });
+        });
+    }
+
+    // Keyword ideas: real Google searches for the cake (works without an AI service)
+    var ideas = document.querySelector('[data-kw-ideas]');
+    if (ideas) {
+        var ideasForm = ideas.closest('form');
+        var ideasList = ideas.querySelector('[data-kw-list]');
+        var ideasBtn = ideas.querySelector('[data-kw-load]');
+        var field = function (name) { return ideasForm.querySelector('[name="' + name + '"]'); };
+        ideasBtn.addEventListener('click', function () {
+            var name = field('name');
+            ideasList.hidden = false;
+            if (!name.value.trim()) { ideasList.textContent = 'Type the cake name first.'; name.focus(); return; }
+            ideasList.textContent = 'Asking Google...';
+            ideasBtn.disabled = true;
+            var body = new FormData();
+            body.set('action', 'keywords');
+            body.set('name', name.value);
+            body.set('category_id', field('category_id') ? field('category_id').value : '');
+            post(ideas.getAttribute('data-url'), body).then(function (data) {
+                ideasBtn.disabled = false;
+                ideasList.textContent = '';
+                if (!data.ok || !data.ideas || !data.ideas.length) {
+                    ideasList.textContent = data.error || 'Google had no suggestions for this name. Try a shorter name.';
+                    return;
+                }
+                var head = document.createElement('p');
+                head.className = 'kw-ideas__hint';
+                head.textContent = 'Real Google searches, most searched first. Tap one to make it the focus keyword.';
+                ideasList.appendChild(head);
+                var chips = document.createElement('div');
+                chips.className = 'kw-ideas__chips';
+                var keyword = field('focus_keyword');
+                data.ideas.forEach(function (idea) {
+                    var chip = document.createElement('button');
+                    chip.type = 'button';
+                    chip.className = 'kw-chip' + (idea.local ? ' is-local' : '') + (idea.phrase === keyword.value.trim().toLowerCase() ? ' is-chosen' : '');
+                    chip.textContent = idea.phrase;
+                    if (idea.local) chip.title = 'Local search: people near the shop';
+                    chip.addEventListener('click', function () {
+                        keyword.value = idea.phrase;
+                        keyword.dispatchEvent(new Event('input', { bubbles: true }));
+                        chips.querySelectorAll('.kw-chip').forEach(function (c) { c.classList.toggle('is-chosen', c === chip); });
+                    });
+                    chips.appendChild(chip);
+                });
+                ideasList.appendChild(chips);
+                var add = document.createElement('button');
+                add.type = 'button';
+                add.className = 'link-btn';
+                add.textContent = 'Add these to the search words';
+                add.addEventListener('click', function () {
+                    var words = field('search_words');
+                    var have = words.value.split(',').map(function (w) { return w.trim().toLowerCase(); }).filter(Boolean);
+                    data.ideas.forEach(function (idea) {
+                        if (have.indexOf(idea.phrase) === -1 && idea.phrase !== keyword.value.trim().toLowerCase() && (have.join(', ') + ', ' + idea.phrase).length <= 255) have.push(idea.phrase);
+                    });
+                    words.value = have.join(', ');
+                    words.dispatchEvent(new Event('input', { bubbles: true }));
+                    add.textContent = 'Added';
+                });
+                ideasList.appendChild(add);
+            });
         });
     }
 

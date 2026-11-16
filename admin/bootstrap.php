@@ -335,6 +335,19 @@ function seo_checklist(array $checks, bool $collapseDone = false, bool $tipsAlwa
     return $html . '</div>';
 }
 
+/**
+ * A form field's header with its own "Write with AI" button (shown when an AI service is set up),
+ * used in the product editor. The label points at the input with id "f-{field}".
+ */
+function ai_field_head(string $field, string $label, string $hint = ''): string
+{
+    $button = ai_ready()
+        ? '<span class="ai-mini-wrap"><button type="button" class="ai-mini" data-ai-field="' . e($field) . '" aria-label="Write the ' . e(mb_strtolower($label)) . ' with AI">' . icon('spark', '', 14) . ' Write with AI</button>'
+            . '<button type="button" class="ai-mini ai-mini--undo" data-ai-field-undo hidden>Undo</button></span>'
+        : '';
+    return '<div class="field__head"><label for="f-' . e($field) . '">' . e($label) . ($hint !== '' ? ' <small>' . e($hint) . '</small>' : '') . '</label>' . $button . '</div>';
+}
+
 function time_ago(string $datetime): string
 {
     $seconds = time() - strtotime($datetime);

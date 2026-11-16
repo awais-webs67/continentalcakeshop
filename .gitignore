@@ -6,6 +6,7 @@
 /storage/logs/*
 !/storage/logs/.gitkeep
 /storage/app.key
+/storage/cache/
 # Photos added in the admin panel stay on the server (the starter photos in the repository stay
 # tracked; add a new starter photo with git add -f).
 /public/uploads/**

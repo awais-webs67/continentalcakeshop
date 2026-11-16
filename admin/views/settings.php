@@ -12,12 +12,21 @@ $mask = static function (string $key): string {
 </div>
 <?php if ($errors): ?><div class="alert alert--error"><?= e(count($errors) === 1 ? reset($errors) : 'Please fix the highlighted fields.') ?></div><?php endif; ?>
 
+<?php
+$sections = [
+    'store'    => [SETTINGS_TABS['store'], 'store', 'Name, logo and maintenance mode'],
+    'hours'    => [SETTINGS_TABS['hours'], 'clock', 'When the shops are open'],
+    'ordering' => [SETTINGS_TABS['ordering'], 'bag', 'Notice time, delivery and closed dates'],
+    'payments' => [SETTINGS_TABS['payments'], 'card', 'Card, PayID, bank and in the shop'],
+    'emails'   => [SETTINGS_TABS['emails'], 'mail', 'Customer emails and the morning email'],
+    'seo'      => [SETTINGS_TABS['seo'], 'search', 'Google title, social links and tracking'],
+];
+?>
+<div class="section-layout">
+<?php render_admin_partial('section-nav', ['items' => $sections, 'active' => $tab, 'label' => 'Settings sections', 'link' => static fn ($key) => admin_url('settings', ['tab' => $key])]); ?>
+<div class="section-main">
 <section class="card">
-    <nav class="tabs">
-        <?php foreach (SETTINGS_TABS as $key => $label): ?>
-            <a href="<?= e(admin_url('settings', ['tab' => $key])) ?>" class="<?= $tab === $key ? 'is-active' : '' ?>"><?= e($label) ?></a>
-        <?php endforeach; ?>
-    </nav>
+    <div class="card__head section-head"><span class="section-head__icon"><?= icon($sections[$tab][1], '', 20) ?></span><div><h2><?= e($sections[$tab][0]) ?></h2><p><?= e($sections[$tab][2]) ?></p></div></div>
 
 <form method="post" enctype="multipart/form-data" action="<?= e(admin_url('settings', ['tab' => $tab])) ?>" id="settings-form">
     <?= csrf_field() ?><input type="hidden" name="action" value="save">
@@ -372,3 +381,5 @@ $mask = static function (string $key): string {
     <?php endif; ?>
 </section>
 <?php endif; ?>
+</div>
+</div>

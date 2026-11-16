@@ -162,6 +162,8 @@ same('a retired model is replaced by the best chat model offered', 'openai/gpt-o
     ai_pick_model(['whisper-large-v3', 'llama-3.1-8b-instant', 'meta-llama/llama-prompt-guard-2-86m', 'openai/gpt-oss-120b', 'openai/gpt-oss-20b']));
 same('Gemini moves to its newest Flash model', 'gemini-flash-latest', ai_pick_model(['gemini-3.8-flash-tts', 'gemini-flash-latest', 'gemini-3.8-flash']));
 check('no model is picked from a list of speech models only', ai_pick_model(['whisper-large-v3', 'playai-tts']) === null);
+check('keyword ideas keep buying searches', keyword_is_useful('black forest cake canberra', ['black', 'forest']) && keyword_is_useful('red velvet cakes near me', ['velvet']));
+check('keyword ideas drop recipes, other cities and other shops', !keyword_is_useful('black forest cake recipe', ['black']) && !keyword_is_useful('black forest cake sydney', ['black']) && !keyword_is_useful('black forest cake woolworths', ['black']) && !keyword_is_useful('chocolate mud cake', ['black']));
 check('thinking models are told apart (they use more tokens)', ai_model_thinks('openai/gpt-oss-120b') && ai_model_thinks('gemini-flash-latest') && !ai_model_thinks('llama-3.3-70b-versatile') && !ai_model_thinks('gemini-3.5-flash-lite'));
 $choices = ai_model_choices([['id' => 'whisper-large-v3'], ['id' => 'llama-3.1-8b-instant'], ['id' => 'openai/gpt-oss-120b', 'context_window' => 131072], ['id' => 'meta-llama/llama-4-scout-17b-16e-instruct']]);
 same('model list: recommended, then the fewest tokens, speech hidden', 'openai/gpt-oss-120b, meta-llama/llama-4-scout-17b-16e-instruct, llama-3.1-8b-instant | 1',
