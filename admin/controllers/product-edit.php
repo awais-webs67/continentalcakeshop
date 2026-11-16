@@ -60,6 +60,7 @@ if (is_post()) {
         'meta_description'  => str_limit(input('meta_description'), 255),
         'image_alt'         => str_limit(trim(input('image_alt')), 160),
         'focus_keyword'     => str_limit(mb_strtolower(trim(input('focus_keyword'))), 80),
+        'search_words'      => clean_search_words(input('search_words')),
         'sold_out_until'    => match (input('sold_out')) {
             'today'   => date('Y-m-d'),
             'forever' => SOLD_OUT_FOREVER,
@@ -112,7 +113,7 @@ if (is_post()) {
         $categorySlug = (string) (array_column($categories, 'slug', 'id')[$data['category_id']] ?? '');
         $hasImage = $image || (!empty($product['image']) && input('remove_image') !== '1');
         $data = product_seo_autofill($data, $sizes, $categorySlug, (bool) $hasImage);
-        foreach (['short_description', 'description', 'badge', 'meta_title', 'meta_description', 'image_alt', 'focus_keyword'] as $optional) {
+        foreach (['short_description', 'description', 'badge', 'meta_title', 'meta_description', 'image_alt', 'focus_keyword', 'search_words'] as $optional) {
             $data[$optional] = $data[$optional] !== '' ? $data[$optional] : null;
         }
         if ($image) {
@@ -182,5 +183,5 @@ if (is_post()) {
     $sizeRows = $product ? db_all('SELECT * FROM product_sizes WHERE product_id = ? ORDER BY sort_order, price', [$product['id']]) : [['id' => 0, 'label' => 'Midi', 'servings' => 'Serves 8', 'price' => ''], ['id' => 0, 'label' => 'Full', 'servings' => 'Serves 14', 'price' => '']];
 }
 
-$product ??= ['name' => '', 'slug' => '', 'category_id' => 0, 'short_description' => '', 'description' => '', 'badge' => '', 'is_featured' => 0, 'is_active' => 1, 'allow_message' => 1, 'is_enquiry' => 0, 'lead_time_hours' => null, 'sold_out_until' => null, 'sort_order' => 0, 'meta_title' => '', 'meta_description' => '', 'image' => null, 'image_alt' => '', 'focus_keyword' => ''];
+$product ??= ['name' => '', 'slug' => '', 'category_id' => 0, 'short_description' => '', 'description' => '', 'badge' => '', 'is_featured' => 0, 'is_active' => 1, 'allow_message' => 1, 'is_enquiry' => 0, 'lead_time_hours' => null, 'sold_out_until' => null, 'sort_order' => 0, 'meta_title' => '', 'meta_description' => '', 'image' => null, 'image_alt' => '', 'focus_keyword' => '', 'search_words' => ''];
 admin_view('product-edit', compact('product', 'categories', 'sizeRows', 'optionRows', 'extraPhotos', 'errors', 'id') + ['title' => $id ? 'Edit ' . $product['name'] : 'Add product']);

@@ -104,6 +104,8 @@ $sizesForSeo = array_values(array_filter($sizeRows, static fn ($r) => ($r['label
                 <div class="card__body form-stack">
                     <label class="field"><span>Focus keyword <small>what people type into Google, e.g. "red velvet cake canberra"</small></span>
                         <input class="input" name="focus_keyword" maxlength="80" value="<?= e((string) ($product['focus_keyword'] ?? '')) ?>" placeholder="e.g. <?= e(mb_strtolower($product['name'] !== '' ? $product['name'] : 'chocolate cake')) ?> canberra" data-seo-keyword></label>
+                    <label class="field"><span>Other search words <small>comma separated, e.g. chocolate cherry cake, black forest gateau. Empty = filled in automatically</small></span>
+                        <input class="input" name="search_words" maxlength="255" value="<?= e((string) ($product['search_words'] ?? '')) ?>" placeholder="<?= e($product['name'] !== '' ? product_default_search_words((string) $product['name'], (string) (array_column($categories, 'name', 'id')[$product['category_id']] ?? ''), (string) ($product['focus_keyword'] ?? '')) : 'e.g. chocolate cherry cake, black forest gateau') ?>"></label>
                     <div class="serp serp--live" aria-label="Preview of the Google result">
                         <span class="serp__url" data-seo-url><?= e(url('cakes/' . ($product['slug'] ?: 'your-cake'))) ?></span>
                         <span class="serp__title" data-seo-title-preview></span>

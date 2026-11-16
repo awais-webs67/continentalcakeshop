@@ -39,6 +39,7 @@ const IMPORT_COLUMNS = [
     'meta_title'       => 'Optional page title for Google',
     'meta_description' => 'Optional description for Google',
     'focus_keyword'    => 'Optional words people search for, e.g. red velvet cake canberra',
+    'search_words'     => 'Optional other search words, comma separated (empty = automatic)',
     'image_alt'        => 'Optional description of the photo',
     'options'          => 'Optional extras ticked on the cake page, e.g. Eggless +5.00; Extra cherries +3.50',
     'extra_photos'     => 'Export only: links to the other photos (change them in the cake editor)',
@@ -90,7 +91,7 @@ function products_as_import_rows(): array
             'badge' => (string) $p['badge'], 'notice_hours' => (string) $p['lead_time_hours'], 'sort_order' => (string) $p['sort_order'],
             'image_url' => $p['image'] ? product_image_url($p['image']) : '',
             'meta_title' => (string) $p['meta_title'], 'meta_description' => (string) $p['meta_description'],
-            'focus_keyword' => (string) ($p['focus_keyword'] ?? ''), 'image_alt' => (string) ($p['image_alt'] ?? ''),
+            'focus_keyword' => (string) ($p['focus_keyword'] ?? ''), 'search_words' => (string) ($p['search_words'] ?? ''), 'image_alt' => (string) ($p['image_alt'] ?? ''),
             'options' => options_as_text(get_product_options((int) $p['id'])),
             'extra_photos' => implode(' | ', array_map(static fn ($ph) => product_image_url($ph['image']), $photos)),
             'extra_photo_alts' => implode(' | ', array_map(static fn ($ph) => (string) $ph['alt'], $photos)),
@@ -229,6 +230,7 @@ function plan_import_row(array $row, array $categories, bool $createCategories):
             'meta_title'        => str_limit($row['meta_title'] ?? '', 160) ?: null,
             'meta_description'  => str_limit($row['meta_description'] ?? '', 255) ?: null,
         ] + (array_key_exists('focus_keyword', $row) ? ['focus_keyword' => str_limit(mb_strtolower($row['focus_keyword']), 80) ?: null] : [])
+          + (array_key_exists('search_words', $row) ? ['search_words' => clean_search_words($row['search_words']) ?: null] : [])
           + (array_key_exists('image_alt', $row) ? ['image_alt' => str_limit($row['image_alt'], 160) ?: null] : []),
     ];
     if ($keepDescription) {
@@ -307,7 +309,7 @@ function apply_import_row(array $plan, bool $replaceImages, array &$categories):
     // New cakes get the same search-ready fill-in as cakes saved in the editor.
     if ($plan['action'] !== 'update') {
         $data = product_seo_autofill($data, $plan['sizes'], (string) db_value('SELECT slug FROM categories WHERE id = ?', [$data['category_id']]), !empty($data['image']));
-        foreach (['description', 'image_alt', 'focus_keyword', 'meta_title', 'meta_description'] as $field) {
+        foreach (['description', 'image_alt', 'focus_keyword', 'search_words', 'meta_title', 'meta_description'] as $field) {
             $data[$field] = ($data[$field] ?? '') !== '' ? $data[$field] : null;
         }
     }

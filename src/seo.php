@@ -3,7 +3,8 @@ declare(strict_types=1);
 
 /**
  * Normalises the $page array every public page passes to the header template.
- * Keys: title, description, canonical, image, type, noindex, schema (list of JSON-LD arrays).
+ * Keys: title, description, canonical, image, type, noindex, schema (list of JSON-LD arrays),
+ * meta (extra Open Graph tags, property => content).
  */
 function page_meta(array $page): array
 {
@@ -16,6 +17,7 @@ function page_meta(array $page): array
         'noindex'     => false,
         'robots'      => '',
         'schema'      => [],
+        'meta'        => [],
         'body_class'  => '',
     ];
 }
@@ -138,6 +140,7 @@ function product_schema(array $product, array $sizes, array $images = []): array
         'category'    => $product['category_name'],
         'brand'       => ['@type' => 'Brand', 'name' => setting('store_short_name')],
         'url'         => product_url($product),
+        'keywords'    => implode(', ', product_search_words($product)),
     ];
     if ($sizes && empty($product['is_enquiry'])) {
         $availability = product_sold_out($product) ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock';
@@ -153,13 +156,70 @@ function product_schema(array $product, array $sizes, array $images = []): array
             'itemCondition'   => 'https://schema.org/NewCondition',
             'url'             => product_url($product),
             'seller'          => ['@id' => url('#bakery')],
-        ], $sizes);
+        ] + offer_policies($product), $sizes);
         $servings = array_values(array_filter(array_map(static fn ($s) => trim((string) ($s['servings'] ?? '')), $sizes)));
         if ($servings) {
             $schema['additionalProperty'] = [['@type' => 'PropertyValue', 'name' => 'Serves', 'value' => implode(', ', $servings)]];
         }
     }
     return $schema;
+}
+
+/**
+ * Return policy and delivery for each price Google is given (it asks for both on product pages).
+ * Cakes are fresh food, so they are not taken back for a change of mind; the refund page explains
+ * what happens when something is wrong. Delivery: the fee, the postcodes and the notice needed.
+ */
+function offer_policies(array $product): array
+{
+    $extra = [];
+    if (get_page('refund-policy')) {
+        $extra['hasMerchantReturnPolicy'] = [
+            '@type'                => 'MerchantReturnPolicy',
+            'applicableCountry'    => 'AU',
+            'returnPolicyCategory' => 'https://schema.org/MerchantReturnNotPermitted',
+            'merchantReturnLink'   => url('refund-policy'),
+        ];
+    }
+    if (setting_bool('delivery_enabled')) {
+        $region = ['@type' => 'DefinedRegion', 'addressCountry' => 'AU'];
+        foreach (array_filter(preg_split('/\s*,\s*/', trim(setting('delivery_postcodes')))) as $range) {
+            [$from, $to] = array_pad(array_map('trim', explode('-', $range, 2)), 2, null);
+            if (preg_match('/^\d{4}$/', (string) $from)) {
+                $region['postalCodeRange'][] = ['postalCodeBegin' => $from, 'postalCodeEnd' => preg_match('/^\d{4}$/', (string) $to) ? $to : $from];
+            }
+        }
+        $noticeDays = (int) ceil(max(order_notice_hours('delivery'), (int) ($product['lead_time_hours'] ?? 0)) / 24);
+        $extra['shippingDetails'] = [
+            '@type'               => 'OfferShippingDetails',
+            'shippingRate'        => ['@type' => 'MonetaryAmount', 'value' => number_format(max(0, (float) setting('delivery_fee', '0')), 2, '.', ''), 'currency' => 'AUD'],
+            'shippingDestination' => $region,
+            'deliveryTime'        => [
+                '@type'        => 'ShippingDeliveryTime',
+                'handlingTime' => ['@type' => 'QuantitativeValue', 'minValue' => $noticeDays, 'maxValue' => $noticeDays, 'unitCode' => 'DAY'],
+                'transitTime'  => ['@type' => 'QuantitativeValue', 'minValue' => 0, 'maxValue' => 0, 'unitCode' => 'DAY'],
+            ],
+        ];
+    }
+    return $extra;
+}
+
+/** Extra Open Graph tags for a cake page (Facebook, Pinterest and WhatsApp read the price from them). */
+function product_meta_tags(array $product, array $sizes): array
+{
+    $tags = ['og:image:alt' => product_image_alt($product)];
+    if ($sizes && empty($product['is_enquiry'])) {
+        $tags += [
+            'product:price:amount'      => number_format(min(array_map(static fn ($s) => (float) $s['price'], $sizes)), 2, '.', ''),
+            'product:price:currency'    => 'AUD',
+            'product:availability'      => product_sold_out($product) ? 'out of stock' : 'in stock',
+            'product:condition'         => 'new',
+            'product:brand'             => setting('store_short_name'),
+            'product:retailer_item_id'  => 'CCS-' . $product['id'],
+            'product:category'          => (string) $product['category_name'],
+        ];
+    }
+    return $tags;
 }
 
 // ---------------------------------------------------------------------------
@@ -325,6 +385,40 @@ function product_default_description(array $product, array $sizes): string
         setting_bool('delivery_enabled') ? ' or delivery across Canberra' : ' in Canberra'
     );
     return mb_strlen($text) > 160 ? rtrim(mb_substr($text, 0, 157), ' ,.') . '...' : $text;
+}
+
+/**
+ * Other words people search for, used when the cake has none saved: its name, the focus keyword,
+ * "<name> canberra", "<category> canberra" and "halal cakes canberra". Same as update 030.
+ */
+function product_default_search_words(string $name, string $categoryName, string $keyword = ''): string
+{
+    $name = mb_strtolower(trim($name));
+    $words = [$name, mb_strtolower(trim($keyword)), $name . ' canberra', mb_strtolower(str_replace('&', 'and', trim($categoryName))) . ' canberra', 'halal cakes canberra'];
+    return implode(', ', array_values(array_unique(array_filter($words, static fn ($w) => $w !== '' && $w !== ' canberra'))));
+}
+
+/** A cake's search words as a list: what staff typed, else the automatic ones. */
+function product_search_words(array $product): array
+{
+    $text = trim((string) ($product['search_words'] ?? ''))
+        ?: product_default_search_words((string) $product['name'], (string) ($product['category_name'] ?? ''), (string) ($product['focus_keyword'] ?? ''));
+    return array_values(array_unique(array_filter(array_map(static fn ($w) => trim(mb_strtolower($w)), explode(',', $text)))));
+}
+
+/** Tidies typed search words: lower case, comma separated, no repeats, at most 255 characters. */
+function clean_search_words(string $text): string
+{
+    $words = array_values(array_unique(array_filter(array_map(static fn ($w) => trim((string) preg_replace('/\s+/', ' ', mb_strtolower($w))), preg_split('/[,;\n]+/', $text)))));
+    $out = '';
+    foreach ($words as $word) {
+        $next = $out === '' ? $word : $out . ', ' . $word;
+        if (mb_strlen($next) > 255) {
+            break;
+        }
+        $out = $next;
+    }
+    return $out;
 }
 
 /** Alt text of a cake's main photo: what the shop typed, or the name and shop. */
@@ -505,6 +599,11 @@ function product_seo_autofill(array $data, array $sizes, string $categorySlug, b
         $html .= $ordering;
     }
     $data['description'] = $html;
+
+    if (trim((string) ($data['search_words'] ?? '')) === '') {
+        $categoryName = (string) (db_value('SELECT name FROM categories WHERE slug = ?', [$categorySlug]) ?: '');
+        $data['search_words'] = product_default_search_words($name, $categoryName, $keyword);
+    }
 
     // The automatic title and description start with "<name> Canberra"; a different keyword needs its own.
     if (trim((string) ($data['meta_title'] ?? '')) === '' && !$has(product_default_title($data))) {

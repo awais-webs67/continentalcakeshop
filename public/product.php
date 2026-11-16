@@ -37,7 +37,9 @@ $page = [
     'canonical'   => product_url($product),
     'image'       => product_image_url($product['image']),
     'type'        => 'product',
-    'schema'      => [product_schema($product, $sizes, array_column($photos, 'image')), breadcrumb_schema($crumbs)],
+    'meta'        => product_meta_tags($product, $sizes),
+    // A cake priced on request has no price, and Google rejects product data without one.
+    'schema'      => $enquiry ? [breadcrumb_schema($crumbs)] : [product_schema($product, $sizes, array_column($photos, 'image')), breadcrumb_schema($crumbs)],
 ];
 render('header', compact('page'));
 ?>
@@ -202,19 +204,19 @@ render('header', compact('page'));
                 <div class="product-accordion">
                     <?php if ($product['description']): ?>
                         <details open>
-                            <summary>About this cake <?= icon('plus', 'faq-item__icon', 18) ?></summary>
+                            <summary><h2 class="product-accordion__title">About this <?= e($product['name']) ?></h2> <?= icon('plus', 'faq-item__icon', 18) ?></summary>
                             <div class="prose"><?= rich_text($product['description']) ?></div>
                         </details>
                     <?php endif; ?>
                     <details>
-                        <summary>Dietary and allergens <?= icon('plus', 'faq-item__icon', 18) ?></summary>
+                        <summary><h2 class="product-accordion__title">Dietary and allergens</h2> <?= icon('plus', 'faq-item__icon', 18) ?></summary>
                         <div class="prose">
                             <p>Made with 100% Halal ingredients. Gluten-free, eggless and vegan versions may be possible on request, so please call <a href="tel:<?= e(setting('store_phone_e164')) ?>"><?= e(setting('store_phone')) ?></a> before you order.</p>
                             <p>Our kitchen handles milk, eggs, wheat, soy and nuts, so we cannot guarantee any cake is free from traces. <a href="<?= e(url('allergens')) ?>">Read our allergen information</a>.</p>
                         </div>
                     </details>
                     <details>
-                        <summary><?= $deliveryOn ? 'Pickup, delivery and storage' : 'Pickup and storage' ?> <?= icon('plus', 'faq-item__icon', 18) ?></summary>
+                        <summary><h2 class="product-accordion__title"><?= $deliveryOn ? 'Pickup, delivery and storage' : 'Pickup and storage' ?></h2> <?= icon('plus', 'faq-item__icon', 18) ?></summary>
                         <div class="prose">
                             <p>Collect from <?= e(store_address_line()) ?> at the time you choose at checkout.<?= $deliveryOn ? ' For delivery, choose a date and a preferred time of day and we will email you the delivery time.' : '' ?></p>
                             <p>Carry the box flat and keep the cake in the fridge until you are ready to serve. Need to change the date? Call us as early as possible.</p>

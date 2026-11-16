@@ -505,7 +505,8 @@ document.addEventListener('input', function (e) {
     };
     var bodyText = function () {
         var editor = descArea && descArea.parentNode.querySelector('.ql-editor');
-        var html = editor ? editor.innerHTML : (descArea ? descArea.value : '');
+        // A space after each paragraph, heading and list item, so "frosting</li><h3>Red" stays two words (as content_text() in PHP).
+        var html = (editor ? editor.innerHTML : (descArea ? descArea.value : '')).replace(/<\/(p|h[1-6]|li|div|blockquote)>|<br\s*\/?>/gi, '$& ');
         // DOMParser builds an inert document: no image loads and no handlers run, whatever the text holds.
         var text = new DOMParser().parseFromString(html, 'text/html').body.textContent || '';
         return text.replace(/\s+/g, ' ').trim();

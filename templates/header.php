@@ -31,6 +31,9 @@ $current = static fn (array $item): string => $item['active'] ? ' aria-current="
 <meta property="og:url" content="<?= e($page['canonical']) ?>">
 <meta property="og:image" content="<?= e($page['image']) ?>">
 <meta property="og:locale" content="en_AU">
+<?php foreach ($page['meta'] as $property => $content): ?>
+<meta property="<?= e($property) ?>" content="<?= e($content) ?>">
+<?php endforeach; ?>
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="<?= e($page['title']) ?>">
 <meta name="twitter:description" content="<?= e($page['description']) ?>">

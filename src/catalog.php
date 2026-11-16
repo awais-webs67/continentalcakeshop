@@ -49,9 +49,9 @@ function get_products(?int $categoryId = null, string $sort = 'featured', ?strin
         $params[] = $categoryId;
     }
     if ($search !== null && $search !== '') {
-        $sql .= ' AND (p.name LIKE ? OR p.short_description LIKE ?)';
+        $sql .= ' AND (p.name LIKE ? OR p.short_description LIKE ? OR p.search_words LIKE ?)';
         $like = '%' . str_replace(['%', '_'], ['\%', '\_'], $search) . '%';
-        array_push($params, $like, $like);
+        array_push($params, $like, $like, $like);
     }
     $sql .= ' GROUP BY p.id ORDER BY ' . match ($sort) {
         'price-asc'  => 'price_from IS NULL, price_from ASC, p.name',
