@@ -72,7 +72,12 @@ function local_business_schema(): array
         ),
         'openingHoursSpecification' => $hours,
         'hasMap'     => store_maps_url(),
+        // What the shop is known for, so search engines and AI assistants connect it with these searches.
+        'knowsAbout' => array_values(array_unique(array_merge(['Custom cakes', 'Birthday cakes', 'Wedding cakes', 'Halal cakes'], array_column(get_categories(), 'name')))),
     ];
+    if (setting('seo_home_description') !== '') {
+        $schema['description'] = setting('seo_home_description');
+    }
     if (shop_email() !== '') {
         $schema['email'] = shop_email(); // only when the shop shows its email on the website
     }

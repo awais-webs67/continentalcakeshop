@@ -11,8 +11,10 @@ $page = [
     'schema'      => [[
         '@context' => 'https://schema.org',
         '@type'    => 'WebSite',
-        'name'     => setting('store_name'),
-        'url'      => url(),
+        'name'       => setting('store_name'),
+        'url'        => url(),
+        'inLanguage' => 'en-AU',
+        'publisher'  => ['@id' => url('#bakery')],
     ]],
 ];
 render('header', compact('page'));

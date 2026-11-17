@@ -336,6 +336,15 @@ function llms_txt(): string
     foreach (db_all("SELECT slug, title FROM pages WHERE is_active = 1 ORDER BY type, title") as $page) {
         $lines[] = '- [' . $page['title'] . '](' . url($page['slug']) . ')';
     }
+    // Short answers to common questions, the way an assistant would quote them.
+    $faqs = get_faqs();
+    if ($faqs) {
+        $lines[] = '';
+        $lines[] = '## Questions and answers';
+        foreach ($faqs as $faq) {
+            $lines[] = '- ' . trim($faq['question']) . ' ' . str_limit(content_text((string) $faq['answer']), 400);
+        }
+    }
     $byCategory = [];
     foreach (get_products() as $product) {
         $byCategory[$product['category_id']][] = $product;

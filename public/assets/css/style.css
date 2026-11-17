@@ -1567,6 +1567,8 @@ body.promo-open { overflow: hidden; }
 .landing-gallery__grid img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: var(--radius); }
 @media (min-width: 700px) { .landing-gallery__grid { grid-template-columns: repeat(4, 1fr); } }
 .landing-gallery__more { margin: 16px 0 0; text-align: center; }
+.landing-faqs .section-title { margin-bottom: 8px; }
+.landing-faqs__more { margin: 16px 0 0; }
 .landing-cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 24px; border-radius: var(--radius-lg); background: var(--brand-softer); border: 1px solid var(--brand-line); }
 .landing-cta h2 { margin: 0 0 6px; font-size: 22px; }
 .landing-cta p { margin: 0; color: var(--muted); }

@@ -25,6 +25,7 @@ $photos = $landing && !empty($content['show_gallery']) ? gallery_for_occasion($c
 if ($photos) {
     $page['image'] = product_image_url($photos[0]['image']);
 }
+$faqs = $landing ? landing_faqs() : [];
 $quoteUrl = url('custom-cakes') . (($content['occasion'] ?? '') !== '' ? '?occasion=' . rawurlencode($content['occasion']) : '') . '#quote';
 render('header', compact('page'));
 ?>
@@ -58,6 +59,23 @@ render('header', compact('page'));
             <?php endforeach; ?>
         </div>
         <p class="landing-gallery__more"><a class="link-arrow" href="<?= e(url('custom-cakes')) ?>">See more custom cakes <?= icon('arrow', '', 18) ?></a></p>
+    </div>
+</section>
+<?php endif; ?>
+
+<?php if ($faqs): ?>
+<section class="section section--compact landing-faqs">
+    <div class="container container--narrow">
+        <h2 class="section-title">Questions people ask</h2>
+        <div class="faq-list">
+            <?php foreach ($faqs as $faq): ?>
+                <details class="faq-item">
+                    <summary><?= e($faq['question']) ?> <?= icon('plus', 'faq-item__icon', 18) ?></summary>
+                    <div class="faq-item__answer prose"><?= render_content($faq['answer']) ?></div>
+                </details>
+            <?php endforeach; ?>
+        </div>
+        <p class="landing-faqs__more"><a class="link-arrow" href="<?= e(url('faq')) ?>">All questions and answers <?= icon('arrow', '', 18) ?></a></p>
     </div>
 </section>
 <?php endif; ?>

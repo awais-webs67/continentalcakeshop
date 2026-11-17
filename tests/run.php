@@ -195,6 +195,14 @@ $claims = json_decode(base64_decode(strtr($jwt[1], '-_', '+/')), true);
 check('Google token request is signed with the key', openssl_verify($jwt[0] . '.' . $jwt[1], base64_decode(strtr($jwt[2], '-_', '+/') . str_repeat('=', (4 - strlen($jwt[2]) % 4) % 4)), openssl_pkey_get_details($key)['key'], OPENSSL_ALGO_SHA256) === 1);
 same('Google token request asks for Search Console only', 'https://www.googleapis.com/auth/webmasters', $claims['scope'] ?? null);
 
+// --- Custom cake photos and answers for search ------------------------------------------------
+check('a gallery photo outside the uploads folder is never copied', copy_gallery_photo(['id' => 1, 'image' => '../config/config.php']) === null);
+$photos = custom_request_photos(['gallery_image' => 'custom/2026/11/gallery-1-a.webp', 'reference_image' => 'custom/2026/11/b.heic']);
+check('request photos: the gallery cake first, a HEIC file as a link', count($photos) === 2 && $photos[0]['label'] === 'Chosen from your gallery' && $photos[0]['is_image'] && !$photos[1]['is_image']);
+$order = array_map(static fn ($f) => $f['category'], landing_faqs(20));
+check('landing page questions: custom cakes first, no payment or cancellation answers', ($order[0] ?? '') === 'Custom cakes' && !array_intersect($order, ['Payment', 'Cancellations']));
+check('llms.txt has the answers', str_contains(llms_txt(), '## Questions and answers'));
+
 echo "\n\n{$passed} passed";
 if ($failed) {
     echo ', ' . count($failed) . " failed:\n - " . implode("\n - ", $failed) . "\n";

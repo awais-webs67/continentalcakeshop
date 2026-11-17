@@ -34,6 +34,19 @@ function get_faqs(): array
     }
 }
 
+/**
+ * Common questions for a landing page (Birthday cakes Canberra...): custom cake, dietary and
+ * ordering answers from Admin > FAQs, so the page answers what people ask (and AI assistants
+ * can quote it). The FAQ page keeps the FAQPage markup; a question is marked up once per site.
+ */
+function landing_faqs(int $limit = 5): array
+{
+    $order = ['Custom cakes' => 0, 'Dietary needs' => 1, 'Ordering' => 2];
+    $faqs = array_values(array_filter(get_faqs(), static fn ($f) => isset($order[$f['category']])));
+    usort($faqs, static fn ($a, $b) => $order[$a['category']] <=> $order[$b['category']]);
+    return array_slice($faqs, 0, $limit);
+}
+
 /** Landing pages (Birthday cakes Canberra...), for the footer links and the sitemap. */
 function get_landing_pages(): array
 {
