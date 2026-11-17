@@ -58,13 +58,6 @@ function current_path(): string
     return '/' . trim($path, '/');
 }
 
-function is_active_path(string $path): bool
-{
-    $current = current_path();
-    $path = '/' . trim($path, '/');
-    return $path === '/' ? $current === '/' : str_starts_with($current, $path);
-}
-
 // ---------------------------------------------------------------------------
 // CSRF protection
 // ---------------------------------------------------------------------------

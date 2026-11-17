@@ -252,7 +252,7 @@ All emails use one branded layout with the logo: `templates/emails/layout.php`. 
 | `order-update` | Staff changed the status, delivery time or payment |
 | `custom-request-customer`, `custom-request-admin` | Custom cake request sent |
 | `custom-quote` | Staff sent a quote |
-| `contact-customer`, `contact-admin` | Contact form |
+| `contact-customer` | Contact form (the shop is told through the message alert) |
 | `message-customer`, `message-admin` | New message in a conversation |
 | `password-reset` | Customer or staff password reset |
 | `order-reminder` | The day before pickup or delivery |

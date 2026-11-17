@@ -103,11 +103,6 @@ function admin_account_label(array $admin): string
     return $label;
 }
 
-function admin_is_manager(array $admin): bool
-{
-    return admin_account_type($admin) === 'manager';
-}
-
 /** True for a staff account that belongs to one branch. */
 function admin_branch_locked(?array $admin = null): bool
 {

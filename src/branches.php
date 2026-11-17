@@ -337,16 +337,6 @@ function remember_branch(?int $id): void
     }
 }
 
-/** Distance in km between two points (for "nearest to you"). */
-function distance_km(float $lat1, float $lng1, float $lat2, float $lng2): float
-{
-    $r = 6371;
-    $dLat = deg2rad($lat2 - $lat1);
-    $dLng = deg2rad($lng2 - $lng1);
-    $a = sin($dLat / 2) ** 2 + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLng / 2) ** 2;
-    return $r * 2 * atan2(sqrt($a), sqrt(1 - $a));
-}
-
 /** "Greenway", or "Greenway and Wright" with two shops: for page text and descriptions. */
 function shop_places(): string
 {
@@ -354,16 +344,3 @@ function shop_places(): string
     return $places ? implode(' and ', $places) : setting_raw('store_suburb', 'Canberra');
 }
 
-/** Branch data for the checkout and forms: what the cards and the "nearest" script need. */
-function branch_choices(): array
-{
-    return array_map(static fn ($b) => [
-        'id'      => (int) $b['id'],
-        'name'    => $b['name'],
-        'address' => branch_address_line($b),
-        'lat'     => is_numeric($b['latitude']) ? (float) $b['latitude'] : null,
-        'lng'     => is_numeric($b['longitude']) ? (float) $b['longitude'] : null,
-        'maps'    => branch_maps_url($b),
-        'phone'   => branch_phone($b),
-    ], active_branches());
-}

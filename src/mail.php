@@ -331,20 +331,6 @@ function send_contact_confirmation(array $thread, string $message): void
     ));
 }
 
-function send_contact_notification(array $data): void
-{
-    $notify = shop_alert_address(isset($data['branch_id']) ? (int) $data['branch_id'] : null, (string) $data['email']);
-    if ($notify !== '') {
-        send_branch_mail(
-            isset($data['branch_id']) ? (int) $data['branch_id'] : null,
-            $notify,
-            alert_subject($data['name'], 'Website message'),
-            render_email('contact-admin', ['data' => $data, 'title' => 'New message from the website', 'preheader' => mb_substr($data['message'], 0, 90)]),
-            $data['email']
-        );
-    }
-}
-
 // ---------------------------------------------------------------------------
 // Why emails may land in spam (Admin > System check and each shop's Email tab)
 // ---------------------------------------------------------------------------

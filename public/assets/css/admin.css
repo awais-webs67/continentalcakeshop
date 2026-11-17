@@ -376,6 +376,8 @@ textarea.input--code { min-height: 380px; font-family: ui-monospace, SFMono-Regu
 
 .check-list { margin: 0; padding: 0; list-style: none; }
 .check-list li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.check-list li > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.check-list li > .badge { flex: none; align-self: flex-start; }
 .check-list li:last-child { border-bottom: 0; }
 
 /* ---------- Toasts and alerts ---------- */
