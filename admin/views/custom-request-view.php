@@ -1,4 +1,4 @@
-<?php /** @var array $request @var bool $isImage @var string $defaultMessage */ ?>
+<?php /** @var array $request @var array $photos @var string $defaultMessage */ ?>
 <a class="crumb" href="<?= e(admin_url('custom-requests')) ?>"><?= icon('arrow', '', 14) ?> Custom requests</a>
 <div class="page-head">
     <div><h1><?= e($request['occasion']) ?> cake for <?= e($request['name']) ?></h1>
@@ -22,14 +22,7 @@
                     <?php if ($request['budget']): ?><dt>Budget</dt><dd><?= e($request['budget']) ?></dd><?php endif; ?>
                 </dl>
                 <div class="note-box" style="margin-top:16px"><?= nl2br(e($request['details'])) ?></div>
-                <?php if ($request['reference_image']): ?>
-                    <p class="label" style="margin:18px 0 8px">Reference photo</p>
-                    <?php if ($isImage): ?>
-                        <a class="proof" href="<?= e(admin_url('file', ['path' => $request['reference_image']])) ?>" target="_blank"><img src="<?= e(admin_url('file', ['path' => $request['reference_image']])) ?>" alt="Reference photo"></a>
-                    <?php else: ?>
-                        <a class="proof proof--file" href="<?= e(admin_url('file', ['path' => $request['reference_image']])) ?>" target="_blank">Open the uploaded file</a>
-                    <?php endif; ?>
-                <?php endif; ?>
+                <?php require BASE_PATH . '/admin/views/partials/request-photos.php'; ?>
             </div>
         </section>
 

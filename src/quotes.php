@@ -129,3 +129,38 @@ function confirm_request_as_order(array $request, array $opts, ?int $adminId): a
     }
     return $order;
 }
+
+/**
+ * Keeps a copy of the gallery photo a customer chose ("Order one like this") with their request,
+ * in storage/uploads/custom, so it stays even if the photo later leaves the gallery.
+ * Returns the path inside storage/uploads, or null.
+ */
+function copy_gallery_photo(array $photo): ?string
+{
+    $image = (string) $photo['image'];
+    $source = BASE_PATH . '/public/uploads/' . ltrim($image, '/');
+    $ext = strtolower(pathinfo($image, PATHINFO_EXTENSION));
+    if (str_contains($image, '..') || !in_array($ext, UPLOAD_IMAGE_TYPES, true) || !is_file($source)) {
+        return null;
+    }
+    $folder = ASYNC_UPLOADS['custom']['folder'] . '/' . date('Y/m');
+    $dir = STORAGE_PATH . '/uploads/' . $folder;
+    if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) {
+        return null;
+    }
+    $path = $folder . '/gallery-' . (int) $photo['id'] . '-' . bin2hex(random_bytes(6)) . '.' . $ext;
+    return @copy($source, STORAGE_PATH . '/uploads/' . $path) ? $path : null;
+}
+
+/** The photos of a custom request: the gallery cake the customer chose and the photo they sent. */
+function custom_request_photos(array $request): array
+{
+    $photos = [];
+    foreach (['gallery_image' => 'Chosen from your gallery', 'reference_image' => 'Photo they sent'] as $key => $label) {
+        $path = (string) ($request[$key] ?? '');
+        if ($path !== '' && !str_contains($path, '..')) {
+            $photos[] = ['path' => $path, 'label' => $label, 'is_image' => (bool) preg_match('/\.(jpe?g|png|webp|gif)$/i', $path)];
+        }
+    }
+    return $photos;
+}

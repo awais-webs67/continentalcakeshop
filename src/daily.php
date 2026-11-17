@@ -275,7 +275,8 @@ function remove_unused_uploads(DateTimeImmutable $now, int $minAgeSeconds = 2 * 
 {
     $used = array_flip(array_merge(
         array_column(db_all("SELECT payment_proof AS p FROM orders WHERE payment_proof IS NOT NULL AND payment_proof <> ''"), 'p'),
-        array_column(db_all("SELECT reference_image AS p FROM custom_requests WHERE reference_image IS NOT NULL AND reference_image <> ''"), 'p')
+        array_column(db_all("SELECT reference_image AS p FROM custom_requests WHERE reference_image IS NOT NULL AND reference_image <> ''"), 'p'),
+        array_column(db_all("SELECT gallery_image AS p FROM custom_requests WHERE gallery_image IS NOT NULL AND gallery_image <> ''"), 'p')
     ));
     $cutoff = $now->getTimestamp() - $minAgeSeconds;
     $deleted = 0;

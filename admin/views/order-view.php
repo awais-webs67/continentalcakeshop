@@ -1,4 +1,4 @@
-<?php /** @var array $order @var array $items @var array $events @var array $payments @var ?array $customer @var bool $proofIsImage @var bool $hasStripePayment @var int $orderCount */
+<?php /** @var array $order @var array $items @var array $events @var array $payments @var ?array $customer @var bool $proofIsImage @var bool $hasStripePayment @var int $orderCount @var ?array $customRequest @var array $photos */
 $id = (int) $order['id'];
 $delivery = is_delivery($order);
 $balance = order_balance($order);
@@ -121,6 +121,13 @@ $quantity = array_sum(array_map(static fn ($i) => (int) $i['quantity'], $items))
                 </tbody>
             </table>
             <?php if ($order['notes']): ?><p class="ov-note"><strong>Customer note</strong><?= nl2br(e($order['notes'])) ?></p><?php endif; ?>
+            <?php if ($customRequest): ?>
+                <div class="ov-custom">
+                    <p class="ov-custom__head"><strong>Custom cake</strong><a href="<?= e(admin_url('custom-requests/view', ['id' => $customRequest['id']])) ?>">Open the request <?= icon('arrow', '', 14) ?></a></p>
+                    <p class="ov-custom__text"><?= nl2br(e(str_limit((string) $customRequest['details'], 600))) ?></p>
+                    <?php require BASE_PATH . '/admin/views/partials/request-photos.php'; ?>
+                </div>
+            <?php endif; ?>
             <?php if (!$cancelled): ?>
             <div class="ov-panel ov-panel--inline" id="ov-edit-items" hidden>
                 <form method="post" class="form-stack">

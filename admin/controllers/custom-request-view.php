@@ -102,8 +102,8 @@ if (is_post()) {
         flash('success', 'Notes saved.');
     } elseif ($action === 'delete') {
         db_run('DELETE FROM custom_requests WHERE id = ?', [$request['id']]);
-        if ($request['reference_image'] && !str_contains($request['reference_image'], '..')) {
-            @unlink(STORAGE_PATH . '/uploads/' . $request['reference_image']);
+        foreach (custom_request_photos($request) as $photo) {
+            @unlink(STORAGE_PATH . '/uploads/' . $photo['path']);
         }
         flash('success', 'The request was deleted.');
         redirect(admin_url('custom-requests'));
@@ -112,7 +112,7 @@ if (is_post()) {
 }
 
 $linkedOrder = $request['order_id'] ? get_order((int) $request['order_id']) : null;
-$isImage = $request['reference_image'] && preg_match('/\.(jpe?g|png|webp|gif)$/i', $request['reference_image']);
+$photos = custom_request_photos($request);
 $defaultMessage = "Thank you for your custom cake enquiry. We would love to make this cake for your " . strtolower($request['occasion']) . ".\n\n"
     . "Based on the details you sent, the price is shown below. To confirm, press \"Accept and pay\" in this email, or reply or call us if you would like to change anything.";
-admin_view('custom-request-view', compact('request', 'isImage', 'defaultMessage', 'linkedOrder') + ['title' => 'Request from ' . $request['name']]);
+admin_view('custom-request-view', compact('request', 'photos', 'defaultMessage', 'linkedOrder') + ['title' => 'Request from ' . $request['name']]);

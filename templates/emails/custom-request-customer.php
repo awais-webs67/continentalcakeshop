@@ -11,4 +11,8 @@
         <strong>Your idea:</strong> as described in your request
     </td></tr>
 </table>
+<?php if (!empty($request['gallery_photo_url'])): ?>
+<p style="margin:0 0 8px;font-size:14px"><strong>The cake you chose:</strong></p>
+<p style="margin:0 0 18px"><img src="<?= e($request['gallery_photo_url']) ?>" alt="The cake you chose from our gallery" width="200" style="display:block;width:200px;max-width:100%;height:auto;border-radius:12px"></p>
+<?php endif; ?>
 <p style="margin:0;font-size:14px;color:#71717A">If your date is soon, please call us on <?= e(setting('store_phone')) ?>.</p>

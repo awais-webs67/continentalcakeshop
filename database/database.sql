@@ -248,6 +248,7 @@ CREATE TABLE `custom_requests` (
   `budget` varchar(40) DEFAULT NULL,
   `details` text NOT NULL,
   `reference_image` varchar(255) DEFAULT NULL COMMENT 'Path inside storage/uploads',
+  `gallery_image` varchar(255) DEFAULT NULL COMMENT 'Copy of the chosen gallery photo, inside storage/uploads',
   `status` enum('new','quoted','confirmed','closed') NOT NULL DEFAULT 'new',
   `quoted_price` decimal(10,2) DEFAULT NULL,
   `deposit_amount` decimal(10,2) DEFAULT NULL COMMENT 'Paid to accept the quote; NULL = full price',

@@ -71,22 +71,25 @@ if (is_post()) {
 
     remember_branch($data['branch_id']);
     if ($errors) {
-        remember_input($data + ['reference_image_token' => input('reference_image_token')]);
+        remember_input($data + ['reference_image_token' => input('reference_image_token'), 'gallery_photo' => input('gallery_photo')]);
         $_SESSION['form_errors'] = $errors;
         flash('error', 'Please check the highlighted fields.');
         redirect('custom-cakes#quote');
     }
 
+    // The cake chosen in the gallery ("Order one like this") goes with the request as a photo.
+    $galleryPhoto = gallery_photo((int) input('gallery_photo'));
     db_run(
-        'INSERT INTO custom_requests (branch_id, name, email, phone, occasion, event_date, fulfilment, servings, flavour, budget, details, reference_image)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO custom_requests (branch_id, name, email, phone, occasion, event_date, fulfilment, servings, flavour, budget, details, reference_image, gallery_image)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [$data['branch_id'], $data['name'], $data['email'], $data['phone'], $data['occasion'], $data['event_date'], $data['fulfilment'],
-         (int) $data['servings'] . ' people', $data['flavour'] ?: null, $data['budget'] ?: null, $data['details'], $image]
+         (int) $data['servings'] . ' people', $data['flavour'] ?: null, $data['budget'] ?: null, $data['details'], $image,
+         $galleryPhoto ? copy_gallery_photo($galleryPhoto) : null]
     );
 
     $request = db_one('SELECT * FROM custom_requests WHERE id = ?', [(int) db()->lastInsertId()]);
     if ($request) {
-        send_custom_request_emails($request);
+        send_custom_request_emails($request + ['gallery_photo_url' => $galleryPhoto ? product_image_url($galleryPhoto['image']) : '']);
     }
 
     forget_async_upload(input('reference_image_token'));
@@ -107,13 +110,13 @@ $selectedBranch = valid_branch_id(old('branch_id', (string) (chosen_branch_id() 
 if ((int) input('page', '1') > 1) {
     redirect('custom-cake-gallery', 301);
 }
-// Coming from "Order one like this" in the gallery: start the description with that photo.
-$photoId = (int) input('photo', '0');
-$askedPhoto = $photoId > 0 ? db_one('SELECT id, caption FROM gallery_images WHERE id = ? AND is_active = 1', [$photoId]) : null;
+// Coming from "Order one like this" in the gallery: that photo goes with the request, and the
+// description starts with its caption. After a form error the chosen photo is kept.
+$askedPhoto = gallery_photo((int) old('gallery_photo', input('photo', '0')));
 $askedCake = input('cake') !== '' ? get_product_by_slug(input('cake')) : null;
 $detailsPreset = old('details', match (true) {
     (bool) $askedCake => 'I would like to enquire about the ' . $askedCake['name'] . '. ',
-    (bool) $askedPhoto => 'I would like a cake like this one from your gallery: ' . $askedPhoto['caption'] . ' (photo #' . $askedPhoto['id'] . '). ',
+    (bool) $askedPhoto => 'I would like a cake like this one from your gallery: ' . $askedPhoto['caption'] . '. ',
     default => '',
 });
 $galleryTotal = count_gallery();
@@ -213,8 +216,20 @@ render('header', compact('page'));
                 <textarea class="input" id="details" name="details" rows="5" placeholder="Theme, colours, number of tiers, writing on the cake, dietary needs (gluten-free, eggless, vegan)..." required <?= $invalid('details') ?>><?= e($detailsPreset) ?></textarea>
                 <?= $fieldError('details') ?>
             </div>
+            <?php if ($askedPhoto): ?>
+                <div class="chosen-cake" data-chosen-cake>
+                    <img src="<?= e(product_image_url($askedPhoto['image'])) ?>" alt="<?= e($askedPhoto['caption']) ?>" width="72" height="96">
+                    <div>
+                        <p class="chosen-cake__label"><?= icon('check', '', 16) ?> Chosen from our gallery</p>
+                        <p class="chosen-cake__caption"><?= e($askedPhoto['caption']) ?></p>
+                        <p class="chosen-cake__note">This photo is sent with your request.</p>
+                    </div>
+                    <input type="hidden" name="gallery_photo" value="<?= (int) $askedPhoto['id'] ?>">
+                    <button type="button" class="chosen-cake__remove" data-chosen-remove aria-label="Remove this photo from the request"><?= icon('close', '', 18) ?></button>
+                </div>
+            <?php endif; ?>
             <div class="field">
-                <label class="field-label" for="reference_image">Reference photo <span class="field-hint">Optional</span></label>
+                <label class="field-label" for="reference_image"><?= $askedPhoto ? 'Your own photo too' : 'Reference photo' ?> <span class="field-hint">Optional</span></label>
                 <?php render('partials/upload-field', ['field' => 'reference_image', 'purpose' => 'custom', 'accept' => 'image/jpeg,image/png,image/webp,image/heic', 'hint' => 'Tap to upload a photo of a cake you like', 'invalid' => $invalid('reference_image')]); ?>
                 <?= $fieldError('reference_image') ?>
             </div>

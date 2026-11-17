@@ -352,6 +352,10 @@ textarea.input--code { min-height: 380px; font-family: ui-monospace, SFMono-Regu
 .proof { display: block; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
 .proof img { width: 100%; max-height: 420px; object-fit: contain; }
 .proof--file { padding: 16px; text-align: center; font-weight: 600; text-decoration: none; }
+.request-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 14px; margin-top: 18px; }
+.request-photos figure { margin: 0; min-width: 0; }
+.request-photos .label { margin: 0 0 8px; }
+.request-photos .proof img { height: 260px; max-height: none; object-fit: cover; }
 
 .note-box { padding: 12px 14px; background: #FFF8E6; border: 1px solid #F6E1AE; border-radius: 10px; font-size: 14px; }
 
@@ -1532,6 +1536,14 @@ section.ov-panel { margin-bottom: 16px; }
 .ov-writing { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; padding: 4px 10px; border: 1px solid #FDE68A; border-radius: 6px; background: #FFFBEB; color: #78350F; font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
 .ov-note { margin: 0; padding: 12px 18px; border-top: 1px solid var(--line); background: #FAFAFA; font-size: 14px; }
 .ov-note strong { display: block; color: var(--muted); font-size: 11.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.ov-custom { padding: 12px 18px 16px; border-top: 1px solid var(--line); font-size: 14px; }
+.ov-custom p { margin: 0; }
+.ov-custom__head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; }
+.ov-custom__head strong { color: var(--muted); font-size: 11.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.ov-custom__head a { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
+.ov-custom__text { margin-top: 6px !important; overflow-wrap: anywhere; }
+.ov-custom .request-photos { margin-top: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); }
+.ov-custom .request-photos .proof img { height: 200px; }
 .ov-pay { display: grid; gap: 16px; padding: 16px 18px; }
 @media (min-width: 560px) { .ov-pay--proof { grid-template-columns: minmax(0, 1fr) 120px; } }
 .ov-sum { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; margin: 0; font-size: 14px; }

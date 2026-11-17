@@ -205,6 +205,12 @@ function get_gallery(?int $limit = null, int $offset = 0): array
     return db_all($sql);
 }
 
+/** One photo that is showing in the gallery, or null. */
+function gallery_photo(int $id): ?array
+{
+    return $id > 0 ? db_one('SELECT * FROM gallery_images WHERE id = ? AND is_active = 1', [$id]) : null;
+}
+
 /** Words in a photo caption that fit each landing page's occasion. */
 const GALLERY_OCCASION_WORDS = [
     'Birthday'    => 'birthday|spider|mario|unicorn|bluey|blippi|minnie|soccer|graduation|topper',

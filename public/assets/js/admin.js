@@ -1237,11 +1237,12 @@ document.addEventListener('click', function (e) {
             show(box);
             return;
         }
-        var lb = shell('Payment screenshot', '<a class="btn btn--secondary btn--sm" href="' + link.href + '" target="_blank" rel="noopener">Open</a>');
+        var label = link.getAttribute('data-lightbox') || 'Payment screenshot';
+        var lb = shell(label, '<a class="btn btn--secondary btn--sm" href="' + link.href + '" target="_blank" rel="noopener">Open</a>');
         lb.classList.add('modal--image');
         var img = document.createElement('img');
         img.src = link.href;
-        img.alt = 'Payment screenshot';
+        img.alt = label;
         // Click the picture to zoom in on that spot; move the mouse to look around; click again to zoom out.
         // The spot under the mouse, measured on the picture before zooming (its box in the page).
         var aim = function (ev) {

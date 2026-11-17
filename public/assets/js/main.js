@@ -304,6 +304,16 @@
         });
     });
 
+    /* ---------- Custom cake: take the cake chosen in the gallery off the request ---------- */
+    $$('[data-chosen-remove]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var card = btn.closest('[data-chosen-cake]');
+            var label = card.nextElementSibling && $('label', card.nextElementSibling);
+            card.parentNode.removeChild(card);
+            if (label && label.firstChild) label.firstChild.textContent = 'Reference photo ';
+        });
+    });
+
     /* ---------- Copy buttons ---------- */
     $$('[data-copy]').forEach(function (btn) {
         btn.addEventListener('click', function () {
