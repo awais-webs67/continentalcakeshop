@@ -819,7 +819,6 @@ CREATE TABLE `products` (
   `slug` varchar(180) NOT NULL,
   `short_description` varchar(255) DEFAULT NULL,
   `description` text DEFAULT NULL,
-  `guide` mediumtext DEFAULT NULL,
   `image` varchar(255) DEFAULT NULL,
   `image_alt` varchar(160) DEFAULT NULL COMMENT 'Describes the main photo for Google and screen readers',
   `badge` varchar(40) DEFAULT NULL,
