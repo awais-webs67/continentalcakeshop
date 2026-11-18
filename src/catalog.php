@@ -70,8 +70,8 @@ function get_featured_products(int $limit = 8): array
 function get_related_products(array $product, int $limit = 4): array
 {
     return db_all(
-        PRODUCT_LIST_SQL . ' AND p.category_id = ? AND p.id <> ? GROUP BY p.id ORDER BY p.image IS NULL, p.is_featured DESC, p.sort_order LIMIT ' . max(1, $limit),
-        [$product['category_id'], $product['id']]
+        PRODUCT_LIST_SQL . ' AND p.category_id = ? AND p.id <> ? GROUP BY p.id ORDER BY p.image IS NULL, (p.id < ?), p.id LIMIT ' . max(1, $limit),
+        [$product['category_id'], $product['id'], $product['id']]
     );
 }
 

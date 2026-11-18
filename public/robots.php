@@ -21,5 +21,18 @@ foreach ($private as $path) {
 // Search and sort versions of the shop repeat the same products.
 echo "Disallow: {$base}/shop?q=\n";
 echo "Disallow: {$base}/*?sort=\n";
-echo "Disallow: {$base}/*&sort=\n";
-echo "\nSitemap: " . url('sitemap.xml') . "\n";
+echo "Disallow: {$base}/*&sort=\n\n";
+
+// Explicitly welcome search and AI search citability crawlers on public menu and occasion pages.
+foreach (['Googlebot', 'Bingbot', 'OAI-SearchBot', 'Claude-SearchBot', 'PerplexityBot', 'Applebot'] as $bot) {
+    echo "User-agent: {$bot}\n";
+    echo "Allow: {$base}/\n";
+    foreach ($private as $path) {
+        echo "Disallow: {$base}{$path}\n";
+    }
+    echo "Disallow: {$base}/shop?q=\n";
+    echo "Disallow: {$base}/*?sort=\n";
+    echo "Disallow: {$base}/*&sort=\n\n";
+}
+
+echo "Sitemap: " . url('sitemap.xml') . "\n";

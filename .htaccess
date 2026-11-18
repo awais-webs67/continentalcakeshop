@@ -8,9 +8,11 @@ Options -Indexes
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Force HTTPS on the live site. Remove the # from the next two lines once SSL is active.
-    # RewriteCond %{HTTPS} off
-    # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+    # Force HTTPS and non-www on the live domain in a single 301 hop (leaves localhost untouched).
+    RewriteCond %{HTTP_HOST} ^(?:www\.)?continentalcakeshop\.com\.au$ [NC]
+    RewriteCond %{HTTPS} off [OR]
+    RewriteCond %{HTTP_HOST} ^www\. [NC]
+    RewriteRule ^(.*)$ https://continentalcakeshop.com.au/$1 [L,R=301]
 
     RewriteRule ^(.*)$ public/$1 [L]
 </IfModule>

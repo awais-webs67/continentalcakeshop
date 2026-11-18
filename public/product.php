@@ -32,11 +32,12 @@ $photos = array_merge(
 $photos = array_values(array_filter($photos, static fn ($p) => !empty($p['image']))) ?: [['image' => null, 'alt' => $product['name']]];
 
 $page = [
-    'title'       => $product['meta_title'] ?: product_default_title($product),
-    'description' => $product['meta_description'] ?: product_default_description($product, $sizes),
-    'canonical'   => product_url($product),
-    'image'       => product_image_url($product['image']),
-    'type'        => 'product',
+    'title'         => $product['meta_title'] ?: product_default_title($product),
+    'description'   => $product['meta_description'] ?: product_default_description($product, $sizes),
+    'canonical'     => product_url($product),
+    'image'         => product_image_url($product['image']),
+    'preload_image' => $photos[0]['image'] ? product_image_url($photos[0]['image']) : '',
+    'type'          => 'product',
     'meta'        => product_meta_tags($product, $sizes),
     // A cake priced on request has no price, and Google rejects product data without one.
     'schema'      => $enquiry ? [breadcrumb_schema($crumbs)] : [product_schema($product, $sizes, array_column($photos, 'image')), breadcrumb_schema($crumbs)],
@@ -81,7 +82,7 @@ render('header', compact('page'));
                 <?php endif; ?>
                 <dialog class="lightbox" data-lightbox aria-label="<?= e($product['name']) ?> photos">
                     <button type="button" class="lightbox__close" data-lightbox-close aria-label="Close"><?= icon('close', '', 24) ?></button>
-                    <img alt="" data-lightbox-img>
+                    <img alt="" width="900" height="900" data-lightbox-img>
                     <?php if (count($photos) > 1): ?>
                         <button type="button" class="gallery-arrow gallery-arrow--prev" data-lightbox-prev aria-label="Previous photo"><?= icon('chevron', '', 24) ?></button>
                         <button type="button" class="gallery-arrow gallery-arrow--next" data-lightbox-next aria-label="Next photo"><?= icon('chevron', '', 24) ?></button>
@@ -205,21 +206,46 @@ render('header', compact('page'));
                     <?php if ($product['description']): ?>
                         <details open>
                             <summary><h2 class="product-accordion__title">About this <?= e($product['name']) ?></h2> <?= icon('plus', 'faq-item__icon', 18) ?></summary>
-                            <div class="prose"><?= rich_text($product['description']) ?></div>
+                            <div class="prose">
+                                <?= rich_text($product['description']) ?>
+                                <?php if (!$enquiry && $sizes): ?>
+                                    <h3>Sizes, Servings &amp; Prices</h3>
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th scope="col">Size</th>
+                                                <th scope="col">Approximate Servings</th>
+                                                <th scope="col">Price (AUD)</th>
+                                                <th scope="col">Minimum Notice</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($sizes as $s): ?>
+                                                <tr>
+                                                    <td><strong><?= e($s['label']) ?></strong></td>
+                                                    <td><?= e($s['servings'] ?: 'Standard portion') ?></td>
+                                                    <td><?= e(money($s['price'])) ?></td>
+                                                    <td><?= e(notice_label($leadHours)) ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                <?php endif; ?>
+                            </div>
                         </details>
                     <?php endif; ?>
                     <details>
                         <summary><h2 class="product-accordion__title">Dietary and allergens</h2> <?= icon('plus', 'faq-item__icon', 18) ?></summary>
                         <div class="prose">
-                            <p>Made with 100% Halal ingredients. Gluten-free, eggless and vegan versions may be possible on request, so please call <a href="tel:<?= e(setting('store_phone_e164')) ?>"><?= e(setting('store_phone')) ?></a> before you order.</p>
-                            <p>Our kitchen handles milk, eggs, wheat, soy and nuts, so we cannot guarantee any cake is free from traces. <a href="<?= e(url('allergens')) ?>">Read our allergen information</a>.</p>
+                            <p>Baked in our Greenway kitchen using <strong>100% Halal ingredients</strong>—zero alcohol, no animal shortening, and Halal-suitable gelatine and vanilla flavourings. Gluten-free, eggless and vegan versions may be possible on request; select available options above or call <a href="tel:<?= e(setting('store_phone_e164')) ?>"><?= e(setting('store_phone')) ?></a> before ordering.</p>
+                            <p>Our kitchen handles milk, eggs, wheat (gluten), soy and tree nuts (including hazelnuts, almonds and pistachios), so we cannot guarantee any cake is completely free from traces. <a href="<?= e(url('allergens')) ?>">Read our full allergen information</a>.</p>
                         </div>
                     </details>
                     <details>
                         <summary><h2 class="product-accordion__title"><?= $deliveryOn ? 'Pickup, delivery and storage' : 'Pickup and storage' ?></h2> <?= icon('plus', 'faq-item__icon', 18) ?></summary>
                         <div class="prose">
-                            <p>Collect from <?= e(store_address_line()) ?> at the time you choose at checkout.<?= $deliveryOn ? ' For delivery, choose a date and a preferred time of day and we will email you the delivery time.' : '' ?></p>
-                            <p>Carry the box flat and keep the cake in the fridge until you are ready to serve. Need to change the date? Call us as early as possible.</p>
+                            <p>Collect free from <?= e(store_address_line()) ?> at the pickup time you choose at checkout.<?= $deliveryOn ? ' For delivery across Canberra and Queanbeyan' . (trim(setting('delivery_postcodes')) !== '' ? ' (postcodes ' . e(setting('delivery_postcodes')) . ')' : '') . ', select your date and preferred window at checkout and our team will email your confirmed delivery window.' : '' ?></p>
+                            <p>Transport the cake box flat on the car passenger footwell with air-conditioning on, keep fresh cream tortes and cheesecakes refrigerated at 2–5&deg;C, and enjoy within 2 to 3 days (let mud cakes sit at room temperature for 30 minutes before slicing).</p>
                         </div>
                     </details>
                 </div>

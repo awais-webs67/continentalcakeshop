@@ -9,6 +9,12 @@ if (preg_match('#/\.#', $path)) {
     http_response_code(404);
     exit;
 }
+if (in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', ['GET', 'HEAD'], true) && preg_match('#^/(index|shop|about|contact|faq|custom-cakes|custom-cake-gallery)\.php$#i', $path, $pm)) {
+    $clean = strtolower($pm[1]) === 'index' ? '/' : '/' . strtolower($pm[1]);
+    $qs = (string) ($_SERVER['QUERY_STRING'] ?? '');
+    header('Location: ' . $clean . ($qs !== '' ? '?' . $qs : ''), true, 301);
+    exit;
+}
 if ($path !== '/' && is_file(__DIR__ . $path) && !str_ends_with($path, '.php')) {
     return false;
 }

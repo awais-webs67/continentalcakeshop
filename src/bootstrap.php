@@ -39,6 +39,10 @@ if (!config('debug') && PHP_SAPI !== 'cli') {
     });
 }
 
+if (PHP_SAPI !== 'cli') {
+    header_remove('X-Powered-By');
+}
+
 // On the live site (app_url starts with https://) every page is sent to the one official
 // address: HTTPS and the same www or non-www host as app_url. This keeps logins working
 // (the session cookie is HTTPS only) and gives Google a single version of each page.
@@ -49,7 +53,22 @@ if (PHP_SAPI !== 'cli' && str_starts_with((string) config('app_url', ''), 'https
         || (int) ($_SERVER['SERVER_PORT'] ?? 0) === 443
         || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
     if ($requestHost !== '' && (!$isHttps || $requestHost !== $siteHost) && in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', ['GET', 'HEAD'], true)) {
-        header('Location: https://' . $siteHost . ($_SERVER['REQUEST_URI'] ?? '/'), true, 301);
+        $reqUri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
+        $reqPath = strtolower(trim((string) (parse_url($reqUri, PHP_URL_PATH) ?: '/'), '/'));
+        // Collapse old Wix addresses (e.g. www.../allcakes -> /shop) into the same single 301 hop.
+        $legacyFast = [
+            'allcakes' => 'shop', 'plans-pricing' => 'shop', 'copy-of-tortes-specialty-cakes-des' => 'shop',
+            'tortes' => 'shop/tortes', 'velvet-cakes' => 'shop/velvet-cakes', 'mud-cakes' => 'shop/mud-cakes',
+            'baked-cheesecakes' => 'shop/baked-cheesecakes', 'continental-cheesecakes' => 'shop/continental-cheesecakes',
+            'tea-cakes-desserts' => 'shop/tea-cakes-desserts', 'celebration-cakes' => 'custom-cakes',
+            'gallery' => 'custom-cake-gallery', 'cake-gallery' => 'custom-cake-gallery', 'custom-cakes-gallery' => 'custom-cake-gallery',
+            'about-us' => 'about', 'contact-us' => 'contact', 'locations' => 'contact', 'home' => '',
+        ];
+        if (array_key_exists($reqPath, $legacyFast)) {
+            $query = (string) (parse_url($reqUri, PHP_URL_QUERY) ?? '');
+            $reqUri = '/' . $legacyFast[$reqPath] . ($query !== '' ? '?' . $query : '');
+        }
+        header('Location: https://' . $siteHost . $reqUri, true, 301);
         exit;
     }
     if ($isHttps) {
@@ -92,6 +111,9 @@ if (PHP_SAPI !== 'cli') {
 }
 
 if (session_status() === PHP_SESSION_NONE && PHP_SAPI !== 'cli') {
+    // Replace PHP's default "no-store" cache limiter so public pages stay eligible for browser
+    // back/forward cache (bfcache), while private/transactional routes still send no-store.
+    session_cache_limiter('');
     session_name('ccs_session');
     ini_set('session.use_strict_mode', '1'); // never adopt a session id the server did not create
     session_set_cookie_params([
@@ -102,6 +124,11 @@ if (session_status() === PHP_SESSION_NONE && PHP_SAPI !== 'cli') {
         'samesite' => 'Lax',
     ]);
     session_start();
+    if (!headers_sent()) {
+        $reqPath = current_path();
+        $isPrivateRoute = preg_match('#^/(admin|api|cart|checkout|account|login|register|logout|forgot-password|reset-password|verify-email|order|quote|messages|stripe-webhook)(/|$)#', $reqPath);
+        header('Cache-Control: ' . ($isPrivateRoute ? 'private, no-store, no-cache, must-revalidate' : 'private, no-cache'));
+    }
 }
 
 // Maintenance mode: customers see the "back soon" page (staff and the admin panel do not).

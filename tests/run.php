@@ -106,9 +106,26 @@ check('old signature refused', !stripe_verify_webhook($payload, 't=' . ($time - 
 // --- SEO -------------------------------------------------------------------------------------
 check('automatic titles fit in 60 characters', mb_strlen(product_default_title(['name' => 'Double Chocolate Strawberry Torte With Cream'])) <= 60);
 $checks = product_seo_checks(['name' => 'Red Velvet Cake', 'slug' => 'red-velvet-cake', 'focus_keyword' => 'red velvet cake canberra',
-    'meta_title' => 'Red Velvet Cake Canberra | Order Online', 'meta_description' => '', 'description' => '', 'short_description' => '', 'image' => 'x.webp'], 0, []);
+    'meta_title' => 'Red Velvet Cake Canberra | Order Online', 'meta_description' => '', 'description' => '', 'short_description' => '', 'image' => 'x.webp'], 0,
+    [['label' => 'Midi', 'servings' => 'Serves 8', 'price' => 39.95], ['label' => 'Full', 'servings' => 'Serves 14', 'price' => 49.95]]);
 check('keyword found in title', $checks[1][1]);
+check('keyword found in default description', $checks[2][1]);
 check('keyword words found in web address', $checks[3][1]);
+check('default description is 120 to 160 chars', $checks[6][1]);
+$defDesc = product_default_description(['name' => 'Red Velvet Cake', 'is_enquiry' => 0], [['label' => 'Midi', 'servings' => 'Serves 8', 'price' => 39.95], ['label' => 'Full', 'servings' => 'Serves 14', 'price' => 49.95]]);
+check('default description does not echo title opening', !str_starts_with(strtolower($defDesc), 'red velvet cake canberra'));
+$prodSchema = product_schema([
+    'id' => 99, 'name' => 'Test Torte', 'slug' => 'test-torte', 'category_name' => 'Tortes',
+    'description' => '<p>Full sponge layers with sour cherries and fresh cream baked in Greenway.</p>',
+    'short_description' => 'Short note.', 'meta_description' => 'Tiny meta.', 'image' => 'x.webp', 'is_enquiry' => 0,
+], [['label' => 'Midi', 'servings' => 'Serves 8', 'price' => 44.95]]);
+check('product schema prefers full description over short meta_description', str_contains($prodSchema['description'], 'Full sponge layers'));
+check('bakery schema includes menu link', (local_business_schema()['menu'] ?? '') === url('shop'));
+check('bakery schema includes foundingDate', (local_business_schema()['foundingDate'] ?? '') !== '');
+$wpSchema = webpage_schema('Wedding cakes in Canberra', url('wedding-cakes-canberra'), 'Custom Halal wedding cakes.', '2026-11-18 06:00:00');
+check('webpage schema includes ISO dateModified and bakery reference', str_starts_with($wpSchema['dateModified'] ?? '', '2026-11-18') && ($wpSchema['about']['@id'] ?? '') === url('#bakery'));
+same('days_label singular and plural', ['1 day', '3 days'], [days_label(1), days_label(3)]);
+check('clean_html preserves table scope and nested {url:path/file} tokens', str_contains(clean_html('<table><thead><tr><th scope="col">Size</th></tr></thead></table><p><a href="{url:shop/tortes}">Tortes</a></p>'), 'scope="col"') && str_contains(clean_html('<p><a href="{url:shop/tortes}">Tortes</a></p>'), '{url:shop/tortes}'));
 check('old addresses redirect', legacy_redirect_target('about-us') === url('about'));
 
 // --- HTML sanitizer: only safe tags, attributes and links survive -----------------------------

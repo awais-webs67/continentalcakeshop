@@ -4,6 +4,7 @@ $socials = array_filter([
     'Facebook'  => setting('social_facebook'),
     'Instagram' => setting('social_instagram'),
     'Pinterest' => setting('social_pinterest'),
+    'YouTube'   => setting('social_youtube'),
 ]);
 ?>
 </main>

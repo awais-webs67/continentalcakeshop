@@ -57,21 +57,28 @@ function get_landing_pages(): array
     }
 }
 
+function days_label(int $days): string
+{
+    return $days === 1 ? '1 day' : $days . ' days';
+}
+
 /** Fills {token} placeholders in stored content with current settings. */
 function render_content(string $html): string
 {
+    $customDays = (int) setting('custom_lead_days', '3');
     $tokens = [
         '{store_name}'       => e(setting('store_name')),
         '{store_phone}'      => '<a href="tel:' . e(setting('store_phone_e164')) . '">' . e(setting('store_phone')) . '</a>',
         '{store_email}'      => shop_email() !== '' ? '<a href="mailto:' . e(shop_email()) . '">' . e(shop_email()) . '</a>' : 'our contact form',
         '{store_address}'    => e(store_address_line()),
         '{min_lead_hours}'   => e(setting('min_lead_hours', '24')),
-        '{custom_lead_days}' => e(setting('custom_lead_days', '3')),
+        '{custom_lead_days}' => e((string) $customDays),
     ];
-    // "{min_lead_hours} hours" in page text becomes "1 hour", "3 hours" or "2 days".
+    // "{min_lead_hours} hours" and "{custom_lead_days} days" use proper singular/plural labels ("1 hour", "1 day").
     $html = str_replace('{min_lead_hours} hours', e(notice_label((int) setting('min_lead_hours', '24'))), $html);
+    $html = str_replace('{custom_lead_days} days', e(days_label($customDays)), $html);
     $html = strtr($html, $tokens);
-    $html = (string) preg_replace_callback('/\{url:([a-z0-9-]+)\}/', static fn ($m) => e(url($m[1])), $html);
+    $html = (string) preg_replace_callback('/\{url:([a-z0-9\/._-]+)\}/i', static fn ($m) => e(url($m[1])), $html);
     return content_image_alts($html);
 }
 
@@ -108,7 +115,7 @@ const CLEAN_HTML_TAGS = ['h2', 'h3', 'h4', 'p', 'br', 'strong', 'b', 'em', 'i', 
     'table', 'thead', 'tbody', 'tr', 'th', 'td', 'span'];
 const CLEAN_HTML_DROP = ['script', 'style', 'iframe', 'frame', 'frameset', 'object', 'embed', 'applet', 'form', 'input', 'button', 'select', 'textarea',
     'svg', 'math', 'template', 'noscript', 'link', 'meta', 'base', 'audio', 'video', 'source', 'track', 'canvas', 'title', 'head'];
-const CLEAN_HTML_ATTRS = ['a' => ['href', 'title', 'target'], 'img' => ['src', 'alt', 'width', 'height', 'title'], 'td' => ['colspan', 'rowspan'], 'th' => ['colspan', 'rowspan']];
+const CLEAN_HTML_ATTRS = ['a' => ['href', 'title', 'target'], 'img' => ['src', 'alt', 'width', 'height', 'title'], 'td' => ['colspan', 'rowspan'], 'th' => ['colspan', 'rowspan', 'scope']];
 
 /** A link or image address that is safe to keep: http(s), mailto, tel, or a path on this site. */
 function clean_url(string $url, bool $image = false): ?string
@@ -220,8 +227,8 @@ function clean_html(string $html): string
     foreach ($root->childNodes as $child) {
         $out .= $doc->saveHTML($child);
     }
-    // saveHTML() escapes the braces of {url:page} placeholders inside links; put them back.
-    $out = (string) preg_replace('/%7Burl:([a-z0-9-]+)%7D/i', '{url:$1}', $out);
+    // saveHTML() escapes the braces of {url:page} placeholders inside links and images; put them back.
+    $out = (string) preg_replace('/%7Burl:([a-z0-9\/._-]+)%7D/i', '{url:$1}', $out);
     $out = (string) preg_replace('#<p[^>]*>(\s|&nbsp;|\xC2\xA0|<br\s*/?>)*</p>#i', '', $out);
     return trim($out);
 }
@@ -232,7 +239,7 @@ function rich_text(?string $text): string
     if ($text === '') {
         return '';
     }
-    if (preg_match('/<(p|h[2-4]|ul|ol|blockquote|img|strong|em|a)\b/i', $text)) {
+    if (preg_match('/<(p|h[2-4]|ul|ol|blockquote|img|strong|em|a|table)\b/i', $text)) {
         return render_content(clean_html($text));
     }
     return '<p>' . nl2br(e($text)) . '</p>';

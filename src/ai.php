@@ -360,7 +360,7 @@ function ai_shop_facts(): string
         $lines[] = 'Shop: ' . $shop['name'] . ', ' . branch_address_line($shop) . ', phone ' . branch_phone($shop);
     }
     $lines[] = 'Opening hours: ' . implode('; ', array_map(static fn ($g) => $g['days'] . ' ' . $g['hours'], opening_hours_grouped()));
-    $lines[] = 'Order online at least ' . notice_label((int) setting('min_lead_hours', '24')) . ' ahead; custom cakes need ' . setting('custom_lead_days', '7') . ' days.';
+    $lines[] = 'Order online at least ' . notice_label((int) setting('min_lead_hours', '24')) . ' ahead; custom cakes need at least ' . days_label((int) setting('custom_lead_days', '7')) . ' (2 to 8+ weeks recommended for tiered wedding cakes).';
     $lines[] = setting_bool('delivery_enabled')
         ? 'Pickup from the shop, or delivery in Canberra and Queanbeyan' . (setting('delivery_fee') !== '' ? ' (fee ' . money(setting('delivery_fee')) . ')' : '') . '.'
         : 'Pickup from the shop only.';

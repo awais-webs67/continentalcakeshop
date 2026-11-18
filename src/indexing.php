@@ -17,15 +17,18 @@ function sitemap_entries(): array
     $photo = static fn (?string $image, string $title): ?array => $image ? [product_image_url($image), $title] : null;
     $galleryPhotos = array_map(static fn ($g) => [product_image_url($g['image']), $g['caption']], get_gallery());
     $latestPhoto = (string) db_value('SELECT MAX(created_at) FROM gallery_images WHERE is_active = 1');
+    $latestBranch = (string) db_value('SELECT MAX(updated_at) FROM branches WHERE is_active = 1');
+    $latestStoreSetting = (string) db_value("SELECT MAX(updated_at) FROM settings WHERE setting_key IN ('store_street', 'store_phone', 'store_founded', 'shop_photo', 'custom_lead_days')");
+    $latestPage = (string) db_value('SELECT MAX(updated_at) FROM pages WHERE is_active = 1');
 
     $entries = [
         [url(), $latestProduct, 'daily', '1.0', array_filter([$photo(setting('hero_image'), setting('hero_title'))])],
         [url('shop'), $latestProduct, 'weekly', '0.9', []],
-        [url('custom-cakes'), null, 'weekly', '0.8', setting('custom_show_gallery', '1') === '1' ? array_slice($galleryPhotos, 0, (int) setting('custom_gallery_count', '8')) : []],
+        [url('custom-cakes'), $latestPhoto ?: $latestStoreSetting ?: null, 'weekly', '0.8', setting('custom_show_gallery', '1') === '1' ? array_slice($galleryPhotos, 0, (int) setting('custom_gallery_count', '8')) : []],
         [url('custom-cake-gallery'), $latestPhoto ?: null, 'weekly', '0.8', $galleryPhotos],
-        [url('about'), null, 'monthly', '0.5', [[shop_photo()['absolute'], setting('store_name') . ' shop front']]],
-        [url('contact'), null, 'monthly', '0.6', []],
-        [url('faq'), null, 'monthly', '0.6', []],
+        [url('about'), $latestStoreSetting ?: null, 'monthly', '0.5', [[shop_photo()['absolute'], setting('store_name') . ' shop front']]],
+        [url('contact'), $latestBranch ?: $latestStoreSetting ?: null, 'monthly', '0.6', []],
+        [url('faq'), $latestPage ?: $latestStoreSetting ?: null, 'monthly', '0.6', []],
     ];
     // One page per open shop, with its photo, when there is more than one shop.
     if (multi_branch()) {
@@ -320,17 +323,25 @@ function search_engine_task(DateTimeImmutable $now): string
 function llms_txt(): string
 {
     $lines = ['# ' . setting('store_name'), ''];
-    $lines[] = '> ' . (setting('seo_home_description') ?: 'Cake shop in Canberra, Australia, baking fresh cakes with 100% Halal ingredients.');
+    $lines[] = '> ' . (setting('seo_home_description') ?: 'Independent cake shop in Greenway, Canberra (established March 2015), baking fresh cakes, tortes, cheesecakes and custom celebration cakes with 100% Halal ingredients.');
     $lines[] = '';
     foreach (active_branches() as $shop) {
         $lines[] = '- Shop: ' . $shop['name'] . ', ' . branch_address_line($shop) . (branch_phone($shop) !== '' ? ', phone ' . branch_phone($shop) : '');
     }
+    if (setting('store_founded') !== '') {
+        $lines[] = '- Established: ' . (setting('store_founded') === '2015' ? 'March 2015' : setting('store_founded')) . (setting('store_abn') !== '' ? ' · ABN ' . setting('store_abn') : '');
+    }
     $lines[] = '- Opening hours: ' . implode('; ', array_map(static fn ($g) => $g['days'] . ' ' . $g['hours'], opening_hours_grouped()));
-    $lines[] = '- Order online for pickup' . (setting_bool('delivery_enabled') ? ' or delivery across Canberra' : '') . ', at least ' . notice_label((int) setting('min_lead_hours', '24')) . ' ahead. Custom cakes by request.';
-    $lines[] = '- All cakes are made with 100% Halal ingredients.';
+    $deliveryFee = (float) setting('delivery_fee', '0');
+    $postcodes = trim(setting('delivery_postcodes'));
+    $deliveryDetail = setting_bool('delivery_enabled')
+        ? ' or delivery across Canberra & Queanbeyan' . ($postcodes !== '' ? ' (postcodes ' . $postcodes . ')' : '') . ($deliveryFee > 0 ? ' for ' . money($deliveryFee) : '')
+        : '';
+    $lines[] = '- Order online for pickup' . $deliveryDetail . ', at least ' . notice_label((int) setting('min_lead_hours', '24')) . ' ahead for menu cakes and at least ' . days_label((int) setting('custom_lead_days', '3')) . ' ahead for custom designs (2 to 8+ weeks recommended for tiered wedding cakes).';
+    $lines[] = '- Dietary & Halal standard: Every product is baked in our Greenway kitchen with 100% Halal ingredients (zero alcohol, no animal shortening, and Halal-suitable gelatine and vanilla). Eggless, vegan and gluten-free options are available on request.';
     $lines[] = '';
     $lines[] = '## Pages';
-    foreach ([['shop', 'All cakes with sizes and prices'], ['custom-cakes', 'Order a custom cake'], ['about', 'About the shop'], ['contact', 'Contact and location'], ['faq', 'Questions and answers']] as [$path, $label]) {
+    foreach ([['shop', 'All cakes with sizes and prices'], ['custom-cakes', 'Order a custom birthday or wedding cake'], ['custom-cake-gallery', 'Custom cake photo gallery'], ['about', 'About the shop and our Greenway kitchen'], ['contact', 'Contact, opening hours and directions'], ['faq', 'Questions and answers']] as [$path, $label]) {
         $lines[] = '- [' . $label . '](' . url($path) . ')';
     }
     foreach (db_all("SELECT slug, title FROM pages WHERE is_active = 1 ORDER BY type, title") as $page) {
@@ -342,7 +353,7 @@ function llms_txt(): string
         $lines[] = '';
         $lines[] = '## Questions and answers';
         foreach ($faqs as $faq) {
-            $lines[] = '- ' . trim($faq['question']) . ' ' . str_limit(content_text((string) $faq['answer']), 400);
+            $lines[] = '- ' . trim($faq['question']) . ' ' . str_limit(content_text((string) $faq['answer']), 500);
         }
     }
     $byCategory = [];

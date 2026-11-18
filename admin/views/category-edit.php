@@ -16,7 +16,8 @@
                     <label class="field"><span>Name</span><input class="input" name="name" value="<?= e($category['name']) ?>" required data-slug-source></label>
                     <label class="field"><span>Web address <small>(slug)</small></span><input class="input" name="slug" value="<?= e($category['slug']) ?>" data-slug-target placeholder="made from the name"></label>
                     <?= field_error($errors, 'name') ?>
-                    <div class="field span-2"><span class="label">Description <small>shown at the top of the category page</small></span><textarea class="input" name="description" rows="3" data-rich-editor="simple"><?= e((string) $category['description']) ?></textarea></div>
+                    <div class="field span-2"><span class="label">Short intro <small>shown above the cakes</small></span><textarea class="input" name="description" rows="3" data-rich-editor="simple"><?= e((string) $category['description']) ?></textarea></div>
+                    <div class="field span-2"><span class="label">Buying guide <small>shown below the cakes for shoppers, Google and AI search</small></span><textarea class="input" name="guide" rows="8" data-rich-editor><?= e((string) ($category['guide'] ?? '')) ?></textarea></div>
                 </div>
             </section>
             <section class="card">

@@ -22,3 +22,4 @@
 error_log
 /php.ini
 /.user.ini
+/*-audit/

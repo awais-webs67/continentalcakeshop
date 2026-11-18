@@ -60,13 +60,17 @@ $shops = active_branches();
 $multiBranch = count($shops) > 1;
 $selectedBranch = valid_branch_id(old('branch_id', (string) (chosen_branch_id() ?? 0)));
 $crumbs = [['Home', url()], ['Contact', url('contact')]];
+$contactDesc = $multiBranch
+    ? 'Visit or call our cake shops in ' . implode(' and ', array_column($shops, 'suburb')) . ', Canberra. Addresses, phone numbers, opening hours, directions and contact form.'
+    : 'Visit The Continental Cake Shop at ' . store_address_line() . ' or call ' . setting('store_phone') . '. Opening hours, directions and contact form.';
 $page = [
     'title'       => 'Contact Us | ' . setting('store_name'),
-    'description' => $multiBranch
-        ? 'Visit or call our cake shops in ' . implode(' and ', array_column($shops, 'suburb')) . ', Canberra. Addresses, phone numbers, opening hours, directions and contact form.'
-        : 'Visit The Continental Cake Shop at ' . store_address_line() . ' or call ' . setting('store_phone') . '. Opening hours, directions and contact form.',
+    'description' => $contactDesc,
     'canonical'   => url('contact'),
-    'schema'      => [breadcrumb_schema($crumbs)],
+    'schema'      => [
+        breadcrumb_schema($crumbs),
+        webpage_schema('Contact ' . setting('store_name'), url('contact'), $contactDesc, null, 'ContactPage'),
+    ],
 ];
 render('header', compact('page'));
 ?>
