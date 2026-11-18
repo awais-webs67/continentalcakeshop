@@ -35,9 +35,14 @@ if (is_post()) {
         redirect('contact');
     }
 
-    // Each message starts a conversation the customer can follow from the link in our email.
-    // The message goes to the shop the customer chose (the main shop when there is only one).
-    $thread = create_thread('Website message', $data['name'], $data['email'], $data['phone'], ['user_id' => current_user()['id'] ?? null, 'branch_id' => $data['branch_id']]);
+    // A message starts a conversation the customer can follow from the link in our email. When the
+    // same person wrote to this shop lately, it joins that conversation, so everything they asked is
+    // in one chat and one email conversation. It goes to the shop the customer chose.
+    $thread = db_one(
+        "SELECT * FROM threads WHERE customer_email = ? AND branch_id = ? AND order_id IS NULL AND custom_request_id IS NULL
+           AND last_message_at >= NOW() - INTERVAL 60 DAY ORDER BY last_message_at DESC LIMIT 1",
+        [$data['email'], $data['branch_id']]
+    ) ?? create_thread('Website message', $data['name'], $data['email'], $data['phone'], ['user_id' => current_user()['id'] ?? null, 'branch_id' => $data['branch_id']]);
     customer_message($thread, $data['message']);
     send_contact_confirmation($thread, $data['message']);
     forget_input();

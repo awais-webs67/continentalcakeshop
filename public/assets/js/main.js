@@ -896,9 +896,26 @@
         if (added) list.scrollTo({ top: list.scrollHeight, behavior: 'smooth' });
     };
     list.scrollTop = list.scrollHeight; // open at the newest message
-    // Phones: bring the whole chat window into view, like opening a chat app.
-    var win = list.closest('.chat-window');
-    if (win && window.innerWidth <= 640 && list.querySelector('[data-msg-id]')) win.scrollIntoView({ block: 'start' });
+    // Photos that load later make the chat taller: stay at the newest message unless the user scrolled up.
+    var stick = true;
+    list.addEventListener('scroll', function () { stick = list.scrollHeight - list.scrollTop - list.clientHeight < 80; });
+    list.addEventListener('load', function () { if (stick) list.scrollTop = list.scrollHeight; }, true);
+    // Phones: the chat is full screen (like WhatsApp). It follows the visible part of the screen,
+    // so the message box stays just above the keyboard and the newest message stays in view.
+    var screen = list.closest('[data-chat-screen]');
+    var vv = window.visualViewport;
+    if (screen && vv) {
+        var fit = function () {
+            var full = getComputedStyle(screen).position === 'fixed';
+            var atEnd = list.scrollHeight - list.scrollTop - list.clientHeight < 60;
+            screen.style.height = full ? vv.height + 'px' : '';
+            screen.style.top = full ? vv.offsetTop + 'px' : '';
+            if (atEnd) list.scrollTop = list.scrollHeight;
+        };
+        vv.addEventListener('resize', fit);
+        vv.addEventListener('scroll', fit);
+        fit();
+    }
     var schedule = function () { clearTimeout(timer); timer = setTimeout(poll, document.hidden ? 30000 : 5000); };
     var poll = function () {
         if (busy) return schedule();
@@ -916,17 +933,30 @@
     var error = form.querySelector('[data-chat-error]');
     var textarea = form.querySelector('textarea');
     var grow = function () { textarea.style.height = 'auto'; textarea.style.height = Math.min(textarea.scrollHeight + 3, 160) + 'px'; };
+    // Paperclip: show the chosen photo or PDF, which can be removed before sending.
+    var fileInput = form.querySelector('[data-chat-file]');
+    var chip = form.querySelector('[data-chat-picked]');
+    var hasFile = function () { return !!(fileInput && fileInput.files && fileInput.files.length); };
+    var showFile = function () {
+        if (!chip) return;
+        chip.hidden = !hasFile();
+        chip.querySelector('[data-chat-picked-name]').textContent = hasFile() ? fileInput.files[0].name : '';
+    };
+    var clearFile = function () { if (fileInput) fileInput.value = ''; showFile(); };
+    if (fileInput) fileInput.addEventListener('change', showFile);
+    if (chip) chip.querySelector('[data-chat-unpick]').addEventListener('click', clearFile);
     textarea.addEventListener('input', grow);
     // Like WhatsApp on a computer: Enter sends, Shift+Enter starts a new line. Phones keep Enter for new lines.
     var finePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
     textarea.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && finePointer) {
             e.preventDefault();
-            if (textarea.value.trim() !== '') form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event('submit', { cancelable: true }));
+            if (textarea.value.trim() !== '' || hasFile()) form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event('submit', { cancelable: true }));
         }
     });
     form.addEventListener('submit', function (e) {
         e.preventDefault();
+        if (textarea.value.trim() === '' && !hasFile()) { textarea.focus(); return; }
         var button = form.querySelector('button[type="submit"]');
         button.disabled = true;
         error.hidden = true;
@@ -935,6 +965,7 @@
             .then(function (d) {
                 if (!d.ok) { error.textContent = d.error || 'Your message could not be sent.'; error.hidden = false; return; }
                 textarea.value = '';
+                clearFile();
                 grow();
                 if (window.CCSSound) window.CCSSound.play('sent');
                 poll();

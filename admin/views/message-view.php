@@ -7,22 +7,35 @@
     </div>
 </div>
 <div class="grid-main">
-    <section class="card chat-card">
+    <section class="card chat-card" data-chat-screen>
+        <header class="chat-card__head">
+            <a class="chat-card__back" href="<?= e(admin_url('messages')) ?>" aria-label="Back to Messages"><?= icon('arrow', '', 22) ?></a>
+            <div class="chat-card__who"><strong><?= e($thread['customer_name']) ?></strong><span><?= e($thread['subject']) ?></span></div>
+            <?php if ($thread['customer_phone']): ?><a class="icon-button" href="tel:<?= e(preg_replace('/[^\d+]/', '', $thread['customer_phone'])) ?>" aria-label="Call <?= e($thread['customer_name']) ?>"><?= icon('phone', '', 19) ?></a><?php endif; ?>
+            <form method="post"><?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $thread['id'] ?>"><input type="hidden" name="action" value="status"><button class="btn btn--secondary btn--sm" type="submit"><?= $thread['status'] === 'open' ? 'Close' : 'Open' ?></button></form>
+        </header>
         <div class="card__body chat-admin" data-chat data-chat-url="<?= e(admin_url('messages/view', ['id' => $thread['id']])) ?>" data-last-id="<?= (int) ($messages ? end($messages)['id'] : 0) ?>" aria-live="polite">
             <?php if (!$messages): ?><p class="hint chat-admin__empty">No messages yet. Write the first one below; the customer gets it by email with a button to reply.</p><?php endif; ?>
             <?php foreach ($messages as $m): ?>
                 <?= chat_bubble_html($m, $thread, 'admin') ?>
             <?php endforeach; ?>
         </div>
-        <form class="card__body form-stack chat-admin__form" id="reply" method="post" data-chat-form>
+        <form class="card__body form-stack chat-admin__form" id="reply" method="post" enctype="multipart/form-data" data-chat-form>
             <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $thread['id'] ?>"><input type="hidden" name="action" value="reply">
             <label class="sr-only" for="reply-body">Reply to <?= e($thread['customer_name']) ?></label>
-            <textarea class="input chat-admin__input" id="reply-body" name="body" rows="2" required placeholder="Reply to <?= e($thread['customer_name']) ?>. They get it by email too, unless the chat is open on their side." data-autogrow></textarea>
+            <p class="chat-picked" data-chat-picked hidden><?= icon('file', '', 16) ?> <span data-chat-picked-name></span> <button type="button" data-chat-unpick aria-label="Remove the file"><?= icon('close', '', 16) ?></button></p>
+            <div class="chat-admin__row">
+                <label class="chat-attach" title="Send a photo or PDF">
+                    <input type="file" name="attachment" accept="image/jpeg,image/png,image/webp,image/heic,application/pdf" data-chat-file>
+                    <?= icon('clip', '', 21) ?><span class="sr-only">Send a photo or PDF</span>
+                </label>
+                <textarea class="input chat-admin__input" id="reply-body" name="body" rows="1" placeholder="Reply to <?= e($thread['customer_name']) ?>" data-autogrow></textarea>
+                <button class="chat-admin__send" type="submit" aria-label="Send reply"><?= icon('arrow', '', 21) ?></button>
+            </div>
             <p class="field-error" data-chat-error hidden></p>
             <div class="form-actions chat-admin__actions">
-                <button class="btn btn--primary" type="submit"><?= icon('mail', '', 18) ?> Send reply</button>
                 <label class="inline-check"><input type="checkbox" name="close" value="1"> Close after sending</label>
-                <span class="chat-admin__keys">Enter sends &middot; Shift+Enter for a new line</span>
+                <span class="chat-admin__keys">They get it by email too, unless the chat is open on their side &middot; Enter sends, Shift+Enter for a new line</span>
                 <span class="live-dot" title="New messages appear here automatically"><span></span> Live</span>
             </div>
             <p class="hint" data-chat-note hidden></p>

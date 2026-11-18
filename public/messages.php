@@ -11,6 +11,12 @@ if (!$thread) {
     not_found();
 }
 $self = thread_url($thread);
+
+// A photo or PDF in this conversation, opened from the chat (only with the conversation's private link).
+if (input('file') !== '') {
+    $m = db_one('SELECT attachment FROM thread_messages WHERE id = ? AND thread_id = ?', [(int) input('file'), $thread['id']]);
+    serve_private_upload((string) ($m['attachment'] ?? ''));
+}
 $threadPhone = branch_phone(get_branch((int) $thread['branch_id']) ?? main_branch());
 
 // The open page checks every few seconds for replies (and sends without reloading).
@@ -27,10 +33,13 @@ if (is_post()) {
     $error = null;
     if (is_spam_submission('thread', 30, 10)) {
         $error = 'Please wait a moment before sending another message.';
-    } elseif (mb_strlen($body) < 2) {
-        $error = 'Please write your message.';
     } else {
-        customer_message($thread, $body);
+        [$file, $error] = chat_attachment_upload();
+        if (!$error && !$file && mb_strlen($body) < 2) {
+            $error = 'Please write your message.';
+        } elseif (!$error) {
+            customer_message($thread, $body, $file);
+        }
     }
     if (is_fetch_request()) {
         json_out($error ? ['ok' => false, 'error' => $error] : ['ok' => true]);
@@ -48,6 +57,8 @@ if (is_post()) {
 mark_thread_seen($thread, 'customer');
 $messages = get_thread_messages((int) $thread['id']);
 $order = $thread['order_id'] ? get_order((int) $thread['order_id']) : null;
+// The back arrow of the full-screen chat on phones.
+$back = $order ? order_url($order) : (current_user() ? url('account') : url());
 
 $page = [
     'title'   => $thread['subject'] . ' | ' . setting('store_short_name'),
@@ -66,14 +77,16 @@ render('header', compact('page'));
 
 <section class="section section--compact">
     <div class="container chat">
-        <div class="chat-window">
+        <div class="chat-window" data-chat-screen>
             <header class="chat-window__head">
+                <a class="chat-window__back" href="<?= e($back) ?>" aria-label="Back"><?= icon('arrow', '', 22) ?></a>
                 <img class="chat-window__avatar" src="<?= e(asset('img/logo-email.png')) ?>" alt="" width="44" height="44">
                 <div class="chat-window__who">
                     <strong><?= e(setting('store_short_name')) ?></strong>
                     <span><?= e($thread['subject']) ?> &middot; We usually reply within a business day</span>
                 </div>
                 <span class="chat__live" title="New replies appear here automatically"><span></span> Live</span>
+                <a class="chat-window__call" href="tel:<?= e(phone_e164($threadPhone)) ?>" aria-label="Call us"><?= icon('phone', '', 20) ?></a>
             </header>
             <div class="chat__list" data-chat data-chat-url="<?= e($self) ?>" data-last-id="<?= (int) ($messages ? end($messages)['id'] : 0) ?>" aria-live="polite" tabindex="0">
                 <?php if (!$messages): ?>
@@ -83,11 +96,18 @@ render('header', compact('page'));
                     <?= chat_bubble_html($m, $thread, 'customer') ?>
                 <?php endforeach; ?>
             </div>
-            <form class="chat__composer" id="reply" method="post" action="<?= e($self) ?>" data-chat-form>
+            <form class="chat__composer" id="reply" method="post" action="<?= e($self) ?>" enctype="multipart/form-data" data-chat-form>
                 <?= csrf_field() ?>
                 <?= spam_trap_fields() ?>
-                <label class="sr-only" for="body">Your message</label>
-                <textarea class="chat__input" id="body" name="body" rows="1" maxlength="3000" required placeholder="Type a message" data-autogrow><?= e(old('body')) ?></textarea>
+                <label class="chat__attach" title="Send a photo or PDF">
+                    <input type="file" name="attachment" accept="image/jpeg,image/png,image/webp,image/heic,application/pdf" data-chat-file>
+                    <?= icon('clip', '', 22) ?><span class="sr-only">Send a photo or PDF</span>
+                </label>
+                <div class="chat__field">
+                    <p class="chat__picked" data-chat-picked hidden><?= icon('file', '', 16) ?> <span data-chat-picked-name></span> <button type="button" data-chat-unpick aria-label="Remove the file"><?= icon('close', '', 16) ?></button></p>
+                    <label class="sr-only" for="body">Your message</label>
+                    <textarea class="chat__input" id="body" name="body" rows="1" maxlength="3000" placeholder="Type a message" data-autogrow><?= e(old('body')) ?></textarea>
+                </div>
                 <button class="chat__send" type="submit" aria-label="Send message"><?= icon('arrow', '', 22) ?></button>
                 <p class="field-error chat__error" data-chat-error hidden></p>
             </form>

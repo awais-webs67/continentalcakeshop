@@ -54,8 +54,9 @@ function mail_from(): array
 
 /**
  * Sends one email. $html is the full HTML document; $text is generated from it when omitted.
+ * $reference (from conversation_reference()) puts the email in its conversation in the mail app.
  */
-function send_mail(string $to, string $subject, string $html, ?string $text = null, ?string $replyTo = null): bool
+function send_mail(string $to, string $subject, string $html, ?string $text = null, ?string $replyTo = null, ?string $reference = null): bool
 {
     if (!valid_email($to)) {
         return false;
@@ -73,6 +74,10 @@ function send_mail(string $to, string $subject, string $html, ?string $text = nu
         'Message-ID: <' . bin2hex(random_bytes(16)) . '@' . (parse_url((string) config('app_url'), PHP_URL_HOST) ?: 'localhost') . '>',
         'Content-Type: multipart/alternative; boundary="' . $boundary . '"',
     ];
+    if ($reference !== null) {
+        $headers[] = 'In-Reply-To: ' . $reference;
+        $headers[] = 'References: ' . $reference;
+    }
     $body = "--{$boundary}\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n"
         . chunk_split(base64_encode($text))
         . "--{$boundary}\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n"
@@ -110,9 +115,9 @@ function log_mail(string $to, string $subject, array $headers, string $body, str
 }
 
 /** Sends as one shop: through its own email account when it has one, else the shared account. */
-function send_branch_mail(?int $branchId, string $to, string $subject, string $html, ?string $replyTo = null): bool
+function send_branch_mail(?int $branchId, string $to, string $subject, string $html, ?string $replyTo = null, ?string $reference = null): bool
 {
-    return with_branch($branchId ?: null, static fn () => send_mail($to, $subject, $html, null, $replyTo));
+    return with_branch($branchId ?: null, static fn () => send_mail($to, $subject, $html, null, $replyTo, $reference));
 }
 
 /** Minimal SMTP client: SSL (port 465) or STARTTLS (port 587), with AUTH LOGIN. */
@@ -220,25 +225,79 @@ function email_admin_url(string $path = ''): string
 }
 
 // ---------------------------------------------------------------------------
+// Email conversations. Every email about one order, custom cake request or chat has the same
+// subject and points to the same conversation (References header), so Gmail, Outlook and Apple
+// Mail show them together as one conversation instead of separate emails. A conversation is
+// [id, subject], e.g. ['order-12', 'Order CC-1001'].
+// ---------------------------------------------------------------------------
+
+/** An order's conversation. An order made from a custom cake request stays in that request's conversation. */
+function order_conversation(array $order): array
+{
+    $request = !empty($order['custom_request_id']) ? db_one('SELECT id, occasion FROM custom_requests WHERE id = ?', [(int) $order['custom_request_id']]) : null;
+    return $request ? request_conversation($request) : ['order-' . (int) $order['id'], 'Order ' . $order['order_number']];
+}
+
+function request_conversation(array $request): array
+{
+    return ['request-' . (int) $request['id'], $request['occasion'] . ' cake request'];
+}
+
+/** A chat's conversation: its order's or request's when it has one. */
+function thread_conversation(array $thread): array
+{
+    if (!empty($thread['custom_request_id']) && ($request = db_one('SELECT id, occasion FROM custom_requests WHERE id = ?', [(int) $thread['custom_request_id']]))) {
+        return request_conversation($request);
+    }
+    if (!empty($thread['order_id']) && ($order = get_order((int) $thread['order_id']))) {
+        return order_conversation($order);
+    }
+    return ['thread-' . (int) $thread['id'], (string) preg_replace('/^Email: /', '', (string) $thread['subject'])];
+}
+
+/** Subject of every customer email in a conversation, e.g. "Order CC-1001 - The Continental Cake Shop". */
+function customer_subject(array $conversation): string
+{
+    return $conversation[1] . ' - ' . setting('store_short_name');
+}
+
+/**
+ * The id all emails of a conversation point to. The customer's emails and the shop's alerts are
+ * two conversations ('customer' and 'shop'), as they land in different inboxes.
+ */
+function conversation_reference(array $conversation, string $side): string
+{
+    return '<conv-' . $conversation[0] . '.' . $side . '@' . (parse_url((string) config('app_url'), PHP_URL_HOST) ?: 'localhost') . '>';
+}
+
+/** The order, request or chat an email reply belongs to, read from its References header: [type, id] or null. */
+function conversation_in_references(string $references): ?array
+{
+    return preg_match('/<conv-(order|request|thread)-(\d+)\.customer@/', $references, $m) ? [$m[1], (int) $m[2]] : null;
+}
+
+// ---------------------------------------------------------------------------
 // Emails the site sends
 // ---------------------------------------------------------------------------
 
 /** The "Thank you for your order" email with the items, date and a link to the order. */
 function send_order_confirmation(array $order): bool
 {
+    $conversation = order_conversation($order);
     return with_branch((int) ($order['branch_id'] ?? 0) ?: null, static fn () => send_mail(
         $order['customer_email'],
-        "Order {$order['order_number']} received - " . setting('store_short_name'),
-        render_email('order-confirmation', ['order' => $order, 'items' => get_order_items((int) $order['id']), 'title' => 'Thank you for your order', 'preheader' => 'Order ' . $order['order_number'] . ' for ' . order_when($order), 'reply_url' => thread_url(order_thread($order))]),
+        customer_subject($conversation),
+        render_email('order-confirmation', ['order' => $order, 'items' => get_order_items((int) $order['id']), 'title' => 'Thank you for your order', 'preheader' => 'Order ' . $order['order_number'] . ' received, for ' . order_when($order), 'reply_url' => thread_url(order_thread($order))]),
         null,
-        setting('store_email')
+        setting('store_email'),
+        conversation_reference($conversation, 'customer')
     ));
 }
 
 /**
- * Subject of an email to the shop: the customer's name first, e.g. "Suzanna Pugh · New order CC-1009 · $59.95".
+ * Subject of an email to the shop: the customer's name first, e.g. "Suzanna Pugh · Order CC-1009".
  * The alerts are sent from the shop's own address, so the inbox shows "me" as the sender;
- * the name at the start shows who it is about.
+ * the name at the start shows who it is about. What happened is at the top of the email.
  */
 function alert_subject(string $customerName, string $subject): string
 {
@@ -258,12 +317,14 @@ function send_order_emails(array $order): void
     $notify = shop_alert_address((int) ($order['branch_id'] ?? 0), (string) $order['customer_email']);
     if ($notify !== '') {
         $branch = multi_branch() ? branch_name((int) $order['branch_id']) : '';
+        $conversation = order_conversation($order);
         send_branch_mail(
             (int) ($order['branch_id'] ?? 0),
             $notify,
-            alert_subject($order['customer_name'], "New order {$order['order_number']} · " . money($order['total']) . ($branch !== '' ? ' · ' . $branch : '')),
-            render_email('order-new-admin', ['order' => $order, 'items' => $items, 'title' => 'New online order' . ($branch !== '' ? ' for ' . $branch : ''), 'preheader' => $order['customer_name'] . ', ' . order_when($order)]),
-            $order['customer_email']
+            alert_subject($order['customer_name'], $conversation[1]),
+            render_email('order-new-admin', ['order' => $order, 'items' => $items, 'title' => 'New online order' . ($branch !== '' ? ' for ' . $branch : ''), 'preheader' => 'New order ' . $order['order_number'] . ' · ' . money($order['total']) . ' · ' . order_when($order)]),
+            $order['customer_email'],
+            conversation_reference($conversation, 'shop')
         );
     }
 }
@@ -271,38 +332,43 @@ function send_order_emails(array $order): void
 /** Tells the customer about a change to their order (status or payment). */
 function send_order_update_email(array $order, string $headline, string $message): void
 {
+    $conversation = order_conversation($order);
     with_branch((int) ($order['branch_id'] ?? 0) ?: null, static fn () => send_mail(
         $order['customer_email'],
-        "Update on order {$order['order_number']} - " . setting('store_short_name'),
+        customer_subject($conversation),
         render_email('order-update', [
             'order' => $order, 'items' => get_order_items((int) $order['id']),
             'headline' => $headline, 'message' => $message,
-            'title' => $headline, 'preheader' => $message,
+            'title' => $headline, 'preheader' => rtrim($headline, '.!') . '. ' . $message,
             'reply_url' => thread_url(order_thread($order)),
         ]),
         null,
-        setting('store_email')
+        setting('store_email'),
+        conversation_reference($conversation, 'customer')
     ));
 }
 
 function send_custom_request_emails(array $request): void
 {
     $previous = use_branch(get_branch((int) ($request['branch_id'] ?? 0)));
+    $conversation = request_conversation($request);
     send_mail(
         $request['email'],
-        'We received your custom cake request - ' . setting('store_short_name'),
-        render_email('custom-request-customer', ['request' => $request, 'title' => 'Thanks for your custom cake request', 'preheader' => 'We will be in touch with a quote soon.', 'reply_url' => thread_url(custom_request_thread($request))]),
+        customer_subject($conversation),
+        render_email('custom-request-customer', ['request' => $request, 'title' => 'Thanks for your custom cake request', 'preheader' => 'We received your request and will be in touch with a quote soon.', 'reply_url' => thread_url(custom_request_thread($request))]),
         null,
-        setting('store_email')
+        setting('store_email'),
+        conversation_reference($conversation, 'customer')
     );
     $notify = shop_alert_address((int) ($request['branch_id'] ?? 0), (string) $request['email']);
     if ($notify !== '') {
         send_mail(
             $notify,
-            alert_subject($request['name'], 'Custom cake request: ' . $request['occasion'] . ' on ' . date('j M Y', strtotime($request['event_date'])) . (multi_branch() ? ' · ' . branch_name((int) $request['branch_id']) : '')),
-            render_email('custom-request-admin', ['request' => $request, 'title' => 'New custom cake request', 'preheader' => $request['name'] . ', ' . $request['occasion']]),
+            alert_subject($request['name'], $conversation[1]),
+            render_email('custom-request-admin', ['request' => $request, 'title' => 'New custom cake request', 'preheader' => 'New request: ' . $request['occasion'] . ' cake for ' . date('j M Y', strtotime($request['event_date'])) . (multi_branch() ? ' · ' . branch_name((int) $request['branch_id']) : '')]),
             null,
-            $request['email']
+            $request['email'],
+            conversation_reference($conversation, 'shop')
         );
     }
     use_branch($previous);
@@ -310,24 +376,28 @@ function send_custom_request_emails(array $request): void
 
 function send_custom_quote_email(array $request, string $message): bool
 {
+    $conversation = request_conversation($request);
     return with_branch((int) ($request['branch_id'] ?? 0) ?: null, static fn () => send_mail(
         $request['email'],
-        'Your custom cake quote - ' . setting('store_short_name'),
+        customer_subject($conversation),
         render_email('custom-quote', ['request' => $request, 'message' => $message, 'title' => 'Your custom cake quote', 'preheader' => $request['quoted_price'] ? 'Quote: ' . money($request['quoted_price']) : 'A reply about your custom cake', 'reply_url' => thread_url(custom_request_thread($request))]),
         null,
-        setting('store_email')
+        setting('store_email'),
+        conversation_reference($conversation, 'customer')
     ));
 }
 
 /** Confirms a contact form message to the customer, with the link to follow the conversation. */
 function send_contact_confirmation(array $thread, string $message): void
 {
+    $conversation = thread_conversation($thread);
     with_branch((int) ($thread['branch_id'] ?? 0) ?: null, static fn () => send_mail(
         $thread['customer_email'],
-        'We received your message - ' . setting('store_short_name'),
-        render_email('contact-customer', ['thread' => $thread, 'message' => $message, 'title' => 'Thanks for your message', 'preheader' => 'We will reply soon.', 'reply_url' => thread_url($thread)]),
+        customer_subject($conversation),
+        render_email('contact-customer', ['thread' => $thread, 'message' => $message, 'title' => 'Thanks for your message', 'preheader' => 'We received your message and will reply soon.', 'reply_url' => thread_url($thread)]),
         null,
-        setting('store_email')
+        setting('store_email'),
+        conversation_reference($conversation, 'customer')
     ));
 }
 

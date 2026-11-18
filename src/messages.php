@@ -56,10 +56,11 @@ function custom_request_thread(array $request): array
             ['custom_request_id' => $request['id'], 'user_id' => find_verified_user_by_email($request['email'])['id'] ?? null, 'branch_id' => $request['branch_id'] ?? null]);
 }
 
-/** Adds a message and marks the conversation unread for the other side. */
-function add_thread_message(array $thread, string $sender, string $body, ?int $adminId = null): void
+/** Adds a message (with a photo or PDF from chat_attachment_upload(), if any) and marks the conversation unread for the other side. */
+function add_thread_message(array $thread, string $sender, string $body, ?int $adminId = null, ?array $file = null): void
 {
-    db_run('INSERT INTO thread_messages (thread_id, sender, admin_id, body) VALUES (?, ?, ?, ?)', [$thread['id'], $sender, $adminId, $body]);
+    db_run('INSERT INTO thread_messages (thread_id, sender, admin_id, body, attachment, attachment_name) VALUES (?, ?, ?, ?, ?, ?)',
+        [$thread['id'], $sender, $adminId, $body, $file['path'] ?? null, $file['name'] ?? null]);
     db_run(
         $sender === 'customer'
             ? "UPDATE threads SET unread_admin = 1, status = 'open', last_message_at = NOW() WHERE id = ?"
@@ -96,6 +97,46 @@ function thread_messages_after(int $threadId, int $afterId): array
     );
 }
 
+// ---------------------------------------------------------------------------
+// Photos and PDFs in a chat. They are private (storage/uploads/chat): staff open them through
+// the admin panel, the customer through their conversation's private link.
+// ---------------------------------------------------------------------------
+
+/** The photo or PDF sent with a chat message (form field "attachment"): [file or null, error or null]. */
+function chat_attachment_upload(): array
+{
+    if (!has_upload('attachment')) {
+        return [null, null];
+    }
+    [$path, $error] = store_private_upload('attachment', 'chat', UPLOAD_RECEIPT_TYPES);
+    if ($error) {
+        return [null, $error];
+    }
+    $name = str_limit(trim((string) preg_replace('/[^\w .()-]+/u', '', basename((string) $_FILES['attachment']['name']))), 120);
+    return [['path' => $path, 'name' => $name !== '' ? $name : basename($path)], null];
+}
+
+/** True when a chat file is a photo the page can show (others open as a file). */
+function chat_file_is_image(string $path): bool
+{
+    return (bool) preg_match('/\.(jpe?g|png|webp)$/i', $path);
+}
+
+/** Where the shop ('admin') or the customer opens a message's file. */
+function chat_file_url(array $m, array $thread, string $view): string
+{
+    return $view === 'admin' ? admin_url('file', ['path' => $m['attachment']]) : thread_url($thread) . '/file/' . (int) $m['id'];
+}
+
+/** Short text for a message in lists and alerts: its words, or the file it carries. */
+function message_preview(array $m): string
+{
+    return trim((string) $m['body']) !== '' ? (string) $m['body'] : (!empty($m['attachment']) ? 'Sent a file: ' . ($m['attachment_name'] ?: 'attachment') : '');
+}
+
+/** SQL for the same preview in a query on thread_messages m. */
+const MESSAGE_PREVIEW_SQL = "IF(m.body = '' AND m.attachment IS NOT NULL, CONCAT('Sent a file: ', IFNULL(m.attachment_name, 'attachment')), m.body)";
+
 /** One chat bubble, as the customer ('customer') or the shop ('admin') sees it. */
 function chat_bubble_html(array $m, array $thread, string $view): string
 {
@@ -103,40 +144,53 @@ function chat_bubble_html(array $m, array $thread, string $view): string
     $who = $view === 'admin'
         ? ($m['sender'] === 'shop' ? ($m['admin_name'] ?: 'Shop') : $thread['customer_name'])
         : ($m['sender'] === 'shop' ? setting('store_short_name') : 'You');
+    $file = '';
+    if (!empty($m['attachment'])) {
+        $url = e(chat_file_url($m, $thread, $view));
+        $name = e($m['attachment_name'] ?: 'Attachment');
+        $file = chat_file_is_image((string) $m['attachment'])
+            ? '<a class="chat-file chat-file--photo" href="' . $url . '" target="_blank" rel="noopener"' . ($view === 'admin' ? ' data-lightbox="' . $name . '"' : '') . '><img src="' . $url . '" alt="' . $name . '" loading="lazy"></a>'
+            : '<a class="chat-file" href="' . $url . '" target="_blank" rel="noopener">' . icon('file', '', 22) . '<span>' . $name . '</span></a>';
+    }
+    $text = trim((string) $m['body']) !== '' ? nl2br(e($m['body'])) : '';
     return '<div class="' . $prefix . '__msg ' . $prefix . '__msg--' . e($m['sender']) . '" data-msg-id="' . (int) $m['id'] . '">'
-        . '<div class="' . $prefix . '__bubble">' . nl2br(e($m['body'])) . '</div>'
+        . '<div class="' . $prefix . '__bubble' . ($file !== '' ? ' has-file' : '') . '">' . $file . ($text !== '' ? '<span class="chat-text">' . $text . '</span>' : '') . '</div>'
         . '<p class="' . $prefix . '__meta">' . e($who) . ' &middot; ' . e(date('j M Y, g:ia', strtotime((string) $m['created_at']))) . '</p></div>';
 }
 
 /** A customer wrote: save it and let the shop know by email (unless staff are reading it live). */
-function customer_message(array $thread, string $body): void
+function customer_message(array $thread, string $body, ?array $file = null): void
 {
-    add_thread_message($thread, 'customer', $body);
+    add_thread_message($thread, 'customer', $body, null, $file);
     $notify = shop_alert_address((int) ($thread['branch_id'] ?? 0), (string) $thread['customer_email']);
     if ($notify !== '' && !thread_seen_live($thread, 'admin')) {
+        $conversation = thread_conversation($thread);
         send_branch_mail(
             (int) ($thread['branch_id'] ?? 0),
             $notify,
-            alert_subject($thread['customer_name'], 'New message: ' . $thread['subject']),
-            render_email('message-admin', ['thread' => $thread, 'body' => $body, 'title' => 'New message from ' . $thread['customer_name'], 'preheader' => mb_substr($body, 0, 90)]),
-            $thread['customer_email']
+            alert_subject($thread['customer_name'], $conversation[1]),
+            render_email('message-admin', ['thread' => $thread, 'body' => $body, 'file' => $file, 'title' => 'New message from ' . $thread['customer_name'], 'preheader' => mb_substr(message_preview(['body' => $body, 'attachment' => $file['path'] ?? null, 'attachment_name' => $file['name'] ?? null]), 0, 90)]),
+            $thread['customer_email'],
+            conversation_reference($conversation, 'shop')
         );
     }
 }
 
 /** The shop replied: save it and email the customer, with a button to answer on the website. */
-function shop_message(array $thread, string $body, int $adminId): bool
+function shop_message(array $thread, string $body, int $adminId, ?array $file = null): bool
 {
-    add_thread_message($thread, 'shop', $body, $adminId);
+    add_thread_message($thread, 'shop', $body, $adminId, $file);
     if (thread_seen_live($thread, 'customer')) {
         return true; // The customer has the chat open and sees the reply straight away.
     }
+    $conversation = thread_conversation($thread);
     return with_branch((int) ($thread['branch_id'] ?? 0) ?: null, static fn () => send_mail(
         $thread['customer_email'],
-        'Re: ' . $thread['subject'] . ' - ' . setting('store_short_name'),
-        render_email('message-customer', ['thread' => $thread, 'body' => $body, 'title' => 'A message from ' . setting('store_short_name'), 'preheader' => mb_substr($body, 0, 90), 'reply_url' => thread_url($thread)]),
+        customer_subject($conversation),
+        render_email('message-customer', ['thread' => $thread, 'body' => $body, 'file' => $file, 'title' => 'A message from ' . setting('store_short_name'), 'preheader' => mb_substr(message_preview(['body' => $body, 'attachment' => $file['path'] ?? null, 'attachment_name' => $file['name'] ?? null]), 0, 90), 'reply_url' => thread_url($thread)]),
         null,
-        setting('store_email')
+        setting('store_email'),
+        conversation_reference($conversation, 'customer')
     ));
 }
 

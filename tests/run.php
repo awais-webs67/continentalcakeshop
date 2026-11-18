@@ -203,6 +203,14 @@ $order = array_map(static fn ($f) => $f['category'], landing_faqs(20));
 check('landing page questions: custom cakes first, no payment or cancellation answers', ($order[0] ?? '') === 'Custom cakes' && !array_intersect($order, ['Payment', 'Cancellations']));
 check('llms.txt has the answers', str_contains(llms_txt(), '## Questions and answers'));
 
+// --- Email conversations and chat files ------------------------------------------------------
+same('a reply names its conversation in References', ['request', 12], conversation_in_references('<abc@x> <conv-request-12.customer@continentalcakeshop.com.au>'));
+check('the shop\'s own alert id is not taken as a customer reply', conversation_in_references('<conv-order-3.shop@x.com>') === null);
+check('customer and shop copies are separate conversations', conversation_reference(['order-3', 'Order CC-1003'], 'customer') !== conversation_reference(['order-3', 'Order CC-1003'], 'shop'));
+same('one subject for every email of an order', 'Order CC-1003 - ' . setting('store_short_name'), customer_subject(['order-3', 'Order CC-1003']));
+same('a file-only message has a preview', 'Sent a file: cake.jpg', message_preview(['body' => '', 'attachment' => 'chat/2026/11/a.jpg', 'attachment_name' => 'cake.jpg']));
+check('chat photos show, PDFs open as a file', chat_file_is_image('chat/a.webp') && !chat_file_is_image('chat/a.pdf'));
+
 echo "\n\n{$passed} passed";
 if ($failed) {
     echo ', ' . count($failed) . " failed:\n - " . implode("\n - ", $failed) . "\n";

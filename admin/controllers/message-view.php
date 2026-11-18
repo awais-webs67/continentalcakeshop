@@ -31,20 +31,22 @@ if (is_post()) {
     $action = input('action');
     if ($action === 'reply' && is_fetch_request() && input('close') !== '1') {
         $body = trim(str_limit(input('body'), 5000));
-        if (mb_strlen($body) < 2) {
-            json_out(['ok' => false, 'error' => 'Please write a reply.']);
+        [$file, $error] = chat_attachment_upload();
+        if ($error || (!$file && mb_strlen($body) < 2)) {
+            json_out(['ok' => false, 'error' => $error ?? 'Please write a reply.']);
         }
         $live = thread_seen_live($thread, 'customer');
-        $sent = shop_message($thread, $body, (int) $admin['id']);
+        $sent = shop_message($thread, $body, (int) $admin['id'], $file);
         json_out(['ok' => true, 'note' => $live ? 'The customer has the chat open, so they see your reply straight away.'
             : ($sent ? 'Also emailed to ' . $thread['customer_email'] . '.' : 'Saved, but the email could not be sent. Check the shop\'s email account in Branches > ' . branch_name((int) $thread['branch_id']) . ' > Email.')]);
     }
     if ($action === 'reply') {
         $body = trim(str_limit(input('body'), 5000));
-        if (mb_strlen($body) < 2) {
-            flash('error', 'Please write a reply.');
+        [$file, $error] = chat_attachment_upload();
+        if ($error || (!$file && mb_strlen($body) < 2)) {
+            flash('error', $error ?? 'Please write a reply.');
         } else {
-            $sent = shop_message($thread, $body, (int) $admin['id']);
+            $sent = shop_message($thread, $body, (int) $admin['id'], $file);
             if (input('close') === '1') {
                 db_run("UPDATE threads SET status = 'closed' WHERE id = ?", [$thread['id']]);
             }

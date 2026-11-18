@@ -1635,7 +1635,37 @@ body.has-buy-bar .whatsapp-fab { bottom: 88px; }
 .chat__error { position: absolute; left: 16px; bottom: calc(100% + 6px); margin: 0; padding: 6px 10px; border-radius: 8px; background: var(--white); box-shadow: var(--shadow-sm); }
 .chat-window__foot { margin: 12px 4px 0; color: var(--muted); font-size: 14px; }
 @media (hover: none) { .chat-window__keys { display: none; } }
-@media (max-width: 640px) { .chat-window { height: calc(100vh - 24px); height: calc(100dvh - 24px); border-radius: 16px; scroll-margin-top: 12px; } .chat-window__who span { white-space: normal; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; } }
+/* Paperclip: send a photo or PDF */
+.chat__attach { position: relative; flex: 0 0 auto; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; color: var(--muted); cursor: pointer; }
+.chat__attach:hover, .chat__attach:focus-within { background: var(--brand-softer); color: var(--brand-dark); }
+.chat__attach input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.chat__field { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.chat__field .chat__input { width: 100%; }
+.chat__picked { display: flex; align-items: center; gap: 6px; margin: 0; padding: 5px 6px 5px 12px; border-radius: 12px; background: var(--brand-soft); color: var(--ink); font-size: 14px; font-weight: 600; }
+.chat__picked span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat__picked button { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 50%; background: none; color: var(--muted); cursor: pointer; }
+.chat__picked[hidden] { display: none; }
+/* A photo or PDF in a message */
+.chat-file { display: flex; align-items: center; gap: 8px; color: inherit; font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
+.chat-file:hover { color: inherit; }
+.chat-file--photo { display: block; margin: -6px -10px 0; }
+.chat-file--photo img { display: block; width: 100%; max-width: 260px; max-height: 320px; border-radius: 14px; object-fit: cover; background: rgba(0, 0, 0, .04); }
+.has-file .chat-text { display: block; margin-top: 8px; }
+.chat-window__back, .chat-window__call { display: none; }
+/* Phones: the conversation opens full screen like WhatsApp. Only the messages scroll; the message
+   box stays at the bottom, just above the keyboard (main.js follows the visible screen). */
+@media (max-width: 768px) {
+    .chat-window { position: fixed; inset: 0; z-index: 95; height: 100vh; height: 100dvh; min-height: 0; border: 0; border-radius: 0; box-shadow: none; }
+    body:has([data-chat-screen]) { overflow: hidden; }
+    .chat-window__head { gap: 8px; padding: 8px 10px 8px 4px; padding-top: calc(8px + env(safe-area-inset-top)); }
+    .chat-window__back, .chat-window__call { display: grid; place-items: center; flex: 0 0 auto; width: 40px; height: 40px; border-radius: 50%; color: var(--white); }
+    .chat-window__back .icon { transform: rotate(180deg); }
+    .chat-window__avatar { width: 38px; height: 38px; }
+    .chat-window__head .chat__live { display: none; }
+    .chat-window .chat__list { padding: 14px 10px; }
+    .chat__composer { gap: 6px; padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); }
+    .chat-window .chat__msg { max-width: 86%; }
+}
 
 /* Account: confirm your email */
 .verify-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 18px; margin: 20px 0 0; padding: 14px 18px; border: 1px solid #F3D9A4; border-radius: var(--radius); background: #FFF8E8; color: #6B4A00; font-size: 15px; }

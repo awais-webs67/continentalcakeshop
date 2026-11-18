@@ -28,6 +28,7 @@ $routes = [
     '#^/order/([A-Za-z0-9-]+)$#'    => ['order.php', ['number']],
     '#^/order/([A-Za-z0-9-]+)/invoice$#' => ['invoice.php', ['number']],
     '#^/messages/([a-f0-9]{32})$#'  => ['messages.php', ['token']],
+    '#^/messages/([a-f0-9]{32})/file/(\d+)$#' => ['messages.php', ['token', 'file']],
     '#^/quote/([a-f0-9]{32})$#'     => ['quote.php', ['token']],
     '#^/cart$#'                     => ['cart.php', []],
     '#^/checkout$#'                 => ['checkout.php', []],

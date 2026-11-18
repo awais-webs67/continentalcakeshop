@@ -967,8 +967,43 @@ select.input { appearance: none; padding-right: 36px; background-image: url("dat
 .chat-admin__input { min-height: 46px; max-height: 180px; resize: none; line-height: 1.45; }
 .chat-admin__keys { color: var(--muted); font-size: 12px; }
 .chat-admin__bubble { box-shadow: 0 1px 1px rgba(16, 24, 22, .06); }
-/* Phones and tablets: the chat fills the space between the top bar and the bottom menu (the page scrolls to it). */
-@media (max-width: 1023px) { .chat-card { height: calc(100vh - 160px); height: calc(100dvh - 160px); min-height: 360px; scroll-margin-top: 72px; } .chat-admin__keys { display: none; } }
+/* Reply row: attach a photo or PDF, the message, send */
+.chat-admin__row { display: flex; align-items: flex-end; gap: 8px; }
+.chat-admin__row textarea.chat-admin__input { resize: none; }
+.chat-admin__row .chat-admin__input { flex: 1; min-width: 0; min-height: 44px; padding-top: 11px; padding-bottom: 11px; border-radius: 22px; }
+.chat-attach { position: relative; flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; color: var(--muted); cursor: pointer; }
+.chat-attach:hover, .chat-attach:focus-within { background: var(--bg); color: var(--ink); }
+.chat-attach input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.chat-admin__send { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--brand); color: #fff; cursor: pointer; }
+.chat-admin__send:hover { background: var(--brand-dark); }
+.chat-admin__send:disabled { opacity: .6; cursor: progress; }
+.chat-picked { display: flex; align-items: center; gap: 6px; margin: 0; padding: 6px 6px 6px 12px; border-radius: 10px; background: var(--brand-soft); color: var(--ink); font-size: 13.5px; font-weight: 600; }
+.chat-picked span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-picked button { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 50%; background: none; color: var(--muted); cursor: pointer; }
+.chat-picked[hidden] { display: none; }
+/* A photo or PDF in a message */
+.chat-file { display: flex; align-items: center; gap: 8px; color: inherit; font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
+.chat-file--photo { display: block; margin: -5px -9px 0; }
+.chat-file--photo img { display: block; width: 100%; max-width: 260px; max-height: 320px; border-radius: 12px; object-fit: cover; background: rgba(0, 0, 0, .04); }
+.has-file .chat-text { display: block; margin-top: 8px; }
+.chat-card__head { display: none; }
+/* Phones and tablets: the conversation opens full screen like WhatsApp, with its own header;
+   only the messages scroll and the reply box stays at the bottom, above the keyboard. */
+@media (max-width: 1023px) {
+    .chat-card { position: fixed; inset: 0; z-index: 90; height: 100vh; height: 100dvh; min-height: 0; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
+    body:has([data-chat-screen]) { overflow: hidden; }
+    body:has([data-chat-screen]) .sound-unlock { display: none !important; }
+    .chat-card__head { display: flex; align-items: center; gap: 8px; flex: none; padding: 8px 10px calc(8px) 6px; padding-top: calc(8px + env(safe-area-inset-top)); border-bottom: 1px solid var(--line); background: #fff; }
+    .chat-card__back { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; color: var(--ink); }
+    .chat-card__back .icon { transform: rotate(180deg); }
+    .chat-card__who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .chat-card__who strong { overflow: hidden; color: var(--ink); font-size: 16px; text-overflow: ellipsis; white-space: nowrap; }
+    .chat-card__who span { overflow: hidden; color: var(--muted); font-size: 12.5px; text-overflow: ellipsis; white-space: nowrap; }
+    .chat-card .chat-admin { padding: 14px 12px; }
+    .chat-card .chat-admin__form { padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); }
+    .chat-admin__actions { display: none; }
+    .chat-admin__msg { max-width: 86%; }
+}
 
 /* Dashboard: deliveries that still need a time */
 

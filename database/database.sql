@@ -1011,6 +1011,8 @@ CREATE TABLE `thread_messages` (
   `sender` enum('customer','shop') NOT NULL,
   `admin_id` int(10) unsigned DEFAULT NULL,
   `body` text NOT NULL,
+  `attachment` varchar(255) DEFAULT NULL COMMENT 'Path inside storage/uploads',
+  `attachment_name` varchar(120) DEFAULT NULL COMMENT 'File name as it was sent',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `idx_thread_messages` (`thread_id`,`created_at`),

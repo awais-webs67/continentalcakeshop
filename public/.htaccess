@@ -33,6 +33,7 @@ DirectoryIndex index.php
     RewriteRule ^order/([A-Za-z0-9-]+)$ order.php?number=$1 [L,QSA]
     RewriteRule ^order/([A-Za-z0-9-]+)/invoice$ invoice.php?number=$1 [L,QSA]
     RewriteRule ^messages/([a-f0-9]{32})$ messages.php?token=$1 [L,QSA]
+    RewriteRule ^messages/([a-f0-9]{32})/file/([0-9]+)$ messages.php?token=$1&file=$2 [L,QSA]
     RewriteRule ^quote/([a-f0-9]{32})$ quote.php?token=$1 [L,QSA]
     RewriteRule ^cart$                  cart.php [L,QSA]
     RewriteRule ^checkout$              checkout.php [L,QSA]

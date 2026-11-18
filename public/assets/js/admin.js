@@ -843,6 +843,46 @@ document.querySelectorAll('[data-checklist-toggle]').forEach(function (toggle) {
     schedule();
 })();
 
+/* Chat screen on phones: full screen like WhatsApp. It follows the visible part of the screen,
+   so the reply box stays just above the on-screen keyboard and the newest message stays in view. */
+window.ccsChatScreen = function (list) {
+    var screen = list.closest('[data-chat-screen]');
+    var vv = window.visualViewport;
+    list.scrollTop = list.scrollHeight;
+    // Photos that load later make the chat taller: stay at the newest message unless the user scrolled up.
+    var stick = true;
+    list.addEventListener('scroll', function () { stick = list.scrollHeight - list.scrollTop - list.clientHeight < 80; });
+    list.addEventListener('load', function () { if (stick) list.scrollTop = list.scrollHeight; }, true);
+    if (!screen || !vv) return;
+    var fit = function () {
+        var full = getComputedStyle(screen).position === 'fixed';
+        var atEnd = list.scrollHeight - list.scrollTop - list.clientHeight < 60;
+        screen.style.height = full ? vv.height + 'px' : '';
+        screen.style.top = full ? vv.offsetTop + 'px' : '';
+        if (atEnd) list.scrollTop = list.scrollHeight;
+    };
+    vv.addEventListener('resize', fit);
+    vv.addEventListener('scroll', fit);
+    fit();
+};
+
+/* The paperclip in a chat: shows the chosen photo or PDF, which can be removed before sending. */
+window.ccsChatFile = function (form) {
+    var input = form.querySelector('[data-chat-file]');
+    var chip = form.querySelector('[data-chat-picked]');
+    var name = chip && chip.querySelector('[data-chat-picked-name]');
+    var show = function () {
+        var file = input && input.files && input.files[0];
+        if (chip) chip.hidden = !file;
+        if (name) name.textContent = file ? file.name : '';
+    };
+    if (input) input.addEventListener('change', show);
+    var unpick = chip && chip.querySelector('[data-chat-unpick]');
+    var clear = function () { if (input) input.value = ''; show(); };
+    if (unpick) unpick.addEventListener('click', clear);
+    return { has: function () { return !!(input && input.files && input.files.length); }, clear: clear };
+};
+
 /* Conversation page: new messages appear on their own, replies send without reloading. */
 (function () {
     var list = document.querySelector('[data-chat]');
@@ -851,8 +891,7 @@ document.querySelectorAll('[data-checklist-toggle]').forEach(function (toggle) {
     var url = list.getAttribute('data-chat-url');
     var lastId = parseInt(list.getAttribute('data-last-id'), 10) || 0;
     var timer, busy = false;
-    var card = list.closest('.chat-card');
-    if (card && window.innerWidth < 1024) card.scrollIntoView({ block: 'start' });
+    window.ccsChatScreen(list);
     var append = function (messages) {
         var added = false;
         messages.forEach(function (m) {
@@ -886,6 +925,7 @@ document.querySelectorAll('[data-checklist-toggle]').forEach(function (toggle) {
     var error = form.querySelector('[data-chat-error]');
     var note = form.querySelector('[data-chat-note]');
     var textarea = form.querySelector('textarea');
+    var picker = window.ccsChatFile(form);
     var grow = function () { textarea.style.height = 'auto'; textarea.style.height = Math.min(textarea.scrollHeight + 3, 180) + 'px'; };
     textarea.addEventListener('input', grow);
     var finePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
@@ -893,13 +933,14 @@ document.querySelectorAll('[data-checklist-toggle]').forEach(function (toggle) {
         // Enter sends (Shift+Enter for a new line) on a computer; Ctrl+Enter always sends.
         if (e.key === 'Enter' && !e.isComposing && ((e.ctrlKey || e.metaKey) || (!e.shiftKey && finePointer))) {
             e.preventDefault();
-            if (textarea.value.trim() !== '') form.requestSubmit ? form.requestSubmit() : form.submit();
+            if (textarea.value.trim() !== '' || picker.has()) form.requestSubmit ? form.requestSubmit() : form.submit();
         }
     });
     form.addEventListener('submit', function (e) {
         var close = form.querySelector('input[name="close"]');
         if (close && close.checked) return; // Closing the conversation reloads the page.
         e.preventDefault();
+        if (textarea.value.trim() === '' && !picker.has()) { textarea.focus(); return; }
         var button = form.querySelector('button[type="submit"]');
         button.disabled = true;
         error.hidden = true;
@@ -908,6 +949,7 @@ document.querySelectorAll('[data-checklist-toggle]').forEach(function (toggle) {
             .then(function (d) {
                 if (!d.ok) { error.textContent = d.error || 'The reply could not be sent.'; error.hidden = false; return; }
                 textarea.value = '';
+                picker.clear();
                 grow();
                 if (window.CCSSound) window.CCSSound.play('sent');
                 if (note && d.note) { note.textContent = d.note; note.hidden = false; }

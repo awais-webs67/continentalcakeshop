@@ -237,9 +237,10 @@ if (is_post()) {
         $moved = get_order($id);
         $notify = shop_alert_address((int) $to['id'], (string) $moved['customer_email']);
         if ($notify !== '') {
-            send_branch_mail((int) $to['id'], $notify, alert_subject($moved['customer_name'], 'Order ' . $moved['order_number'] . ' moved to ' . $to['name']),
-                render_email('order-new-admin', ['order' => $moved, 'items' => get_order_items($id), 'title' => 'Order moved to ' . $to['name'] . ' from ' . $from, 'preheader' => $moved['customer_name'] . ', ' . order_when($moved)]),
-                $moved['customer_email']);
+            $conversation = order_conversation($moved);
+            send_branch_mail((int) $to['id'], $notify, alert_subject($moved['customer_name'], $conversation[1]),
+                render_email('order-new-admin', ['order' => $moved, 'items' => get_order_items($id), 'title' => 'Order moved to ' . $to['name'] . ' from ' . $from, 'preheader' => 'Moved to ' . $to['name'] . ' · ' . order_when($moved)]),
+                $moved['customer_email'], conversation_reference($conversation, 'shop'));
         }
         if (input('tell_customer') === '1' && !is_delivery($moved) && valid_email($moved['customer_email']) && $moved['order_status'] !== 'cancelled') {
             send_order_update_email($moved, 'New pickup address', 'Your order will now be ready at our ' . $to['name'] . ' shop: ' . branch_address_line($to) . '. The date and time stay the same.');

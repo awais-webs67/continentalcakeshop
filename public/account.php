@@ -74,7 +74,7 @@ $orders = get_user_orders((int) $user['id']);
 // Conversations with messages: linked to the account, or sent from the same email once the
 // customer has confirmed they own that email (so nobody can read someone else's by signing up with it).
 $threads = db_all(
-    'SELECT t.*, (SELECT body FROM thread_messages m WHERE m.thread_id = t.id ORDER BY m.id DESC LIMIT 1) AS last_body
+    'SELECT t.*, (SELECT ' . MESSAGE_PREVIEW_SQL . ' FROM thread_messages m WHERE m.thread_id = t.id ORDER BY m.id DESC LIMIT 1) AS last_body
      FROM threads t WHERE (t.user_id = ? OR (? = 1 AND t.customer_email = ?)) AND t.last_message_at IS NOT NULL ORDER BY t.last_message_at DESC LIMIT 20',
     [$user['id'], $user['email_verified_at'] ? 1 : 0, $user['email']]
 );

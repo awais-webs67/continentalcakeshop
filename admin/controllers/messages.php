@@ -18,7 +18,7 @@ if ($q !== '') {
 }
 $whereSql = implode(' AND ', $where);
 $result = paginate(
-    "SELECT t.*, (SELECT body FROM thread_messages m WHERE m.thread_id = t.id ORDER BY m.id DESC LIMIT 1) AS last_body,
+    "SELECT t.*, (SELECT " . MESSAGE_PREVIEW_SQL . " FROM thread_messages m WHERE m.thread_id = t.id ORDER BY m.id DESC LIMIT 1) AS last_body,
             (SELECT sender FROM thread_messages m WHERE m.thread_id = t.id ORDER BY m.id DESC LIMIT 1) AS last_sender,
             (SELECT COUNT(*) FROM thread_messages m WHERE m.thread_id = t.id) AS message_count
      FROM threads t WHERE {$whereSql} ORDER BY t.unread_admin DESC, t.last_message_at DESC",

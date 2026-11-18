@@ -158,16 +158,18 @@ function orders_needing_reminder(DateTimeImmutable $now): array
 function send_order_reminder(array $order): bool
 {
     $what = is_delivery($order) ? 'delivery' : 'pickup';
+    $conversation = order_conversation($order);
     return with_branch((int) ($order['branch_id'] ?? 0) ?: null, static fn () => send_mail(
         $order['customer_email'],
-        'Reminder: your cake ' . $what . ' is tomorrow - ' . setting('store_short_name'),
+        customer_subject($conversation),
         render_email('order-reminder', [
             'order' => $order, 'items' => get_order_items((int) $order['id']),
-            'title' => 'See you tomorrow!', 'preheader' => ucfirst($what) . ' ' . order_when($order),
+            'title' => 'See you tomorrow!', 'preheader' => 'Reminder: your cake ' . $what . ' is tomorrow, ' . order_when($order),
             'reply_url' => thread_url(order_thread($order)),
         ]),
         null,
-        setting('store_email')
+        setting('store_email'),
+        conversation_reference($conversation, 'customer')
     ));
 }
 
@@ -229,12 +231,14 @@ function review_request_task(DateTimeImmutable $now): string
             continue;
         }
         // Each branch has its own Google listing, so the customer reviews the shop they used.
+        $conversation = order_conversation($order);
         $ok = with_branch((int) ($order['branch_id'] ?? 0) ?: null, static fn () => send_mail(
             $order['customer_email'],
-            'How was your cake? - ' . setting('store_short_name'),
-            render_email('review-request', ['order' => $order, 'title' => 'Thank you for choosing us', 'preheader' => 'Would you share a quick Google review?']),
+            customer_subject($conversation),
+            render_email('review-request', ['order' => $order, 'title' => 'Thank you for choosing us', 'preheader' => 'How was your cake? Would you share a quick Google review?']),
             null,
-            setting('store_email')
+            setting('store_email'),
+            conversation_reference($conversation, 'customer')
         ));
         if ($ok) {
             log_order_event((int) $order['id'], 'email', 'Google review request emailed.');
@@ -276,12 +280,14 @@ function remove_unused_uploads(DateTimeImmutable $now, int $minAgeSeconds = 2 * 
     $used = array_flip(array_merge(
         array_column(db_all("SELECT payment_proof AS p FROM orders WHERE payment_proof IS NOT NULL AND payment_proof <> ''"), 'p'),
         array_column(db_all("SELECT reference_image AS p FROM custom_requests WHERE reference_image IS NOT NULL AND reference_image <> ''"), 'p'),
-        array_column(db_all("SELECT gallery_image AS p FROM custom_requests WHERE gallery_image IS NOT NULL AND gallery_image <> ''"), 'p')
+        array_column(db_all("SELECT gallery_image AS p FROM custom_requests WHERE gallery_image IS NOT NULL AND gallery_image <> ''"), 'p'),
+        array_column(db_all('SELECT attachment AS p FROM thread_messages WHERE attachment IS NOT NULL'), 'p')
     ));
     $cutoff = $now->getTimestamp() - $minAgeSeconds;
     $deleted = 0;
-    foreach (array_keys(ASYNC_UPLOADS) as $purpose) {
-        $base = STORAGE_PATH . '/uploads/' . ASYNC_UPLOADS[$purpose]['folder'];
+    // Chat files of deleted conversations go too.
+    foreach ([...array_column(ASYNC_UPLOADS, 'folder'), 'chat'] as $folder) {
+        $base = STORAGE_PATH . '/uploads/' . $folder;
         if (!is_dir($base)) {
             continue;
         }
@@ -290,7 +296,7 @@ function remove_unused_uploads(DateTimeImmutable $now, int $minAgeSeconds = 2 * 
             if (!$file->isFile() || str_starts_with($file->getFilename(), '.') || $file->getMTime() > $cutoff) {
                 continue;
             }
-            $relative = ASYNC_UPLOADS[$purpose]['folder'] . substr($file->getPathname(), strlen($base));
+            $relative = $folder . substr($file->getPathname(), strlen($base));
             if (!isset($used[$relative]) && @unlink($file->getPathname())) {
                 $deleted++;
             }

@@ -121,9 +121,20 @@ function inbox_import(array $branch, array $mail, string $ownAddress): bool
     }
     $branchId = (int) $branch['id'];
     $thread = null;
-    // A reply to an order email: the order number is in the subject, and it comes from that customer
-    // (so nobody can write into someone else's order chat).
-    if (($number = order_number_in($mail['subject'])) !== null && ($order = get_order_by_number($number))
+    // A reply to one of our emails: its References header names the order, request or chat, and it
+    // must come from that customer (so nobody can write into someone else's chat).
+    [$type, $id] = conversation_in_references((string) ($mail['references'] ?? '')) ?? ['', 0];
+    $found = match ($type) {
+        'order'   => get_order($id),
+        'request' => db_one('SELECT * FROM custom_requests WHERE id = ?', [$id]),
+        'thread'  => get_thread($id),
+        default   => null,
+    };
+    if ($found && strcasecmp((string) ($found['customer_email'] ?? $found['email']), $from) === 0) {
+        $thread = match ($type) { 'order' => order_thread($found), 'request' => custom_request_thread($found), default => $found };
+    }
+    // An order number in the subject, from that customer.
+    if (!$thread && ($number = order_number_in($mail['subject'])) !== null && ($order = get_order_by_number($number))
         && strcasecmp((string) $order['customer_email'], $from) === 0) {
         $thread = order_thread($order);
     }
@@ -162,6 +173,7 @@ function mail_parse(string $raw): array
         'from_email' => $email,
         'from_name'  => $name !== $email ? str_limit($name, 120) : '',
         'subject'    => str_limit(mail_decode_header($headers['subject'] ?? ''), 160),
+        'references' => ($headers['in-reply-to'] ?? '') . ' ' . ($headers['references'] ?? ''),
         'auto'       => isset($headers['auto-submitted']) && stripos($headers['auto-submitted'], 'no') !== 0
                         || isset($headers['x-autoreply']) || stripos($headers['precedence'] ?? '', 'bulk') !== false
                         || stripos($headers['precedence'] ?? '', 'auto_reply') !== false,

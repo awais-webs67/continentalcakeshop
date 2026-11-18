@@ -97,3 +97,22 @@ function forget_async_upload(string $token): void
 {
     unset($_SESSION['async_uploads'][$token]);
 }
+
+/** Sends a private upload (path inside storage/uploads) to the browser, or a 404. Callers check who may see it. */
+function serve_private_upload(string $relative): never
+{
+    $root = realpath(STORAGE_PATH . '/uploads');
+    $path = $relative !== '' ? realpath(STORAGE_PATH . '/uploads/' . ltrim($relative, '/')) : false;
+    if (!$root || !$path || !str_starts_with($path, $root . DIRECTORY_SEPARATOR) || !is_file($path)) {
+        http_response_code(404);
+        exit('File not found');
+    }
+    $mime = (new finfo(FILEINFO_MIME_TYPE))->file($path) ?: 'application/octet-stream';
+    header('Content-Type: ' . $mime);
+    header('Content-Length: ' . filesize($path));
+    header('Content-Disposition: inline; filename="' . basename($path) . '"');
+    header('X-Content-Type-Options: nosniff');
+    header('Cache-Control: private, max-age=86400');
+    readfile($path);
+    exit;
+}
