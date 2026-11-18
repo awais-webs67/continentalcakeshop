@@ -22,6 +22,15 @@ DirectoryIndex index.php
     # RewriteCond %{HTTPS} off
     # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
+    # Direct .php requests (/index.php, /shop.php...) redirect permanently to their clean URL.
+    RewriteCond %{REQUEST_METHOD} ^(GET|HEAD)$
+    RewriteCond %{THE_REQUEST} \s/+((?:.+?/)?)index\.php(?:[\s?]|$) [NC]
+    RewriteRule ^index\.php$ /%1 [L,R=301]
+
+    RewriteCond %{REQUEST_METHOD} ^(GET|HEAD)$
+    RewriteCond %{THE_REQUEST} \s/+((?:.+?/)?)(shop|about|contact|faq|custom-cakes|custom-cake-gallery)\.php(?:[\s?]|$) [NC]
+    RewriteRule ^(?:shop|about|contact|faq|custom-cakes|custom-cake-gallery)\.php$ /%1%2 [L,R=301]
+
     # Admin panel front controller
     RewriteRule ^admin/?$ admin/index.php [L,QSA]
     RewriteCond %{REQUEST_FILENAME} !-f
@@ -86,6 +95,7 @@ DirectoryIndex index.php
     ExpiresByType image/webp "access plus 1 year"
     ExpiresByType image/jpeg "access plus 1 year"
     ExpiresByType image/png "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
 </IfModule>
 
 <IfModule mod_deflate.c>

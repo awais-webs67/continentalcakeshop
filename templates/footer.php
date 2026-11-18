@@ -4,6 +4,7 @@ $socials = array_filter([
     'Facebook'  => setting('social_facebook'),
     'Instagram' => setting('social_instagram'),
     'Pinterest' => setting('social_pinterest'),
+    'YouTube'   => setting('social_youtube'),
 ]);
 ?>
 </main>
@@ -80,6 +81,9 @@ $socials = array_filter([
     <a class="whatsapp-fab" href="<?= e($waLink) ?>" target="_blank" rel="noopener" aria-label="Chat with us on WhatsApp"><?= icon('whatsapp', '', 28) ?><span class="whatsapp-fab__label">Chat with us</span></a>
 <?php endif; ?>
 <?php render('partials/promo-popup'); ?>
+<script type="speculationrules">
+{"prefetch":[{"where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":["/admin/*","/api/*","/cart","/checkout","/logout","/account","/login","/register","/order/*","/quote/*","/messages/*"]}}]},"eagerness":"moderate"}]}
+</script>
 <script src="<?= e(asset('js/shrink.js')) ?>" defer></script>
 <script src="<?= e(asset('js/main.js')) ?>" defer></script>
 </body>

@@ -5,11 +5,15 @@ require dirname(__DIR__) . '/src/bootstrap.php';
 
 $photos = get_gallery(4, 1);
 $crumbs = [['Home', url()], ['About Us', url('about')]];
+$aboutDesc = 'The Continental Cake Shop is an independent cake shop in Greenway, Canberra, baking fresh cakes with 100% Halal ingredients since ' . setting('store_founded') . '.';
 $page = [
     'title'       => 'About Us | ' . setting('store_name'),
-    'description' => 'The Continental Cake Shop is an independent cake shop in Greenway, Canberra, baking fresh cakes with 100% Halal ingredients since ' . setting('store_founded') . '.',
+    'description' => $aboutDesc,
     'canonical'   => url('about'),
-    'schema'      => [breadcrumb_schema($crumbs)],
+    'schema'      => [
+        breadcrumb_schema($crumbs),
+        webpage_schema('About ' . setting('store_name'), url('about'), $aboutDesc, null, 'AboutPage'),
+    ],
 ];
 render('header', compact('page'));
 ?>
@@ -68,6 +72,41 @@ render('header', compact('page'));
     </div>
 </section>
 <?php endif; ?>
+
+<section class="section section--compact">
+    <div class="container container--narrow">
+        <article class="prose">
+            <h2>How We Bake in Our Greenway Kitchen</h2>
+            <p>Every sponge torte, dense mud cake, velvet layer and cheesecake on our counter is mixed, baked and finished by our pastry team at <?= e(store_address_line()) ?>—never shipped in frozen from an interstate warehouse. Because our entire kitchen operates exclusively with <strong>100% Halal ingredients</strong>, there is zero alcohol, no animal shortening, and only Halal-suitable gelatine and vanilla across our mousses, glazes and continental cheesecakes.</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th scope="col">Kitchen Standard</th>
+                        <th scope="col">What It Means for Your Celebration</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>100% Halal Kitchen</strong></td>
+                        <td>Every torte, mud cake, cheesecake and custom tier uses 100% Halal ingredients with zero liqueurs or alcohol</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Baked Fresh in Greenway</strong></td>
+                        <td>In-house batters, fresh dairy creams and house fillings prepared daily in Tuggeranong since March <?= e(setting('store_founded')) ?></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Dietary Flexibility</strong></td>
+                        <td>Eggless, vegan and gluten-free celebration options made to order—see our <a href="<?= e(url('allergens')) ?>">allergen guide</a></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Canberra &amp; Queanbeyan Reach</strong></td>
+                        <td>Free timed pickup in Greenway or scheduled delivery across Tuggeranong, Woden, Belconnen, Gungahlin, Inner Canberra &amp; Queanbeyan</td>
+                    </tr>
+                </tbody>
+            </table>
+        </article>
+    </div>
+</section>
 
 <section class="section section--compact">
     <div class="container">

@@ -27,6 +27,7 @@ if (is_post()) {
         'name'             => str_limit(input('name'), 120),
         'slug'             => slugify(input('slug') ?: input('name')),
         'description'      => clean_html(str_limit(input('description'), 10000)),
+        'guide'            => clean_html(str_limit(input('guide'), 30000)),
         'is_active'        => input('is_active') === '1' ? 1 : 0,
         'sort_order'       => (int) input('sort_order', '0'),
         'meta_title'       => str_limit(input('meta_title'), 160),
@@ -43,7 +44,7 @@ if (is_post()) {
 
     if (!$errors) {
         $data['slug'] = unique_slug('categories', $data['slug'], (int) ($category['id'] ?? 0));
-        foreach (['description', 'meta_title', 'meta_description', 'image_alt'] as $optional) {
+        foreach (['description', 'guide', 'meta_title', 'meta_description', 'image_alt'] as $optional) {
             $data[$optional] = $data[$optional] !== '' ? $data[$optional] : null;
         }
         if ($image) {
@@ -72,5 +73,5 @@ if (is_post()) {
     $category = array_merge($category ?? [], $data, ['image' => $category['image'] ?? null]);
 }
 
-$category ??= ['name' => '', 'slug' => '', 'description' => '', 'image' => null, 'is_active' => 1, 'sort_order' => 0, 'meta_title' => '', 'meta_description' => '', 'image_alt' => ''];
+$category ??= ['name' => '', 'slug' => '', 'description' => '', 'guide' => '', 'image' => null, 'is_active' => 1, 'sort_order' => 0, 'meta_title' => '', 'meta_description' => '', 'image_alt' => ''];
 admin_view('category-edit', compact('category', 'errors', 'id', 'productCount') + ['title' => $id ? 'Edit ' . $category['name'] : 'Add category']);

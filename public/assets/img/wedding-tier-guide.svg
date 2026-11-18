@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" width="960" height="360" role="img" aria-labelledby="tierTitle tierDesc">
+  <title id="tierTitle">Custom Wedding and Celebration Cake Tier Guide — The Continental Cake Shop Canberra</title>
+  <desc id="tierDesc">Comparison of Single-Tier Engagement or Milestone Cake (14 to 25 guests, 5 to 7 days notice), Two-Tier Wedding Cake (35 to 60 guests, 2 to 4 weeks notice), and Three-Tier Statement Wedding Cake (75 to 120+ guests, 4 to 8+ weeks notice), baked 100% Halal in Greenway with Canberra venue delivery.</desc>
+  <rect width="960" height="360" rx="20" fill="#F4FBF8"/>
+  <rect x="12" y="12" width="936" height="336" rx="14" fill="#FFFFFF" stroke="#D7ECE6" stroke-width="1.5"/>
+  <text x="480" y="48" text-anchor="middle" font-family="Outfit, 'DM Sans', system-ui, sans-serif" font-size="20" font-weight="700" fill="#162320">Custom Tiered Wedding &amp; Celebration Cake Sizing (Canberra &amp; Queanbeyan)</text>
+  <text x="480" y="70" text-anchor="middle" font-family="'DM Sans', system-ui, sans-serif" font-size="13" fill="#526661">Coffee-portion guest counts · 100% Halal Greenway kitchen · Scheduled venue delivery available</text>
+
+  <!-- Tier 1: Single Tier -->
+  <g transform="translate(42, 94)">
+    <rect width="276" height="232" rx="16" fill="#F8FCFA" stroke="#E0EFEA"/>
+    <rect x="78" y="102" width="120" height="6" rx="3" fill="#B7D9D0"/>
+    <rect x="92" y="54" width="92" height="48" rx="8" fill="#58DCBF" stroke="#1E9B82" stroke-width="2.2"/>
+    <circle cx="122" cy="48" r="6" fill="#F7B2BD"/>
+    <circle cx="138" cy="45" r="7" fill="#1E9B82"/>
+    <circle cx="154" cy="49" r="5" fill="#F7B2BD"/>
+    <text x="138" y="136" text-anchor="middle" font-family="Outfit, sans-serif" font-size="17" font-weight="700" fill="#162320">Single-Tier Tall Cake</text>
+    <text x="138" y="158" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="14" font-weight="700" fill="#1E9B82">14 – 25 Guests</text>
+    <text x="138" y="180" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="12.5" fill="#526661">Engagements, Nikah, milestone</text>
+    <text x="138" y="197" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="12.5" fill="#526661">birthdays &amp; baby showers</text>
+    <rect x="58" y="205" width="160" height="20" rx="10" fill="#E6F7F2"/>
+    <text x="138" y="219" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="12" font-weight="700" fill="#147561">Notice: 5 – 7 days</text>
+  </g>
+
+  <!-- Tier 2: Two Tier -->
+  <g transform="translate(342, 94)">
+    <rect width="276" height="232" rx="16" fill="#F8FCFA" stroke="#1E9B82" stroke-width="1.6"/>
+    <rect x="68" y="108" width="140" height="6" rx="3" fill="#B7D9D0"/>
+    <rect x="82" y="68" width="112" height="40" rx="7" fill="#3CC7A9" stroke="#1E9B82" stroke-width="2.2"/>
+    <rect x="102" y="32" width="72" height="36" rx="7" fill="#58DCBF" stroke="#1E9B82" stroke-width="2.2"/>
+    <circle cx="138" cy="26" r="6" fill="#F7B2BD"/>
+    <circle cx="150" cy="28" r="5" fill="#1E9B82"/>
+    <text x="138" y="136" text-anchor="middle" font-family="Outfit, sans-serif" font-size="17" font-weight="700" fill="#162320">Two-Tier Wedding Cake</text>
+    <text x="138" y="158" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="14" font-weight="700" fill="#1E9B82">35 – 60 Guests</text>
+    <text x="138" y="180" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="12.5" fill="#526661">Canberra restaurant, winery &amp;</text>
+    <text x="138" y="197" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="12.5" fill="#526661">boutique hotel receptions</text>
+    <rect x="53" y="205" width="170" height="20" rx="10" fill="#1E9B82"/>
+    <text x="138" y="219" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="12" font-weight="700" fill="#FFFFFF">Notice: 2 – 4 weeks</text>
+  </g>
+
+  <!-- Tier 3: Three Tier -->
+  <g transform="translate(642, 94)">
+    <rect width="276" height="232" rx="16" fill="#F8FCFA" stroke="#E0EFEA"/>
+    <rect x="58" y="112" width="160" height="6" rx="3" fill="#B7D9D0"/>
+    <rect x="72" y="78" width="132" height="34" rx="7" fill="#1E9B82" stroke="#147561" stroke-width="2"/>
+    <rect x="92" y="48" width="92" height="30" rx="6" fill="#3CC7A9" stroke="#1E9B82" stroke-width="2"/>
+    <rect x="110" y="22" width="56" height="26" rx="6" fill="#58DCBF" stroke="#1E9B82" stroke-width="2"/>
+    <circle cx="138" cy="16" r="5.5" fill="#F7B2BD"/>
+    <text x="138" y="136" text-anchor="middle" font-family="Outfit, sans-serif" font-size="17" font-weight="700" fill="#162320">Three-Tier Statement</text>
+    <text x="138" y="158" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="14" font-weight="700" fill="#1E9B82">75 – 120+ Guests</text>
+    <text x="138" y="180" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="12.5" fill="#526661">Ballroom weddings, Walima &amp;</text>
+    <text x="138" y="197" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="12.5" fill="#526661">large Canberra venue events</text>
+    <rect x="48" y="205" width="180" height="20" rx="10" fill="#E6F7F2"/>
+    <text x="138" y="219" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="12" font-weight="700" fill="#147561">Notice: 4 – 8+ weeks</text>
+  </g>
+</svg>

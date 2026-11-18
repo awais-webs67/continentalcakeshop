@@ -42,10 +42,10 @@ $current = static fn (array $item): string => $item['active'] ? ' aria-current="
 <meta name="geo.placename" content="<?= e(setting('store_suburb', 'Canberra')) ?>, Canberra">
 <meta name="theme-color" content="#1E9B82">
 <link rel="icon" href="<?= e(asset('img/logo.svg')) ?>" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&text=THECONTINALKSPBR&display=swap">
+<link rel="preload" href="<?= e(asset('fonts/outfit-latin.woff2')) ?>" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="<?= e(asset('fonts/dm-sans-latin.woff2')) ?>" as="font" type="font/woff2" crossorigin>
+<?php if ($page['preload_image'] !== ''): ?><link rel="preload" as="image" href="<?= e($page['preload_image']) ?>" fetchpriority="high">
+<?php endif; ?>
 <link rel="stylesheet" href="<?= e(asset('css/style.css')) ?>">
 <?= analytics_tags() ?>
 <?= json_ld(local_business_schema()) ?>

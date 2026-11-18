@@ -12,7 +12,7 @@ foreach ($faqs as $faq) {
 $crumbs = [['Home', url()], ['FAQ', url('faq')]];
 $page = [
     'title'       => 'Frequently Asked Questions | ' . setting('store_short_name'),
-    'description' => 'Answers about ordering, pickup, payment, Halal and dietary options, and custom cakes at ' . setting('store_name') . '.',
+    'description' => 'Quick answers about online cake ordering, Canberra & Queanbeyan delivery, pickup times, 100% Halal ingredients, allergens and custom cakes in Greenway.',
     'canonical'   => url('faq'),
     'schema'      => [
         breadcrumb_schema($crumbs),

@@ -309,11 +309,12 @@ $sections = [
     </div>
 
 <?php elseif ($tab === 'seo'): ?>
-    <div class="card__body form-grid form-grid--3">
+    <div class="card__body form-grid">
         <label class="field"><span>Facebook page</span><input class="input" type="url" name="social_facebook" value="<?= $v('social_facebook') ?>" placeholder="https://facebook.com/..."></label>
         <label class="field"><span>Instagram</span><input class="input" type="url" name="social_instagram" value="<?= $v('social_instagram') ?>" placeholder="https://instagram.com/..."></label>
-        <label class="field"><span>Pinterest</span><input class="input" type="url" name="social_pinterest" value="<?= $v('social_pinterest') ?>"></label>
-        <?= field_error($errors, 'social_facebook') ?><?= field_error($errors, 'social_instagram') ?><?= field_error($errors, 'social_pinterest') ?>
+        <label class="field"><span>Pinterest</span><input class="input" type="url" name="social_pinterest" value="<?= $v('social_pinterest') ?>" placeholder="https://www.pinterest.com.au/..."></label>
+        <label class="field"><span>YouTube channel</span><input class="input" type="url" name="social_youtube" value="<?= $v('social_youtube') ?>" placeholder="https://www.youtube.com/@..."></label>
+        <?= field_error($errors, 'social_facebook') ?><?= field_error($errors, 'social_instagram') ?><?= field_error($errors, 'social_pinterest') ?><?= field_error($errors, 'social_youtube') ?>
     </div>
     <div class="card__body form-stack" style="border-top:1px solid var(--line)">
         <label class="field"><span>Homepage title in Google <small>about 60 characters</small></span><input class="input" name="seo_home_title" maxlength="160" value="<?= $v('seo_home_title') ?>" data-count></label>

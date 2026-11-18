@@ -14,14 +14,13 @@ $entries = sitemap_entries();
 
 echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
 echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">' . "\n";
-foreach ($entries as [$loc, $updated, $freq, $priority, $images]) {
+foreach ($entries as [$loc, $updated, , , $images]) {
     echo '  <url><loc>' . e($loc) . '</loc>';
     if ($updated) {
         echo '<lastmod>' . date('Y-m-d', strtotime($updated)) . '</lastmod>';
     }
-    echo '<changefreq>' . $freq . '</changefreq><priority>' . $priority . '</priority>';
-    foreach ($images as [$src, $title]) {
-        echo '<image:image><image:loc>' . e($src) . '</image:loc><image:title>' . e($title) . '</image:title></image:image>';
+    foreach ($images as [$src]) {
+        echo '<image:image><image:loc>' . e($src) . '</image:loc></image:image>';
     }
     echo "</url>\n";
 }

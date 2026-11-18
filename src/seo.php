@@ -11,9 +11,10 @@ function page_meta(array $page): array
     return $page + [
         'title'       => setting('seo_home_title', setting('store_name')),
         'description' => setting('seo_home_description'),
-        'canonical'   => url(ltrim(current_path(), '/')),
-        'image'       => url('assets/img/og-image.jpg'),
-        'type'        => 'website',
+        'canonical'     => url(ltrim(current_path(), '/')),
+        'image'         => url('assets/img/og-image.jpg'),
+        'preload_image' => '',
+        'type'          => 'website',
         'noindex'     => false,
         'robots'      => '',
         'schema'      => [],
@@ -43,7 +44,15 @@ function local_business_schema(): array
             ];
         }
     }
-    $sameAs = array_values(array_filter([setting('social_facebook'), setting('social_instagram'), setting('social_pinterest')]));
+    $sameAs = array_values(array_filter([
+        setting('social_facebook'),
+        setting('social_instagram'),
+        setting('social_pinterest'),
+        setting('social_youtube'),
+        setting('google_reviews_url'),
+    ], static fn (string $u): bool => $u !== '' && !str_contains($u, 'maps/search/?api=1&query=')));
+    $sameAs = array_values(array_unique($sameAs));
+    $founded = setting('store_founded');
 
     $schema = [
         '@context'   => 'https://schema.org',
@@ -56,7 +65,8 @@ function local_business_schema(): array
         'telephone'  => setting('store_phone_e164'),
         'priceRange' => '$$',
         'paymentAccepted' => 'Cash, Credit Card, Debit Card, Bank Transfer, PayID',
-        'servesCuisine' => 'Cakes, Desserts',
+        'servesCuisine' => 'Cakes, Desserts, Halal Bakery',
+        'menu'       => url('shop'),
         'currenciesAccepted' => 'AUD',
         'address'    => [
             '@type'           => 'PostalAddress',
@@ -75,6 +85,9 @@ function local_business_schema(): array
         // What the shop is known for, so search engines and AI assistants connect it with these searches.
         'knowsAbout' => array_values(array_unique(array_merge(['Custom cakes', 'Birthday cakes', 'Wedding cakes', 'Halal cakes'], array_column(get_categories(), 'name')))),
     ];
+    if ($founded !== '') {
+        $schema['foundingDate'] = $founded === '2015' ? '2015-03' : $founded;
+    }
     if (setting('seo_home_description') !== '') {
         $schema['description'] = setting('seo_home_description');
     }
@@ -86,9 +99,6 @@ function local_business_schema(): array
     }
     if (setting('store_latitude') !== '' && setting('store_longitude') !== '') {
         $schema['geo'] = ['@type' => 'GeoCoordinates', 'latitude' => (float) setting('store_latitude'), 'longitude' => (float) setting('store_longitude')];
-    }
-    if (setting('google_rating') !== '' && setting('google_reviews_url') !== '') {
-        $schema['sameAs'][] = setting('google_reviews_url');
     }
     if (setting('store_abn') !== '') {
         $schema['taxID'] = 'ABN ' . setting('store_abn');
@@ -131,6 +141,27 @@ function breadcrumb_schema(array $crumbs): array
     return ['@context' => 'https://schema.org', '@type' => 'BreadcrumbList', 'itemListElement' => $items];
 }
 
+function webpage_schema(string $name, string $link, string $description = '', ?string $updatedAt = null, string $type = 'WebPage'): array
+{
+    $schema = [
+        '@context'   => 'https://schema.org',
+        '@type'      => $type,
+        '@id'        => $link . '#webpage',
+        'name'       => $name,
+        'url'        => $link,
+        'inLanguage' => 'en-AU',
+        'isPartOf'   => ['@type' => 'WebSite', 'url' => url()],
+        'about'      => ['@id' => url('#bakery')],
+    ];
+    if ($description !== '') {
+        $schema['description'] = $description;
+    }
+    if ($updatedAt !== null && $updatedAt !== '' && ($ts = strtotime($updatedAt)) !== false) {
+        $schema['dateModified'] = date('c', $ts);
+    }
+    return $schema;
+}
+
 function product_schema(array $product, array $sizes, array $images = []): array
 {
     $images = array_values(array_unique(array_map('product_image_url', array_filter($images ?: [$product['image']]))));
@@ -139,7 +170,7 @@ function product_schema(array $product, array $sizes, array $images = []): array
         '@type'       => 'Product',
         '@id'         => product_url($product) . '#product',
         'name'        => $product['name'],
-        'description' => $product['meta_description'] ?: ($product['description'] ? content_text($product['description']) : ($product['short_description'] ?: product_default_description($product, $sizes))),
+        'description' => ($product['description'] ? content_text($product['description']) : '') ?: ($product['short_description'] ?: ($product['meta_description'] ?: product_default_description($product, $sizes))),
         'image'       => $images ?: [product_image_url(null)],
         'sku'         => 'CCS-' . $product['id'],
         'category'    => $product['category_name'],
@@ -385,9 +416,9 @@ function product_default_description(array $product, array $sizes): string
         ? strtolower((string) ($sizes[0]['servings'] ?: $sizes[0]['label']))
         : implode(', ', array_slice($labels, 0, -1)) . ' or ' . end($labels);
     $text = sprintf(
-        '%s Canberra: %s, from %s. 100%% Halal, made fresh in ' . shop_places() . '. Order online for pickup%s.',
+        'Fresh 100%% Halal %s Canberra — %s, from %s. Baked in ' . shop_places() . '; order online for pickup%s.',
         $product['name'], $sizeText, money(min(array_map(static fn ($s) => (float) $s['price'], $sizes))),
-        setting_bool('delivery_enabled') ? ' or delivery across Canberra' : ' in Canberra'
+        setting_bool('delivery_enabled') ? ' or delivery across Canberra' : ' in Canberra, ACT'
     );
     return mb_strlen($text) > 160 ? rtrim(mb_substr($text, 0, 157), ' ,.') . '...' : $text;
 }
@@ -618,9 +649,9 @@ function product_seo_autofill(array $data, array $sizes, string $categorySlug, b
     }
     $defaultDesc = product_default_description($data, $sizes);
     if (trim((string) ($data['meta_description'] ?? '')) === '' && !$has($defaultDesc)) {
-        // "Lemon Tart Canberra: serves 12, from $42.00. 100% Halal, made fresh in Greenway..."
-        $rest = str_contains($defaultDesc, ': ') ? substr($defaultDesc, strpos($defaultDesc, ': ') + 2) : $defaultDesc;
-        $desc = mb_convert_case($keyword, MB_CASE_TITLE) . ': ' . $rest;
+        // "Fresh 100% Halal Lemon Tart Canberra — serves 12, from $42.00. Baked in Greenway..."
+        $rest = str_contains($defaultDesc, '— ') ? substr($defaultDesc, strpos($defaultDesc, '— ') + strlen('— ')) : $defaultDesc;
+        $desc = 'Fresh 100% Halal ' . mb_convert_case($keyword, MB_CASE_TITLE) . ' — ' . $rest;
         $data['meta_description'] = mb_strlen($desc) <= 160 ? $desc : rtrim(mb_substr($desc, 0, (int) mb_strrpos(mb_substr($desc, 0, 158), ' ')), ' ,.') . '...';
     }
     return $data;

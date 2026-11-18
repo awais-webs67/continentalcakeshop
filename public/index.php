@@ -3,11 +3,13 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/src/bootstrap.php';
 
+$heroImg = setting('hero_image') ?: (get_gallery(1)[0]['image'] ?? '');
 $page = [
-    'title'       => setting('seo_home_title'),
-    'description' => setting('seo_home_description'),
-    'canonical'   => url(),
-    'body_class'  => 'page-home',
+    'title'         => setting('seo_home_title'),
+    'description'   => setting('seo_home_description'),
+    'canonical'     => url(),
+    'preload_image' => $heroImg !== '' ? product_image_url($heroImg) : '',
+    'body_class'    => 'page-home',
     'schema'      => [[
         '@context' => 'https://schema.org',
         '@type'    => 'WebSite',

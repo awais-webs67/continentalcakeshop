@@ -15,11 +15,15 @@ if (!$content) {
 $landing = ($content['type'] ?? 'policy') === 'landing';
 
 $crumbs = [['Home', url()], [$content['title'], url($slug)]];
+$pageDesc = $content['meta_description'] ?: (string) $content['summary'];
 $page = [
     'title'       => $content['meta_title'] ?: $content['title'] . ' | ' . setting('store_short_name'),
-    'description' => $content['meta_description'] ?: (string) $content['summary'],
+    'description' => $pageDesc,
     'canonical'   => url($slug),
-    'schema'      => [breadcrumb_schema($crumbs)],
+    'schema'      => [
+        breadcrumb_schema($crumbs),
+        webpage_schema($content['title'], url($slug), $pageDesc, $content['updated_at'] ?? null),
+    ],
 ];
 $photos = $landing && !empty($content['show_gallery']) ? gallery_for_occasion($content['occasion'] ?? null, 8) : [];
 if ($photos) {
@@ -45,7 +49,12 @@ render('header', compact('page'));
 
 <section class="section section--compact">
     <div class="container container--narrow">
-        <article class="prose"><?= render_content($content['body']) ?></article>
+        <article class="prose">
+            <?= render_content($content['body']) ?>
+            <?php if (!empty($content['updated_at'])): ?>
+                <p class="prose__updated">Last updated <?= e(date('j F Y', strtotime($content['updated_at']))) ?></p>
+            <?php endif; ?>
+        </article>
     </div>
 </section>
 

@@ -119,7 +119,7 @@ render('header', compact('page'));
 <dialog class="lightbox pin-box" data-pin-box aria-label="<?= e($title) ?>">
     <button type="button" class="lightbox__close" data-pin-close aria-label="Close"><?= icon('close', '', 24) ?></button>
     <figure class="pin-box__body">
-        <img alt="" data-pin-img>
+        <img alt="" width="720" height="960" data-pin-img>
         <figcaption>
             <span data-pin-text></span>
             <a class="btn btn--light btn--sm" href="<?= e(url('custom-cakes')) ?>" data-pin-order>Order one like this <?= icon('arrow', '', 16) ?></a>

@@ -50,7 +50,7 @@ if (is_post()) {
     }
     $date = DateTimeImmutable::createFromFormat('!Y-m-d', $data['event_date']);
     if (!$date || $date->format('Y-m-d') < $minDate) {
-        $errors['event_date'] = "Please choose a date at least {$leadDays} days from today.";
+        $errors['event_date'] = 'Please choose a date at least ' . days_label($leadDays) . ' from today.';
     }
     if ($data['servings'] === '' || (int) $data['servings'] < 1 || (int) $data['servings'] > 2000) {
         $errors['servings'] = 'Please enter how many people the cake should serve.';
@@ -123,11 +123,15 @@ $galleryTotal = count_gallery();
 $gallery = setting('custom_show_gallery', '1') === '1' ? get_gallery((int) setting('custom_gallery_count', '8')) : [];
 
 $crumbs = [['Home', url()], ['Custom Cakes', url('custom-cakes')]];
+$customDesc = 'Custom birthday, wedding, engagement and baby shower cakes made in ' . shop_places() . ', Canberra. Send us your idea or a photo and get a quote. 100% Halal.';
 $page = [
     'title'       => 'Custom Cakes Canberra | Birthday & Wedding Cakes',
-    'description' => 'Custom birthday, wedding, engagement and baby shower cakes made in ' . shop_places() . ', Canberra. Send us your idea or a photo and get a quote. 100% Halal.',
+    'description' => $customDesc,
     'canonical'   => url('custom-cakes'),
-    'schema'      => [breadcrumb_schema($crumbs)],
+    'schema'      => [
+        breadcrumb_schema($crumbs),
+        webpage_schema('Custom Cakes Canberra', url('custom-cakes'), $customDesc),
+    ],
 ];
 render('header', compact('page'));
 ?>
@@ -248,7 +252,7 @@ render('header', compact('page'));
             <div class="info-card">
                 <h2>Good to know</h2>
                 <ul class="tick-list">
-                    <li><?= icon('check', '', 18) ?> Please order at least <?= $leadDays ?> days ahead</li>
+                    <li><?= icon('check', '', 18) ?> Please order at least <?= e(days_label($leadDays)) ?> ahead</li>
                     <li><?= icon('check', '', 18) ?> 100% Halal ingredients</li>
                     <li><?= icon('check', '', 18) ?> Gluten-free, eggless and vegan options</li>
                     <li><?= icon('check', '', 18) ?> Edible images and custom shapes available</li>
@@ -287,5 +291,52 @@ render('header', compact('page'));
     </div>
 </section>
 <?php endif; ?>
+
+<section class="section section--compact section--tint">
+    <div class="container container--narrow">
+        <article class="prose">
+            <h2>Custom Cake Sizes, Tiers &amp; Recommended Notice in Canberra</h2>
+            <p>Whether you are ordering a Bluey or Spider-Man edible-image cake for a kids' party, a vintage piped heart cake, or a three-tier wedding centrepiece, our Greenway pastry team bakes every tier to order using <strong>100% Halal ingredients</strong>. Dense <a href="<?= e(url('shop/mud-cakes')) ?>">mud cakes</a> (chocolate, white gold, marble or caramel) and <a href="<?= e(url('shop/velvet-cakes')) ?>">red velvet</a> provide clean structure for tall buttercream and tiered designs, while light <a href="<?= e(url('shop/tortes')) ?>">European sponge tortes</a> suit single-tier cream celebrations.</p>
+            <img src="<?= e(asset('img/wedding-tier-guide.svg')) ?>" alt="Custom tiered cake sizing guide showing Single-Tier Tall Cake (14 to 25 guests), Two-Tier Wedding Cake (35 to 60 guests), and Three-Tier Statement Cake (75 to 120+ guests)" width="960" height="360" loading="lazy" decoding="async">
+            <table>
+                <thead>
+                    <tr>
+                        <th scope="col">Custom Style / Tier</th>
+                        <th scope="col">Approximate Guests</th>
+                        <th scope="col">Recommended Notice</th>
+                        <th scope="col">Popular Sponges &amp; Finishes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Edible Image or Piped Midi / Full</strong></td>
+                        <td>8 – 14 guests</td>
+                        <td>3 – 5 days (minimum <?= e(days_label($leadDays)) ?>)</td>
+                        <td>Vanilla or chocolate torte, mud cake, kids' characters &amp; vintage piping</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Single-Tier Tall Celebration / Nikah</strong></td>
+                        <td>14 – 25 guests</td>
+                        <td>5 – 7 days</td>
+                        <td>Chocolate mud, white gold mud or red velvet with drip, macarons or florals</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Two-Tier Engagement / Wedding Cake</strong></td>
+                        <td>35 – 60 guests</td>
+                        <td>2 – 4 weeks</td>
+                        <td>Mixed flavours per tier, smooth buttercream, semi-naked or fresh roses</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Three-Tier Statement Wedding Cake</strong></td>
+                        <td>75 – 120+ guests</td>
+                        <td>4 – 8+ weeks</td>
+                        <td>Sturdy mud or velvet tiers with scheduled Canberra &amp; Queanbeyan venue delivery</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p>Need a cake sooner than <?= e(days_label($leadDays)) ?>? Browse our <a href="<?= e(url('shop')) ?>">ready-to-order menu cakes</a>—available online with <?= e(notice_label((int) setting('min_lead_hours', '24'))) ?> notice and a free message piped on top—or explore our <a href="<?= e(url('wedding-cakes-canberra')) ?>">wedding cakes</a>, <a href="<?= e(url('birthday-cakes-canberra')) ?>">birthday cakes</a> and <a href="<?= e(url('baby-shower-cakes-canberra')) ?>">baby shower cakes</a> guides.</p>
+        </article>
+    </div>
+</section>
 
 <?php render('footer'); ?>

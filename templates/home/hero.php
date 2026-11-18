@@ -9,7 +9,7 @@ $heroCake = db_one('SELECT * FROM gallery_images WHERE image = ?', [$heroImage])
         <div class="hero__copy">
             <?php // The small line above the title is part of the main heading, so Google reads "cake shop ... Canberra" in it. ?>
             <h1 class="hero__heading">
-                <?php if (setting('hero_eyebrow') !== ''): ?><span class="kicker"><?= e(setting('hero_eyebrow')) ?></span><?php endif; ?>
+                <?php if (setting('hero_eyebrow') !== ''): ?><span class="kicker"><?= e(setting('hero_eyebrow')) ?></span> <?php endif; ?>
                 <span class="hero__title"><?= e(setting('hero_title')) ?></span>
             </h1>
             <?php if (setting('hero_subtitle') !== ''): ?><p class="hero__text"><?= e(setting('hero_subtitle')) ?></p><?php endif; ?>
@@ -35,7 +35,7 @@ $heroCake = db_one('SELECT * FROM gallery_images WHERE image = ?', [$heroImage])
                 <?php $shopPhoto = shop_photo(); ?>
                 <picture>
                     <?php if ($shopPhoto['webp']): ?><source srcset="<?= e($shopPhoto['webp']) ?>" type="image/webp"><?php endif; ?>
-                    <img src="<?= e($shopPhoto['src']) ?>" alt="<?= e(setting('store_name')) ?> storefront on <?= e(setting('store_street')) ?>, <?= e(setting('store_suburb')) ?>" width="948" height="1024" loading="lazy">
+                    <img src="<?= e($shopPhoto['src']) ?>" alt="<?= e(setting('store_name')) ?> storefront on <?= e(setting('store_street')) ?>, <?= e(setting('store_suburb')) ?>" width="948" height="1024" decoding="async">
                 </picture>
                 <figcaption>
                     <strong><?= e(today_hours_label()) ?></strong>
