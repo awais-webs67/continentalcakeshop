@@ -39,6 +39,10 @@ if (!config('debug') && PHP_SAPI !== 'cli') {
     });
 }
 
+if (PHP_SAPI !== 'cli') {
+    header_remove('X-Powered-By');
+}
+
 // On the live site (app_url starts with https://) every page is sent to the one official
 // address: HTTPS and the same www or non-www host as app_url. This keeps logins working
 // (the session cookie is HTTPS only) and gives Google a single version of each page.
