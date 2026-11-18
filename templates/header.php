@@ -42,8 +42,8 @@ $current = static fn (array $item): string => $item['active'] ? ' aria-current="
 <meta name="geo.placename" content="<?= e(setting('store_suburb', 'Canberra')) ?>, Canberra">
 <meta name="theme-color" content="#1E9B82">
 <link rel="icon" href="<?= e(asset('img/logo.svg')) ?>" type="image/svg+xml">
-<link rel="preload" href="<?= e(asset('fonts/outfit-latin.woff2')) ?>" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="<?= e(asset('fonts/dm-sans-latin.woff2')) ?>" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="<?= e(asset_url_plain('fonts/outfit-latin.woff2')) ?>" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="<?= e(asset_url_plain('fonts/dm-sans-latin.woff2')) ?>" as="font" type="font/woff2" crossorigin>
 <?php if ($page['preload_image'] !== ''): ?><link rel="preload" as="image" href="<?= e($page['preload_image']) ?>" fetchpriority="high">
 <?php endif; ?>
 <link rel="stylesheet" href="<?= e(asset('css/style.css')) ?>">

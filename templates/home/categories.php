@@ -7,7 +7,7 @@
 $photos = get_gallery(12);
 $tiles = array_map(static fn ($cat) => [
     'name'  => $cat['name'],
-    'meta'  => ($cat['price_from'] !== null ? 'From ' . money($cat['price_from']) . ' · ' : '') . (int) $cat['product_count'] . ' cakes',
+    'meta'  => ($cat['price_from'] !== null ? 'From ' . money($cat['price_from']) . ' · ' : '') . ((int) $cat['product_count'] === 1 ? '1 cake' : (int) $cat['product_count'] . ' cakes'),
     'link'  => category_url($cat),
     'image' => $cat['image'] ?: $cat['cover_image'],
     'alt'   => ($cat['image'] && !empty($cat['image_alt'])) ? $cat['image_alt'] : $cat['name'] . ' from ' . setting('store_short_name'),
