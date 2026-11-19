@@ -228,6 +228,19 @@ same('one subject for every email of an order', 'Order CC-1003 - ' . setting('st
 same('a file-only message has a preview', 'Sent a file: cake.jpg', message_preview(['body' => '', 'attachment' => 'chat/2026/11/a.jpg', 'attachment_name' => 'cake.jpg']));
 check('chat photos show, PDFs open as a file', chat_file_is_image('chat/a.webp') && !chat_file_is_image('chat/a.pdf'));
 
+// --- Files in customers' emails ------------------------------------------------------------
+$pdf = base64_encode("%PDF-1.4\n%%EOF\n");
+$raw = "From: A <a@example.com>\r\nSubject: Hi\r\nContent-Type: multipart/mixed; boundary=\"XX\"\r\n\r\n--XX\r\nContent-Type: text/plain\r\n\r\nHello there\r\n"
+    . "--XX\r\nContent-Type: image/png; name=\"logo.png\"\r\nContent-Disposition: attachment; filename=\"logo.png\"\r\nContent-ID: <logo>\r\nContent-Transfer-Encoding: base64\r\n\r\n" . base64_encode(str_repeat('x', 500)) . "\r\n"
+    . "--XX\r\nContent-Type: application/pdf\r\nContent-Disposition: attachment; filename*=UTF-8''party%20plan.pdf\r\nContent-Transfer-Encoding: base64\r\n\r\n{$pdf}\r\n--XX--\r\n";
+$parsed = mail_parse($raw);
+same('email files: the PDF is kept with its name, the small signature picture is not', ['party plan.pdf'], array_column($parsed['attachments'], 'name'));
+same('email text is still read', 'Hello there', $parsed['text']);
+check('only real photos and PDFs are saved from an email', chat_file_from_bytes('MZ not a picture', 'x.jpg') === null);
+$before = setting('chat_quick_replies');
+same('quick replies: empty rows are left out', 1, chat_quick_replies_save(['Ready', ''], ['Hi {name}, ready.', '']));
+setting_save('chat_quick_replies', $before !== '' ? $before : null);
+
 echo "\n\n{$passed} passed";
 if ($failed) {
     echo ', ' . count($failed) . " failed:\n - " . implode("\n - ", $failed) . "\n";

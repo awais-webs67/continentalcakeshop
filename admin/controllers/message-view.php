@@ -117,6 +117,12 @@ if (is_post()) {
         flash($sent ? 'success' : 'error', $note);
         redirect(admin_url('messages/view', ['email' => $email, 'about' => 'thread:' . $thread['id']]) . '#reply');
     }
+    if ($action === 'quick_replies') {
+        $titles = $_POST['titles'] ?? [];
+        $texts = $_POST['texts'] ?? [];
+        $count = chat_quick_replies_save(is_array($titles) ? $titles : [], is_array($texts) ? $texts : []);
+        flash('success', $count . ' quick ' . ($count === 1 ? 'reply' : 'replies') . ' saved. Everyone in the team sees them.');
+    }
     if ($action === 'status') {
         $open = (bool) array_filter($threads, static fn ($t) => $t['status'] === 'open');
         db_run('UPDATE threads SET status = ?, unread_admin = 0 WHERE LOWER(customer_email) = ?' . $branchSql, [$open ? 'closed' : 'open', $email]);
@@ -158,5 +164,7 @@ if (!isset($choices[$selected])) {
 }
 $isOpen = (bool) array_filter($threads, static fn ($t) => $t['status'] === 'open');
 $customerLink = $user ? admin_url('customers/view', ['id' => $user['id']]) : ($orders || $requests ? admin_url('customers/view', ['guest' => $email]) : null);
-admin_view('message-view', compact('person', 'threads', 'threadsById', 'messages', 'orders', 'requests', 'choices', 'selected', 'isOpen', 'customerLink', 'self')
+$quickReplies = chat_quick_replies();
+$shopPhone = branch_phone(get_branch((int) ($threads[0]['branch_id'] ?? 0)) ?? main_branch());
+admin_view('message-view', compact('person', 'threads', 'threadsById', 'messages', 'orders', 'requests', 'choices', 'selected', 'isOpen', 'customerLink', 'self', 'quickReplies', 'shopPhone')
     + ['title' => $person['name']]);

@@ -261,3 +261,42 @@ function person_chat_html(array $messages, array $threadsById, int $previousThre
     }
     return $html;
 }
+
+// ---------------------------------------------------------------------------
+// Quick replies: ready answers staff send in a tap from the chat. {name} is the customer's
+// first name, {about} what the reply is about ("Order CC-1001"), {shop} and {phone} the shop's.
+// Staff change them from the chat (saved in the setting chat_quick_replies).
+// ---------------------------------------------------------------------------
+
+const CHAT_QUICK_REPLIES_DEFAULT = [
+    ['Thanks, on it', 'Hi {name}, thank you for your message. We will get back to you shortly.'],
+    ['Order is ready', 'Hi {name}, good news: {about} is ready. See you soon!'],
+    ['Payment received', 'Hi {name}, thank you, we have received your payment for {about}.'],
+    ['Need more details', 'Hi {name}, could you send us a photo and a few more details (size, colours and the writing on the cake) so we can give you an exact price?'],
+    ['Change is fine', 'Hi {name}, no problem, we have made that change to {about}.'],
+    ['Please call us', 'Hi {name}, it may be quicker to talk. Please call us on {phone} and we will sort it out.'],
+];
+const CHAT_QUICK_REPLIES_MAX = 20;
+
+/** The quick replies as [[title, text], ...]. */
+function chat_quick_replies(): array
+{
+    $saved = json_decode((string) setting('chat_quick_replies'), true);
+    return is_array($saved) ? $saved : CHAT_QUICK_REPLIES_DEFAULT;
+}
+
+/** Saves the quick replies from the edit form (titles[] and texts[]); empty rows are left out. */
+function chat_quick_replies_save(array $titles, array $texts): int
+{
+    $list = [];
+    foreach ($texts as $i => $text) {
+        $text = trim(str_limit((string) $text, 1000));
+        $title = trim(str_limit((string) ($titles[$i] ?? ''), 40));
+        if ($text !== '') {
+            $list[] = [$title !== '' ? $title : mb_strimwidth($text, 0, 30, '...'), $text];
+        }
+    }
+    $list = array_slice($list, 0, CHAT_QUICK_REPLIES_MAX);
+    setting_save('chat_quick_replies', json_encode($list, JSON_UNESCAPED_UNICODE));
+    return count($list);
+}

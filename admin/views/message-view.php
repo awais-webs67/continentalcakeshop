@@ -1,6 +1,6 @@
 <?php
 /** @var array $person @var array $threads @var array $threadsById @var array $messages @var array $orders @var array $requests
- *  @var array $choices @var string $selected @var bool $isOpen @var ?string $customerLink @var string $self */
+ *  @var array $choices @var string $selected @var bool $isOpen @var ?string $customerLink @var string $self @var array $quickReplies @var string $shopPhone */
 $phone = preg_replace('/[^\d+]/', '', (string) $person['phone']);
 $lastThread = $messages ? (int) end($messages)['thread_id'] : 0;
 // Topics with at least one message (an order's chat is made with its confirmation email, empty until someone writes).
@@ -28,7 +28,8 @@ $topicText = $topicCount . ' ' . ($topicCount === 1 ? 'topic' : 'topics');
             <?php if (!$messages): ?><p class="hint chat-admin__empty">No messages with <?= e($person['name']) ?> yet. Choose what it is about below and write the first one; they get it by email with a button to reply.</p><?php endif; ?>
             <?= person_chat_html($messages, $threadsById) ?>
         </div>
-        <form class="card__body form-stack chat-admin__form" id="reply" method="post" action="<?= e($self) ?>" enctype="multipart/form-data" data-chat-form>
+        <form class="card__body form-stack chat-admin__form" id="reply" method="post" action="<?= e($self) ?>" enctype="multipart/form-data" data-chat-form
+              data-quick-name="<?= e(email_first_name($person['name'])) ?>" data-quick-shop="<?= e(setting('store_short_name')) ?>" data-quick-phone="<?= e($shopPhone) ?>">
             <?= csrf_field() ?><input type="hidden" name="email" value="<?= e($person['email']) ?>"><input type="hidden" name="action" value="reply">
             <label class="chat-about"><span><?= icon('tag', '', 15) ?> Reply about</span>
                 <select class="input" name="about" data-chat-about>
@@ -43,6 +44,16 @@ $topicText = $topicCount . ' ' . ($topicCount === 1 ? 'topic' : 'topics');
                     <input type="file" name="attachment" accept="image/jpeg,image/png,image/webp,image/heic,application/pdf" data-chat-file>
                     <?= icon('clip', '', 21) ?><span class="sr-only">Send a photo or PDF</span>
                 </label>
+                <details class="dropdown quick-menu" data-quick-menu>
+                    <summary class="chat-attach" title="Quick replies" aria-label="Quick replies"><?= icon('spark', '', 21) ?></summary>
+                    <div class="dropdown__panel">
+                        <p class="dropdown__title">Quick replies<small>Tap one, check it, then send</small></p>
+                        <?php foreach ($quickReplies as [$title, $text]): ?>
+                            <button type="button" class="quick-reply" data-quick-text="<?= e($text) ?>"><strong><?= e($title) ?></strong><span><?= e($text) ?></span></button>
+                        <?php endforeach; ?>
+                        <button type="button" class="quick-reply quick-reply--edit" data-quick-edit-open><?= icon('pen', '', 15) ?> Edit quick replies</button>
+                    </div>
+                </details>
                 <label class="sr-only" for="reply-body">Reply to <?= e($person['name']) ?></label>
                 <textarea class="input chat-admin__input" id="reply-body" name="body" rows="1" placeholder="Reply to <?= e($person['name']) ?>" data-autogrow></textarea>
                 <button class="chat-admin__send" type="submit" aria-label="Send reply"><?= icon('arrow', '', 21) ?></button>
@@ -55,6 +66,22 @@ $topicText = $topicCount . ' ' . ($topicCount === 1 ? 'topic' : 'topics');
             </div>
             <p class="hint" data-chat-note hidden></p>
         </form>
+        <dialog class="quick-edit" data-quick-edit aria-label="Quick replies">
+            <form method="post" action="<?= e($self) ?>">
+                <?= csrf_field() ?><input type="hidden" name="email" value="<?= e($person['email']) ?>"><input type="hidden" name="action" value="quick_replies">
+                <div class="quick-edit__head"><h2>Quick replies</h2><button type="button" class="link-btn" data-quick-edit-close>Close</button></div>
+                <p class="hint">Ready answers for the whole team. In the text, <strong>{name}</strong> becomes the customer's first name, <strong>{about}</strong> the order or request ("Order CC-1001"), <strong>{phone}</strong> the shop's phone and <strong>{shop}</strong> the shop's name. Empty one to remove it.</p>
+                <div class="quick-edit__rows">
+                    <?php foreach (array_merge($quickReplies, array_fill(0, min(3, CHAT_QUICK_REPLIES_MAX - count($quickReplies)), ['', ''])) as $i => [$title, $text]): ?>
+                        <div class="quick-edit__row">
+                            <input class="input" name="titles[]" maxlength="40" value="<?= e($title) ?>" placeholder="Short name, e.g. Order is ready" aria-label="Name of quick reply <?= $i + 1 ?>">
+                            <textarea class="input" name="texts[]" rows="2" maxlength="1000" placeholder="The message" aria-label="Text of quick reply <?= $i + 1 ?>"><?= e($text) ?></textarea>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <div class="form-actions-row"><button class="btn btn--primary" type="submit">Save quick replies</button><button class="btn btn--ghost" type="button" data-quick-edit-close>Cancel</button></div>
+            </form>
+        </dialog>
     </section>
     <div class="stack">
         <section class="card">

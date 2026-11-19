@@ -885,6 +885,42 @@ window.ccsChatFile = function (form) {
     return { has: function () { return !!(input && input.files && input.files.length); }, clear: clear };
 };
 
+/* Quick replies in the chat: tap one to put it in the reply box with the customer's name and
+   what the reply is about filled in; staff check it and send. "Edit quick replies" opens the list. */
+(function () {
+    var form = document.querySelector('[data-chat-form]');
+    var menu = document.querySelector('[data-quick-menu]');
+    if (!form || !menu) return;
+    var textarea = form.querySelector('textarea');
+    var about = form.querySelector('[data-chat-about]');
+    var topic = function () {
+        var opt = about && about.options[about.selectedIndex];
+        // "Order CC-1001 · 21 Nov" or "Wedding cake request (closed)" -> "Order CC-1001", "Wedding cake request"
+        return opt ? opt.textContent.replace(/\s*\(closed\)$/, '').replace(/\s+·.*$/, '').replace(/^Something else.*$/, 'your order').trim() : 'your order';
+    };
+    menu.querySelectorAll('[data-quick-text]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var text = btn.getAttribute('data-quick-text')
+                .replace(/\{name\}/g, form.getAttribute('data-quick-name') || '')
+                .replace(/\{about\}/g, topic())
+                .replace(/\{phone\}/g, form.getAttribute('data-quick-phone') || '')
+                .replace(/\{shop\}/g, form.getAttribute('data-quick-shop') || '');
+            textarea.value = textarea.value.trim() !== '' ? textarea.value.replace(/\s*$/, '') + '\n' + text : text;
+            menu.open = false;
+            textarea.dispatchEvent(new Event('input'));
+            textarea.focus();
+            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+        });
+    });
+    var dialog = document.querySelector('[data-quick-edit]');
+    var open = menu.querySelector('[data-quick-edit-open]');
+    if (dialog && open && dialog.showModal) {
+        open.addEventListener('click', function () { menu.open = false; dialog.showModal(); });
+        dialog.querySelectorAll('[data-quick-edit-close]').forEach(function (b) { b.addEventListener('click', function () { dialog.close(); }); });
+    }
+    document.addEventListener('click', function (e) { if (menu.open && !menu.contains(e.target)) menu.open = false; });
+})();
+
 /* Conversation page: new messages appear on their own, replies send without reloading. */
 (function () {
     var list = document.querySelector('[data-chat]');

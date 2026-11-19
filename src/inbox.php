@@ -116,7 +116,7 @@ function inbox_import(array $branch, array $mail, string $ownAddress): bool
 {
     $from = strtolower($mail['from_email']);
     if (!valid_email($from) || $mail['auto'] || $from === $ownAddress || $from === strtolower(setting_raw('mail_from_address'))
-        || preg_match('/^(mailer-daemon|postmaster|no-?reply|donotreply)@/i', $from) || trim($mail['text']) === '') {
+        || preg_match('/^(mailer-daemon|postmaster|no-?reply|donotreply)@/i', $from) || (trim($mail['text']) === '' && empty($mail['attachments']))) {
         return false;
     }
     $branchId = (int) $branch['id'];
@@ -152,7 +152,12 @@ function inbox_import(array $branch, array $mail, string $ownAddress): bool
         db_run("UPDATE threads SET status = 'open' WHERE id = ?", [$thread['id']]);
     }
     // No "new message" email to the shop: it is already in the shop's email app.
-    add_thread_message($thread, 'customer', str_limit($mail['text'], 10000));
+    // Photos and PDFs sent with the email are saved with it: the first with the text, the rest after it.
+    $files = array_values(array_filter(array_map(static fn ($a) => chat_file_from_bytes($a['data'], $a['name']), $mail['attachments'] ?? [])));
+    add_thread_message($thread, 'customer', str_limit($mail['text'], 10000), null, $files[0] ?? null);
+    foreach (array_slice($files, 1) as $file) {
+        add_thread_message($thread, 'customer', '', null, $file);
+    }
     return true;
 }
 
@@ -178,7 +183,63 @@ function mail_parse(string $raw): array
                         || isset($headers['x-autoreply']) || stripos($headers['precedence'] ?? '', 'bulk') !== false
                         || stripos($headers['precedence'] ?? '', 'auto_reply') !== false,
         'text'       => mail_strip_quote($text),
+        'attachments' => mail_attachments($headers, $body),
     ];
+}
+
+/** Most files kept from one email, and the smallest inline picture kept (smaller ones are logos and icons in signatures). */
+const MAIL_MAX_ATTACHMENTS = 6;
+const MAIL_MIN_INLINE_BYTES = 15000;
+
+/**
+ * Photos and PDFs sent with an email: [['name' => ..., 'data' => bytes], ...]. Files attached to
+ * it, and pictures pasted into it (only real photos, not the small images in email signatures).
+ * What a file really is gets checked when it is saved (chat_file_from_bytes()).
+ */
+function mail_attachments(array $headers, string $body, int $depth = 0): array
+{
+    $type = strtolower($headers['content-type'] ?? '');
+    if ($depth > 5 || !str_starts_with($type, 'multipart/') || !preg_match('/boundary="?([^";]+)"?/i', $headers['content-type'], $b)) {
+        return [];
+    }
+    $found = [];
+    foreach (array_slice(explode('--' . $b[1], $body), 1) as $part) {
+        if (str_starts_with($part, '--') || count($found) >= MAIL_MAX_ATTACHMENTS) {
+            break;
+        }
+        [$h, $content] = mail_split(ltrim($part, "\r\n"));
+        $ptype = strtolower($h['content-type'] ?? 'text/plain');
+        if (str_starts_with($ptype, 'multipart/')) {
+            $found = array_merge($found, mail_attachments($h, $content, $depth + 1));
+            continue;
+        }
+        if (!preg_match('#^(image/|application/pdf|application/octet-stream)#', $ptype)) {
+            continue;
+        }
+        $disposition = strtolower($h['content-disposition'] ?? '');
+        $data = strtolower($h['content-transfer-encoding'] ?? '') === 'base64' ? (string) base64_decode((string) preg_replace('/\s+/', '', $content)) : $content;
+        // A picture inside the email's text (it has a Content-ID) is kept only when it is a real photo.
+        $pasted = isset($h['content-id']) || !str_contains($disposition, 'attachment');
+        if ($data === '' || ($pasted && strlen($data) < MAIL_MIN_INLINE_BYTES)) {
+            continue;
+        }
+        $found[] = ['name' => mail_part_filename($h), 'data' => $data];
+    }
+    return array_slice($found, 0, MAIL_MAX_ATTACHMENTS);
+}
+
+/** The file name of an email part (filename="...", filename*=UTF-8''..., or name="..."). */
+function mail_part_filename(array $headers): string
+{
+    foreach ([$headers['content-disposition'] ?? '', $headers['content-type'] ?? ''] as $value) {
+        if (preg_match("/(?:file)?name\\*=(?:([\w-]+)'[^']*')?([^;]+)/i", $value, $m)) {
+            return mail_decode_header(rawurldecode(trim($m[2], ' "')));
+        }
+        if (preg_match('/(?:file)?name="?([^";]+)"?/i', $value, $m)) {
+            return mail_decode_header(trim($m[1]));
+        }
+    }
+    return 'Photo';
 }
 
 /** [lowercase header names => values, body] */

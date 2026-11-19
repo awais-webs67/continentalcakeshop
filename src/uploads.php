@@ -116,3 +116,26 @@ function serve_private_upload(string $relative): never
     readfile($path);
     exit;
 }
+
+/**
+ * Saves a file that came as bytes (a photo or PDF in a customer's email) like a chat upload:
+ * only real JPG, PNG, WebP, HEIC or PDF files up to 10 MB. Returns ['path', 'name'] or null.
+ */
+function chat_file_from_bytes(string $data, string $name): ?array
+{
+    if ($data === '' || strlen($data) > UPLOAD_MAX_BYTES) {
+        return null;
+    }
+    $mime = (new finfo(FILEINFO_MIME_TYPE))->buffer($data) ?: '';
+    $ext = UPLOAD_RECEIPT_TYPES[$mime] ?? null;
+    $dir = STORAGE_PATH . '/uploads/chat/' . date('Y/m');
+    if ($ext === null || (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir))) {
+        return null;
+    }
+    $path = 'chat/' . date('Y/m') . '/' . bin2hex(random_bytes(16)) . '.' . $ext;
+    if (@file_put_contents(STORAGE_PATH . '/uploads/' . $path, $data) === false) {
+        return null;
+    }
+    $name = str_limit(trim((string) preg_replace('/[^\w .()-]+/u', '', basename($name))), 120);
+    return ['path' => $path, 'name' => $name !== '' ? $name : basename($path)];
+}

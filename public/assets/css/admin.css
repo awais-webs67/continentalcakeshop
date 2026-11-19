@@ -994,6 +994,26 @@ select.input { appearance: none; padding-right: 36px; background-image: url("dat
 .chat-about { display: flex; align-items: center; gap: 10px; margin: 0; }
 .chat-about > span { display: inline-flex; align-items: center; gap: 5px; flex: none; color: var(--muted); font-size: 13px; font-weight: 600; }
 .chat-about select { flex: 1; min-width: 0; height: 38px; padding-top: 6px; padding-bottom: 6px; font-size: 14px; font-weight: 600; }
+/* Quick replies: the menu opens upwards from the reply box; edited in a window */
+.quick-menu, .chat-admin__row .quick-menu { position: relative; flex: none; }
+.quick-menu > summary { list-style: none; }
+.quick-menu > summary::-webkit-details-marker { display: none; }
+.quick-menu[open] > summary { background: var(--brand-soft); color: var(--brand-dark); }
+.quick-menu .dropdown__panel, .chat-admin__row .quick-menu .dropdown__panel { position: absolute; top: auto; right: auto; bottom: calc(100% + 8px); left: -52px; width: min(340px, calc(100vw - 24px)); max-height: min(420px, 55vh); overflow-y: auto; }
+.quick-reply { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; padding: 9px 10px; border: 0; border-radius: 10px; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.quick-reply:hover, .quick-reply:focus-visible { background: var(--bg); }
+.quick-reply strong { width: 100%; font-size: 14px; text-align: left; }
+.quick-reply span { overflow: hidden; color: var(--muted); font-size: 12.5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.quick-reply--edit { flex-direction: row; align-items: center; gap: 6px; margin-top: 4px; border-top: 1px solid var(--line); border-radius: 0 0 10px 10px; color: var(--brand-dark); font-weight: 600; font-size: 14px; }
+.quick-edit { width: min(640px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); padding: 0; border: 0; border-radius: 16px; box-shadow: 0 24px 60px rgba(16, 24, 22, .3); }
+.quick-edit::backdrop { background: rgba(17, 17, 19, .5); }
+.quick-edit form { display: flex; flex-direction: column; gap: 12px; padding: 18px; }
+.quick-edit__head { display: flex; align-items: center; justify-content: space-between; }
+.quick-edit__head h2 { margin: 0; font-size: 18px; }
+.quick-edit .hint { margin: 0; }
+.quick-edit__rows { display: grid; gap: 10px; }
+.quick-edit__row { display: grid; gap: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
+.quick-edit__row textarea.input { min-height: 60px; resize: vertical; }
 .chat-card__head .message__avatar { flex: none; width: 36px; height: 36px; font-size: 15px; }
 .mini-list { margin: 0; padding: 4px 0; list-style: none; }
 .mini-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 18px; border-bottom: 1px solid var(--line); }
@@ -1018,6 +1038,9 @@ select.input { appearance: none; padding-right: 36px; background-image: url("dat
     .chat-card .chat-admin__form { padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); }
     .chat-admin__actions { display: none; }
     .chat-about > span { font-size: 12px; }
+    .quick-reply span { display: none; }
+    .quick-reply { padding: 11px 10px; }
+    .quick-menu .dropdown__panel, .chat-admin__row .quick-menu .dropdown__panel { width: min(300px, calc(100vw - 24px)); }
     .chat-about select { height: 36px; }
     .chat-admin__msg { max-width: 86%; }
 }
