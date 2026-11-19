@@ -86,7 +86,7 @@
             <div class="card__body">
                 <dl class="dl">
                     <dt>Name</dt><dd><?= e($request['name']) ?></dd>
-                    <dt>Email</dt><dd><a href="mailto:<?= e($request['email']) ?>"><?= e($request['email']) ?></a></dd>
+                    <dt>Email</dt><dd><?php if (admin_can('messages')): ?><a href="<?= e(admin_url('messages/view', ['request' => $request['id']])) ?>" title="Open the chat about this request"><?= e($request['email']) ?></a><?php else: ?><?= e($request['email']) ?><?php endif; ?></dd>
                     <dt>Phone</dt><dd><a href="tel:<?= e(preg_replace('/[^\d+]/', '', $request['phone'])) ?>"><?= e($request['phone']) ?></a></dd>
                 </dl>
             </div>

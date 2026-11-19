@@ -760,7 +760,7 @@ function admin_badges(): array
         // the same as the Orders page "Needs action" list.
         'action'   => (int) db_value("SELECT COUNT(*) FROM orders WHERE (order_status = 'new' OR payment_status = 'awaiting_verification' OR (fulfilment = 'delivery' AND pickup_time IS NULL AND order_status NOT IN ('cancelled', 'completed'))){$b}"),
         'custom'   => (int) db_value("SELECT COUNT(*) FROM custom_requests WHERE status = 'new'{$b}"),
-        'messages' => $b === '' ? unread_thread_count() : (int) db_value("SELECT COUNT(*) FROM threads WHERE unread_admin = 1{$b}"),
+        'messages' => $b === '' ? unread_thread_count() : (int) db_value("SELECT COUNT(DISTINCT LOWER(customer_email)) FROM threads WHERE unread_admin = 1{$b}"),
     ];
 }
 /**
@@ -791,7 +791,7 @@ function admin_live_state(array $admin): array
         'counts'  => $counts,
         'stamp'   => $stamp,
         'order'   => $can('orders') ? db_one('SELECT id, order_number, customer_name, total, channel, TIMESTAMPDIFF(SECOND, created_at, NOW()) AS age FROM orders' . $w . ' ORDER BY id DESC LIMIT 1') : null,
-        'message' => $can('messages') ? db_one("SELECT m.id, m.thread_id, t.customer_name, LEFT(" . MESSAGE_PREVIEW_SQL . ", 140) AS body, TIMESTAMPDIFF(SECOND, m.created_at, NOW()) AS age FROM thread_messages m JOIN threads t ON t.id = m.thread_id WHERE m.sender = 'customer'" . branch_sql('t.branch_id') . ' ORDER BY m.id DESC LIMIT 1') : null,
+        'message' => $can('messages') ? db_one("SELECT m.id, m.thread_id, t.customer_name, LOWER(t.customer_email) AS email, LEFT(" . MESSAGE_PREVIEW_SQL . ", 140) AS body, TIMESTAMPDIFF(SECOND, m.created_at, NOW()) AS age FROM thread_messages m JOIN threads t ON t.id = m.thread_id WHERE m.sender = 'customer'" . branch_sql('t.branch_id') . ' ORDER BY m.id DESC LIMIT 1') : null,
         'request' => $can('custom') ? db_one('SELECT id, name, occasion, TIMESTAMPDIFF(SECOND, created_at, NOW()) AS age FROM custom_requests' . $w . ' ORDER BY id DESC LIMIT 1') : null,
     ];
 }

@@ -2,12 +2,12 @@
 <a class="crumb" href="<?= e(admin_url('customers', $customer['guest'] ? ['type' => 'guests'] : [])) ?>"><?= icon('arrow', '', 14) ?> Customers</a>
 <div class="page-head">
     <div>
-        <h1><?= e($customer['name']) ?> <?= $customer['guest'] ? status_badge('pending', 'Guest, no account') : status_badge('active', 'Account') ?></h1>
-        <p><?= $customer['guest'] ? 'First ordered' : 'Customer since' ?> <?= e(date('j F Y', strtotime($customer['created_at']))) ?></p>
+        <h1><?= e($customer['name']) ?> <?= $customer['guest'] ? status_badge('pending', $orders ? 'Guest, no account' : 'Custom cake request') : status_badge('active', 'Account') ?></h1>
+        <p><?= $customer['guest'] ? 'First contact' : 'Customer since' ?> <?= e(date('j F Y', strtotime($customer['created_at']))) ?></p>
     </div>
     <div class="page-head__actions">
         <?php if ($customer['phone']): ?><a class="btn btn--secondary" href="tel:<?= e(preg_replace('/[^\d+]/', '', $customer['phone'])) ?>"><?= icon('phone', '', 18) ?> Call</a><?php endif; ?>
-        <?php if ($customer['email'] !== ''): ?><a class="btn btn--secondary" href="mailto:<?= e($customer['email']) ?>"><?= icon('mail', '', 18) ?> Email</a><?php endif; ?>
+        <?php if ($customer['email'] !== '' && admin_can('messages')): ?><a class="btn btn--secondary" href="<?= e(admin_url('messages/view', ['email' => mb_strtolower($customer['email'])])) ?>"><?= icon('mail', '', 18) ?> Message</a><?php endif; ?>
         <?php if ($orders && admin_can('orders')): ?><a class="btn btn--primary" href="<?= e(admin_url('orders/new')) ?>"><?= icon('plus', '', 18) ?> New order</a><?php endif; ?>
     </div>
 </div>
@@ -47,7 +47,7 @@
         <section class="card">
             <div class="card__head"><h2>Contact</h2></div>
             <div class="card__body"><dl class="dl">
-                <dt>Email</dt><dd><?= $customer['email'] !== '' ? '<a href="mailto:' . e($customer['email']) . '">' . e($customer['email']) . '</a>' : 'Not given' ?></dd>
+                <dt>Email</dt><dd><?= $customer['email'] === '' ? 'Not given' : (admin_can('messages') ? '<a href="' . e(admin_url('messages/view', ['email' => mb_strtolower($customer['email'])])) . '" title="Open the chat with ' . e($customer['name']) . '">' . e($customer['email']) . '</a>' : e($customer['email'])) ?></dd>
                 <dt>Phone</dt><dd><?= $customer['phone'] ? '<a href="tel:' . e(preg_replace('/[^\d+]/', '', $customer['phone'])) . '">' . e($customer['phone']) . '</a>' : 'Not given' ?></dd>
             </dl>
             <?php if ($customer['guest']): ?><p class="hint" style="margin-top:12px">This customer ordered without creating an account<?= $customer['email'] !== '' ? '. If they register with ' . e($customer['email']) . ', these orders will show under their account' : ' (a phone or shop order without an email)' ?>.</p><?php endif; ?>

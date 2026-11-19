@@ -826,7 +826,9 @@ document.querySelectorAll('[data-checklist-toggle]').forEach(function (toggle) {
                     notify('order', parseInt(d.order.id, 10), 'New order ' + d.order.order_number, d.order.customer_name + ' · ' + money(d.order.total), adminUrl('orders/view', d.order.id), 'Open order');
                 }
                 if (d.message && isNew('message', parseInt(d.message.id, 10))) {
-                    var onThread = document.querySelector('[data-chat][data-chat-url*="id=' + d.message.thread_id + '"]');
+                    // Already on screen in the open chat with this customer: no pop-up.
+                    var onThread = document.querySelector('[data-chat][data-chat-threads*=",' + d.message.thread_id + ',"]')
+                        || (d.message.email && document.querySelector('[data-chat][data-chat-email="' + String(d.message.email).toLowerCase().replace(/"/g, '') + '"]'));
                     if (onThread) claim('message', parseInt(d.message.id, 10));
                     else notify('message', parseInt(d.message.id, 10), 'Message from ' + d.message.customer_name, d.message.body, adminUrl('messages/view', d.message.thread_id), 'Reply');
                 }
@@ -892,6 +894,9 @@ window.ccsChatFile = function (form) {
     var lastId = parseInt(list.getAttribute('data-last-id'), 10) || 0;
     var timer, busy = false;
     window.ccsChatScreen(list);
+    // The conversation (order, request...) of the newest message shown, so a topic line is added
+    // only when new messages are about something else.
+    var lastThread = parseInt(list.getAttribute('data-last-thread'), 10) || 0;
     var append = function (messages) {
         var added = false;
         messages.forEach(function (m) {
@@ -900,6 +905,8 @@ window.ccsChatFile = function (form) {
             if (empty) empty.remove();
             list.insertAdjacentHTML('beforeend', m.html);
             lastId = Math.max(lastId, m.id);
+            var bubbles = list.querySelectorAll('[data-thread]');
+            if (bubbles.length) lastThread = parseInt(bubbles[bubbles.length - 1].getAttribute('data-thread'), 10) || lastThread;
             added = true;
             if (m.html.indexOf('chat-admin__msg--customer') !== -1 && window.CCSSound) {
                 try { window.localStorage.setItem('ccsRang.message', String(Math.max(m.id, parseInt(window.localStorage.getItem('ccsRang.message') || '0', 10)))); } catch (e) {}
@@ -912,7 +919,7 @@ window.ccsChatFile = function (form) {
     var poll = function () {
         if (busy) return schedule();
         busy = true;
-        fetch(url + '&poll=1&after=' + lastId, { credentials: 'same-origin', cache: 'no-store', headers: { 'X-Requested-With': 'fetch' } })
+        fetch(url + (url.indexOf('?') < 0 ? '?' : '&') + 'poll=1&after=' + lastId + '&thread=' + lastThread, { credentials: 'same-origin', cache: 'no-store', headers: { 'X-Requested-With': 'fetch' } })
             .then(function (r) { return r.json(); })
             .then(function (d) { append(d.messages || []); })
             .catch(function () {})
@@ -951,6 +958,19 @@ window.ccsChatFile = function (form) {
                 textarea.value = '';
                 picker.clear();
                 grow();
+                // A reply about an order, request or new topic starts its conversation: pick it from now on.
+                var about = form.querySelector('[data-chat-about]');
+                if (about && d.about) {
+                    if (!about.querySelector('option[value="' + d.about + '"]')) {
+                        var opt = document.createElement('option');
+                        opt.value = d.about;
+                        opt.textContent = d.topic || 'This topic';
+                        about.insertBefore(opt, about.firstChild);
+                        var stale = about.querySelector('option[value="new"]');
+                        if (stale && about.value === 'new') stale.remove();
+                    }
+                    about.value = d.about;
+                }
                 if (window.CCSSound) window.CCSSound.play('sent');
                 if (note && d.note) { note.textContent = d.note; note.hidden = false; }
                 poll();

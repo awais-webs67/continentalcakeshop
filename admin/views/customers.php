@@ -4,7 +4,7 @@ $customerLink = static fn (array $c): string => $c['kind'] === 'account'
     : admin_url('customers/view', ['guest' => $c['ckey']]);
 ?>
 <div class="page-head">
-    <div><h1>Customers</h1><p>Everyone who has ordered: customers with an account and guests who checked out without one (including phone and shop orders).</p></div>
+    <div><h1>Customers</h1><p>Everyone who has ordered or asked for a custom cake: customers with an account and guests without one (including phone and shop orders).</p></div>
 </div>
 <section class="card">
     <nav class="tabs">
@@ -26,9 +26,9 @@ $customerLink = static fn (array $c): string => $c['kind'] === 'account'
             <?php foreach ($result['rows'] as $c): ?>
                 <tr>
                     <td><a class="row-link" href="<?= e($customerLink($c)) ?>"><?= e($c['name'] ?: 'No name') ?></a><div class="muted"><?= e($c['email'] ?: 'No email') ?></div></td>
-                    <td><?= $c['kind'] === 'account' ? status_badge('active', 'Account') : status_badge('pending', 'Guest') ?></td>
+                    <td><?= $c['kind'] === 'account' ? status_badge('active', 'Account') : ((int) $c['order_count'] ? status_badge('pending', 'Guest') : status_badge('new', 'Custom cake')) ?></td>
                     <td><?= e($c['phone'] ?: '-') ?></td>
-                    <td><?= (int) $c['order_count'] ?></td>
+                    <td><?= (int) $c['order_count'] ?><?php if ((int) $c['request_count']): ?><div class="muted"><?= (int) $c['request_count'] ?> custom <?= (int) $c['request_count'] === 1 ? 'request' : 'requests' ?></div><?php endif; ?></td>
                     <td><?= e(money($c['spent'])) ?></td>
                     <td class="num muted"><?= $c['last_order_at'] ? e(time_ago($c['last_order_at'])) : 'No orders yet' ?></td>
                 </tr>

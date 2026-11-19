@@ -137,8 +137,11 @@ function message_preview(array $m): string
 /** SQL for the same preview in a query on thread_messages m. */
 const MESSAGE_PREVIEW_SQL = "IF(m.body = '' AND m.attachment IS NOT NULL, CONCAT('Sent a file: ', IFNULL(m.attachment_name, 'attachment')), m.body)";
 
-/** One chat bubble, as the customer ('customer') or the shop ('admin') sees it. */
-function chat_bubble_html(array $m, array $thread, string $view): string
+/**
+ * One chat bubble, as the customer ('customer') or the shop ('admin') sees it. $topic (the order or
+ * request it is about) is shown under the bubble in the shop's chat with one customer.
+ */
+function chat_bubble_html(array $m, array $thread, string $view, string $topic = ''): string
 {
     $prefix = $view === 'admin' ? 'chat-admin' : 'chat';
     $who = $view === 'admin'
@@ -153,9 +156,9 @@ function chat_bubble_html(array $m, array $thread, string $view): string
             : '<a class="chat-file" href="' . $url . '" target="_blank" rel="noopener">' . icon('file', '', 22) . '<span>' . $name . '</span></a>';
     }
     $text = trim((string) $m['body']) !== '' ? nl2br(e($m['body'])) : '';
-    return '<div class="' . $prefix . '__msg ' . $prefix . '__msg--' . e($m['sender']) . '" data-msg-id="' . (int) $m['id'] . '">'
+    return '<div class="' . $prefix . '__msg ' . $prefix . '__msg--' . e($m['sender']) . '" data-msg-id="' . (int) $m['id'] . '" data-thread="' . (int) $m['thread_id'] . '">'
         . '<div class="' . $prefix . '__bubble' . ($file !== '' ? ' has-file' : '') . '">' . $file . ($text !== '' ? '<span class="chat-text">' . $text . '</span>' : '') . '</div>'
-        . '<p class="' . $prefix . '__meta">' . e($who) . ' &middot; ' . e(date('j M Y, g:ia', strtotime((string) $m['created_at']))) . '</p></div>';
+        . '<p class="' . $prefix . '__meta">' . e($who) . ($topic !== '' ? ' &middot; <span class="chat-tag">' . e($topic) . '</span>' : '') . ' &middot; ' . e(date('j M Y, g:ia', strtotime((string) $m['created_at']))) . '</p></div>';
 }
 
 /** A customer wrote: save it and let the shop know by email (unless staff are reading it live). */
@@ -194,12 +197,67 @@ function shop_message(array $thread, string $body, int $adminId, ?array $file = 
     ));
 }
 
-/** Threads with unread customer messages, for the admin badge. */
+/** Customers with unread messages, for the admin badge (one per person, like the Messages list). */
 function unread_thread_count(): int
 {
     try {
-        return (int) db_value('SELECT COUNT(*) FROM threads WHERE unread_admin = 1');
+        return (int) db_value('SELECT COUNT(DISTINCT LOWER(customer_email)) FROM threads WHERE unread_admin = 1');
     } catch (PDOException) {
         return 0;
     }
+}
+
+// ---------------------------------------------------------------------------
+// One chat per customer in the panel. A customer can have several conversations (the contact
+// form, each order, each custom cake request, their emails); staff see them together, by email
+// address, as one history, and choose which order or request a reply is about.
+// ---------------------------------------------------------------------------
+
+/** Every conversation of one customer email, newest first. $branchSql limits it to the shops staff may see. */
+function person_threads(string $email, string $branchSql = ''): array
+{
+    return db_all('SELECT * FROM threads WHERE LOWER(customer_email) = ?' . $branchSql . ' ORDER BY last_message_at IS NULL, last_message_at DESC, id DESC', [mb_strtolower(trim($email))]);
+}
+
+/** The messages of those conversations, oldest first (only those after $afterId). */
+function person_messages(array $threads, int $afterId = 0): array
+{
+    $ids = array_map(static fn ($t) => (int) $t['id'], $threads);
+    if (!$ids) {
+        return [];
+    }
+    return db_all(
+        'SELECT m.*, a.name AS admin_name FROM thread_messages m LEFT JOIN admins a ON a.id = m.admin_id
+         WHERE m.thread_id IN (' . implode(',', $ids) . ') AND m.id > ? ORDER BY m.id',
+        [$afterId]
+    );
+}
+
+/** What a conversation is about, for the chat and the reply picker: "Order CC-1001", "Birthday cake request". */
+function thread_topic(array $thread): string
+{
+    return thread_conversation($thread)[1];
+}
+
+/**
+ * Bubbles for the shop's chat with one customer. A line with the topic starts each run of
+ * messages about the same order or request ($previousThread: the conversation of the message
+ * already shown above them).
+ */
+function person_chat_html(array $messages, array $threadsById, int $previousThread = 0): string
+{
+    $html = '';
+    foreach ($messages as $m) {
+        $thread = $threadsById[(int) $m['thread_id']] ?? null;
+        if (!$thread) {
+            continue;
+        }
+        $topic = thread_topic($thread);
+        if ((int) $m['thread_id'] !== $previousThread) {
+            $html .= '<p class="chat-topic" data-topic-for="' . (int) $m['id'] . '"><span>' . e($topic) . '</span></p>';
+            $previousThread = (int) $m['thread_id'];
+        }
+        $html .= chat_bubble_html($m, $thread, 'admin', $topic);
+    }
+    return $html;
 }

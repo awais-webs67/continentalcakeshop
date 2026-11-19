@@ -59,7 +59,7 @@ $quantity = array_sum(array_map(static fn ($i) => (int) $i['quantity'], $items))
                 <?php endif; ?>
                 <button type="button" data-open="ov-status"><?= icon('pen', '', 17) ?> Change status with a message</button>
                 <hr class="dropdown__sep">
-                <?php if (admin_can('messages')): ?><a href="<?= e(admin_url('messages/view', ['order' => $id])) ?>"><?= icon('mail', '', 17) ?> <?= $orderThread ? 'Conversation' . ($orderThread['unread_admin'] ? ' (new)' : '') : 'Message customer' ?></a><?php endif; ?>
+                <?php if (admin_can('messages') && $order['customer_email'] !== ''): ?><a href="<?= e(admin_url('messages/view', ['order' => $id])) ?>"><?= icon('mail', '', 17) ?> <?= $orderThread ? 'Conversation' . ($orderThread['unread_admin'] ? ' (new)' : '') : 'Message customer' ?></a><?php endif; ?>
                 <a href="<?= e(order_url($order)) ?>" target="_blank"><?= icon('user', '', 17) ?> Customer's order page</a>
             </div>
         </details>
@@ -292,7 +292,7 @@ $quantity = array_sum(array_map(static fn ($i) => (int) $i['quantity'], $items))
                 </p>
                 <ul class="ov-contact">
                     <?php if ($order['customer_phone'] !== ''): ?><li><?= icon('phone', '', 15) ?> <a href="tel:<?= e($order['customer_phone']) ?>"><?= e($order['customer_phone']) ?></a></li><?php endif; ?>
-                    <li><?= icon('mail', '', 15) ?> <?= $order['customer_email'] !== '' ? '<a href="mailto:' . e($order['customer_email']) . '">' . e($order['customer_email']) . '</a>' : '<span class="muted">No email</span>' ?></li>
+                    <li><?= icon('mail', '', 15) ?> <?= $order['customer_email'] !== '' ? (admin_can('messages') ? '<a href="' . e(admin_url('messages/view', ['order' => $order['id']])) . '" title="Open the chat about this order">' . e($order['customer_email']) . '</a>' : e($order['customer_email'])) : '<span class="muted">No email</span>' ?></li>
                 </ul>
                 <?php if ($phoneDigits !== ''): ?>
                 <div class="ov-contact__buttons">

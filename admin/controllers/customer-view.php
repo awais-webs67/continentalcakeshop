@@ -10,21 +10,22 @@ if ($guestKey !== '') {
     } else {
         $orders = db_all('SELECT * FROM orders WHERE user_id IS NULL AND LOWER(customer_email) = ?' . branch_sql('branch_id') . ' ORDER BY created_at DESC', [strtolower($guestKey)]);
     }
-    if (!$orders) {
+    // Someone who only asked for a custom cake has requests and no orders.
+    $requests = !str_starts_with($guestKey, 'tel:') ? db_all('SELECT * FROM custom_requests WHERE LOWER(email) = ?' . branch_sql('branch_id') . ' ORDER BY created_at DESC', [strtolower($guestKey)]) : [];
+    if (!$orders && !$requests) {
         flash('error', 'That customer was not found.');
         redirect(admin_url('customers', ['type' => 'guests']));
     }
-    $latest = $orders[0];
+    $latest = $orders[0] ?? null;
     $customer = [
         'id'            => null,
         'guest'         => true,
-        'name'          => $latest['customer_name'],
-        'email'         => (string) $latest['customer_email'],
-        'phone'         => $latest['customer_phone'],
-        'created_at'    => end($orders)['created_at'],
+        'name'          => $latest['customer_name'] ?? $requests[0]['name'],
+        'email'         => (string) ($latest['customer_email'] ?? $requests[0]['email']),
+        'phone'         => $latest['customer_phone'] ?? $requests[0]['phone'],
+        'created_at'    => min(array_merge(array_column($orders, 'created_at'), array_column($requests, 'created_at'))),
         'last_login_at' => null,
     ];
-    $requests = $customer['email'] !== '' ? db_all('SELECT * FROM custom_requests WHERE email = ?' . branch_sql('branch_id') . ' ORDER BY created_at DESC', [$customer['email']]) : [];
 } else {
     $id = query_int('id');
     $customer = $id ? db_one('SELECT id, name, email, phone, created_at, last_login_at FROM users WHERE id = ?', [$id]) : null;

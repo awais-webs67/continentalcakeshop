@@ -987,6 +987,21 @@ select.input { appearance: none; padding-right: 36px; background-image: url("dat
 .chat-file--photo img { display: block; width: 100%; max-width: 260px; max-height: 320px; border-radius: 12px; object-fit: cover; background: rgba(0, 0, 0, .04); }
 .has-file .chat-text { display: block; margin-top: 8px; }
 .chat-card__head { display: none; }
+/* Chat with one customer: what each run of messages is about, and the reply picker */
+.chat-topic { display: flex; justify-content: center; margin: 6px 0 -2px; }
+.chat-topic span { padding: 4px 12px; border-radius: 999px; background: #fff; box-shadow: 0 1px 2px rgba(16, 24, 22, .08); color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .02em; }
+.chat-tag { color: var(--brand-dark); font-weight: 600; }
+.chat-about { display: flex; align-items: center; gap: 10px; margin: 0; }
+.chat-about > span { display: inline-flex; align-items: center; gap: 5px; flex: none; color: var(--muted); font-size: 13px; font-weight: 600; }
+.chat-about select { flex: 1; min-width: 0; height: 38px; padding-top: 6px; padding-bottom: 6px; font-size: 14px; font-weight: 600; }
+.chat-card__head .message__avatar { flex: none; width: 36px; height: 36px; font-size: 15px; }
+.mini-list { margin: 0; padding: 4px 0; list-style: none; }
+.mini-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 18px; border-bottom: 1px solid var(--line); }
+.mini-list li:last-child { border-bottom: 0; }
+.mini-list a { display: flex; flex-direction: column; min-width: 0; color: var(--ink); text-decoration: none; }
+.mini-list a span { color: var(--muted); font-size: 12.5px; }
+.mini-list a:hover strong { color: var(--brand); }
+.mini-list .badge { flex: none; }
 /* Phones and tablets: the conversation opens full screen like WhatsApp, with its own header;
    only the messages scroll and the reply box stays at the bottom, above the keyboard. */
 @media (max-width: 1023px) {
@@ -1002,6 +1017,8 @@ select.input { appearance: none; padding-right: 36px; background-image: url("dat
     .chat-card .chat-admin { padding: 14px 12px; }
     .chat-card .chat-admin__form { padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); }
     .chat-admin__actions { display: none; }
+    .chat-about > span { font-size: 12px; }
+    .chat-about select { height: 36px; }
     .chat-admin__msg { max-width: 86%; }
 }
 
