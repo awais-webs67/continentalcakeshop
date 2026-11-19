@@ -11,6 +11,24 @@ if (input('sync') === '1') {
     json_out(['checked' => inbox_sync(static fn (int $id): bool => admin_sees_branch($id))]);
 }
 
+// The owner's on/off switch for customers' emails in Messages, per shop (same as Branches > shop > Email).
+if (is_post() && input('action') === 'inbox_switch' && ($admin['role'] ?? '') === 'owner' && ($branch = get_branch(post_int('branch_id')))) {
+    $on = input('on') === '1';
+    if ($on && !inbox_account($branch)) {
+        flash('error', 'Set up ' . $branch['name'] . '\'s email account first (Branches > ' . $branch['name'] . ' > Email).');
+    } else {
+        inbox_switch($branch, $on);
+        if ($on) {
+            inbox_check($branch); // connects and starts from now
+        }
+        $error = (string) branch_setting((int) $branch['id'], 'inbox_error');
+        flash($on && $error !== '' ? 'error' : 'success', $on
+            ? ($error !== '' ? 'Switched on, but the inbox could not be read yet: ' . $error : 'Emails to ' . $branch['name'] . ' now come into Messages (new emails from now on).')
+            : 'Emails to ' . $branch['name'] . ' no longer come into Messages. They are still in your email app.');
+    }
+    redirect(admin_url('messages'));
+}
+
 // "Check emails now": read the inbox of each shop that has it switched on (normally every 15 minutes).
 if (is_post() && input('action') === 'check_inbox') {
     $lines = [];
@@ -54,4 +72,6 @@ foreach ($result['rows'] as $i => $p) {
 }
 $unread = (int) db_value('SELECT COUNT(DISTINCT LOWER(t.customer_email)) FROM threads t WHERE t.unread_admin = 1' . branch_sql('t.branch_id'));
 $inboxOn = (bool) array_filter(branches(), static fn ($b) => inbox_enabled($b) && admin_sees_branch((int) $b['id']));
-admin_view('messages', compact('result', 'filter', 'q', 'unread', 'inboxOn') + ['title' => 'Messages']);
+// The owner sees an on/off switch for each shop whose email account can be read.
+$inboxShops = ($admin['role'] ?? '') === 'owner' ? array_values(array_filter(branches(), static fn ($b) => inbox_account($b) !== null)) : [];
+admin_view('messages', compact('result', 'filter', 'q', 'unread', 'inboxOn', 'inboxShops') + ['title' => 'Messages']);

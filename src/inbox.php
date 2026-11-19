@@ -51,6 +51,20 @@ function inbox_account(array $branch): ?array
             'address' => strtolower($get('mail_from_address') ?: $user)];
 }
 
+/**
+ * Switches a shop's "emails in Messages" on or off (the switch on Messages and in Branches > shop >
+ * Email). Switching on starts from the newest email, so emails that came while it was off are not copied.
+ */
+function inbox_switch(array $branch, bool $on): void
+{
+    $id = (int) $branch['id'];
+    if ($on && !inbox_enabled($branch)) {
+        branch_setting_save($id, 'inbox_last_uid', null);
+        branch_setting_save($id, 'inbox_uidvalidity', null);
+    }
+    branch_setting_save($id, 'inbox_enabled', $on ? '1' : '0');
+}
+
 function inbox_enabled(array $branch): bool
 {
     return branch_setting((int) $branch['id'], 'inbox_enabled') === '1';

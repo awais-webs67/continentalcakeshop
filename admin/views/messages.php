@@ -1,14 +1,25 @@
-<?php /** @var array $result @var string $filter @var string $q @var int $unread @var bool $inboxOn */ ?>
+<?php /** @var array $result @var string $filter @var string $q @var int $unread @var bool $inboxOn @var array $inboxShops */ ?>
 <div class="page-head">
     <div><h1>Messages</h1><p>One chat per customer, with everything they sent: the contact page, their orders, custom cakes<?= $inboxOn ? ' and their emails' : '' ?>.</p></div>
     <div class="page-head__actions">
         <?php if ($inboxOn): ?>
             <form method="post"><?= csrf_field() ?><input type="hidden" name="action" value="check_inbox"><button class="btn btn--secondary" type="submit"><?= icon('mail', '', 18) ?> Check emails now</button></form>
-        <?php elseif ((current_admin()['role'] ?? '') === 'owner'): ?>
+        <?php elseif ((current_admin()['role'] ?? '') === 'owner' && !$inboxShops): ?>
             <a class="btn btn--secondary" href="<?= e(admin_url('branches')) ?>" title="Show customers' emails here too: Branches > shop > Email"><?= icon('mail', '', 18) ?> Get emails here too</a>
         <?php endif; ?>
     </div>
 </div>
+<?php if ($inboxShops): ?>
+<div class="inbox-switches">
+    <?php foreach ($inboxShops as $shop): $on = inbox_enabled($shop); $account = inbox_account($shop); ?>
+        <form method="post" class="inbox-switch<?= $on ? ' is-on' : '' ?>">
+            <?= csrf_field() ?><input type="hidden" name="action" value="inbox_switch"><input type="hidden" name="branch_id" value="<?= (int) $shop['id'] ?>"><input type="hidden" name="on" value="<?= $on ? '0' : '1' ?>">
+            <span class="inbox-switch__text"><?= icon('mail', '', 17) ?> <strong>Customers' emails in Messages<?= count(branches()) > 1 ? ' · ' . e($shop['name']) : '' ?></strong><small><?= e($account['address']) ?> &middot; <?= $on ? 'On: new emails come in here' : 'Off: emails stay in your email app only' ?></small></span>
+            <button class="switch" type="submit" role="switch" aria-checked="<?= $on ? 'true' : 'false' ?>" aria-label="<?= $on ? 'Turn off' : 'Turn on' ?> customers' emails in Messages"><span class="switch__track"></span><span><?= $on ? 'On' : 'Off' ?></span></button>
+        </form>
+    <?php endforeach; ?>
+</div>
+<?php endif; ?>
 <section class="card">
     <nav class="tabs" data-live="tabs">
         <?php foreach (['' => 'Open', 'unread' => 'Unread', 'closed' => 'Closed', 'all' => 'All'] as $key => $label): ?>

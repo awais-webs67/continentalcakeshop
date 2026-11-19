@@ -1015,6 +1015,19 @@ select.input { appearance: none; padding-right: 36px; background-image: url("dat
 .quick-edit__row { display: grid; gap: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
 .quick-edit__row textarea.input { min-height: 60px; resize: vertical; }
 .chat-card__head .message__avatar { flex: none; width: 36px; height: 36px; font-size: 15px; }
+/* Messages: the owner's on/off switch for customers' emails */
+.inbox-switches { display: grid; gap: 10px; margin: 0 0 16px; }
+.inbox-switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+.inbox-switch.is-on { border-color: var(--brand-line, #BDEFE3); background: #F6FCFA; }
+.inbox-switch__text { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; align-items: center; min-width: 0; }
+.inbox-switch__text .icon { grid-row: span 2; color: var(--muted); }
+.inbox-switch.is-on .inbox-switch__text .icon { color: var(--brand); }
+.inbox-switch__text strong { color: var(--ink); font-size: 14.5px; }
+.inbox-switch__text small { overflow-wrap: anywhere; color: var(--muted); font-size: 12.5px; }
+.inbox-switch .switch { flex: none; padding: 4px; border: 0; background: none; font: inherit; font-weight: 700; }
+.inbox-switch.is-on .switch__track { background: var(--brand); }
+.inbox-switch.is-on .switch__track::after { transform: translateX(18px); }
+.inbox-switch .switch:focus-visible .switch__track { outline: 3px solid rgba(30, 155, 130, .35); outline-offset: 2px; }
 .copy-field { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
 .copy-field code { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 12.5px; }
 .copy-field .btn { flex: none; }
