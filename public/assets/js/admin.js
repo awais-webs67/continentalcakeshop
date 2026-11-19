@@ -897,6 +897,16 @@ window.ccsChatFile = function (form) {
     setInterval(sync, 60000);
 })();
 
+/* Copy buttons (e.g. the timer address in System check). */
+document.addEventListener('click', function (e) {
+    var btn = e.target.closest && e.target.closest('[data-copy-text]');
+    if (!btn) return;
+    var text = btn.getAttribute('data-copy-text');
+    var done = function () { var label = btn.textContent; btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = label; }, 1600); };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, function () {});
+    else { var t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); done(); } catch (err) {} t.remove(); }
+});
+
 /* Quick replies in the chat: tap one to put it in the reply box with the customer's name and
    what the reply is about filled in; staff check it and send. "Edit quick replies" opens the list. */
 (function () {

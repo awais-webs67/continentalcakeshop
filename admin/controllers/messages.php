@@ -8,23 +8,7 @@ $admin = require_admin();
 // arrive within about a minute instead of waiting for the 15 minute job. One check at a time.
 if (input('sync') === '1') {
     session_write_close();
-    $checked = 0;
-    @mkdir(STORAGE_PATH . '/cache', 0775, true);
-    $lock = @fopen(STORAGE_PATH . '/cache/inbox-sync.lock', 'c');
-    if ($lock && flock($lock, LOCK_EX | LOCK_NB)) {
-        foreach (branches() as $branch) {
-            $id = (int) $branch['id'];
-            $wait = (string) branch_setting($id, 'inbox_error') !== '' ? INBOX_RETRY_SECONDS : INBOX_SYNC_SECONDS;
-            if (!inbox_enabled($branch) || !admin_sees_branch($id) || time() - (int) strtotime((string) branch_setting($id, 'inbox_tried_at')) < $wait) {
-                continue;
-            }
-            branch_setting_save($id, 'inbox_tried_at', date('Y-m-d H:i:s'));
-            inbox_check($branch);
-            $checked++;
-        }
-        flock($lock, LOCK_UN);
-    }
-    json_out(['checked' => $checked]);
+    json_out(['checked' => inbox_sync(static fn (int $id): bool => admin_sees_branch($id))]);
 }
 
 // "Check emails now": read the inbox of each shop that has it switched on (normally every 15 minutes).

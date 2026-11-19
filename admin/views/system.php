@@ -41,6 +41,21 @@ foreach ($checks as $rows) { foreach ($rows as $row) { $problems += $row[1] ? 0 
             <?php endforeach; ?>
         </ul></div>
     </section>
+    <section class="card" id="timer">
+        <div class="card__head"><h2>Outside timer</h2><span class="hint">Optional, free</span></div>
+        <div class="card__body">
+            <p class="hint" style="margin-top:0">Customers' emails reach Messages within about a minute while the panel is open. For the same when nobody has it open, let a free timer service open this secret address every minute. It also runs the scheduled jobs if the cPanel cron job ever stops.</p>
+            <div class="copy-field"><code data-timer-url><?= e(url('tasks/' . setting('tasks_key'))) ?></code><button class="btn btn--secondary btn--sm" type="button" data-copy-text="<?= e(url('tasks/' . setting('tasks_key'))) ?>">Copy</button></div>
+            <ol class="hint" style="margin:12px 0 0;padding-left:18px">
+                <li>Make a free account at <a href="https://cron-job.org" target="_blank" rel="noopener">cron-job.org</a>.</li>
+                <li><strong>Create cronjob</strong>: paste the address above, choose <strong>Every 1 minute</strong>, save.</li>
+                <li>Keep the address private (like a password).</li>
+            </ol>
+            <form method="post" style="margin-top:12px" data-confirm="Make a new address? The old one stops working, so update your timer service."><?= csrf_field() ?><input type="hidden" name="action" value="tasks_key"><button class="btn btn--ghost btn--sm" type="submit">Make a new address</button></form>
+            <?php $tried = (string) branch_setting((int) main_branch_id(), 'inbox_tried_at'); ?>
+            <?php if ($tried !== ''): ?><p class="hint" style="margin:8px 0 0">Inbox last read <?= e(time_ago($tried)) ?>.</p><?php endif; ?>
+        </div>
+    </section>
     <section class="card">
         <div class="card__head"><h2>Backups</h2><span class="hint">Every night, kept <?= (int) setting('backup_keep_days', '14') ?> days</span></div>
         <div class="card__body">

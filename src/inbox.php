@@ -56,6 +56,33 @@ function inbox_enabled(array $branch): bool
     return branch_setting((int) $branch['id'], 'inbox_enabled') === '1';
 }
 
+/**
+ * Reads the inboxes that are due: last tried over a minute ago (10 minutes after an error), one
+ * check at a time on the whole site. Used while the panel is open and by the outside timer
+ * (/tasks/<key>). $allowed limits it to some shops (staff of one shop). Returns how many were read.
+ */
+function inbox_sync(?callable $allowed = null): int
+{
+    $checked = 0;
+    @mkdir(STORAGE_PATH . '/cache', 0775, true);
+    $lock = @fopen(STORAGE_PATH . '/cache/inbox-sync.lock', 'c');
+    if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) {
+        return 0;
+    }
+    foreach (branches() as $branch) {
+        $id = (int) $branch['id'];
+        $wait = (string) branch_setting($id, 'inbox_error') !== '' ? INBOX_RETRY_SECONDS : INBOX_SYNC_SECONDS;
+        if (!inbox_enabled($branch) || ($allowed && !$allowed($id)) || time() - (int) strtotime((string) branch_setting($id, 'inbox_tried_at')) < $wait) {
+            continue;
+        }
+        branch_setting_save($id, 'inbox_tried_at', date('Y-m-d H:i:s'));
+        inbox_check($branch);
+        $checked++;
+    }
+    flock($lock, LOCK_UN);
+    return $checked;
+}
+
 /** Reads new emails of every shop with the inbox switched on (the scheduled job). */
 function inbox_task(DateTimeImmutable $now): string
 {

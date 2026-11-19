@@ -59,6 +59,7 @@ $routes = [
     '#^/sitemap\.xml$#'             => ['sitemap.php', []],
     '#^/robots\.txt$#'              => ['robots.php', []],
     '#^/llms\.txt$#'                => ['llms.php', []],
+    '#^/tasks/([a-f0-9]{32})$#'     => ['tasks.php', ['key']],
     '#^/([a-f0-9]{32})\.txt$#'      => ['indexnow.php', ['key']],
     '#^/([a-z0-9-]+)/?$#'           => ['page.php', ['slug']],
 ];

@@ -1015,6 +1015,9 @@ select.input { appearance: none; padding-right: 36px; background-image: url("dat
 .quick-edit__row { display: grid; gap: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
 .quick-edit__row textarea.input { min-height: 60px; resize: vertical; }
 .chat-card__head .message__avatar { flex: none; width: 36px; height: 36px; font-size: 15px; }
+.copy-field { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+.copy-field code { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 12.5px; }
+.copy-field .btn { flex: none; }
 .mini-list { margin: 0; padding: 4px 0; list-style: none; }
 .mini-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 18px; border-bottom: 1px solid var(--line); }
 .mini-list li:last-child { border-bottom: 0; }

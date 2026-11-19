@@ -45,6 +45,16 @@ if (is_post() && input('action') === 'clear-data') {
     redirect(admin_url('system') . '#clear-data');
 }
 
+// The secret address an outside timer (cron-job.org) opens every minute. A new one stops the old.
+if (is_post() && input('action') === 'tasks_key') {
+    setting_save('tasks_key', bin2hex(random_bytes(16)));
+    flash('success', 'New timer address made. The old one no longer works: put the new one in your timer service.');
+    redirect(admin_url('system') . '#timer');
+}
+if (setting('tasks_key') === '') {
+    setting_save('tasks_key', bin2hex(random_bytes(16)));
+}
+
 if (is_post() && input('action') === 'migrate') {
     try {
         $ran = run_migrations();
