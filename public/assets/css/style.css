@@ -1357,9 +1357,10 @@ fieldset.field { margin: 0 0 18px; padding: 0; border: 0; min-width: 0; }
 .prose img { height: auto; max-width: 100%; margin: 10px 0; border-radius: 14px; }
 .prose blockquote { margin: 0 0 14px; padding: 12px 18px; border-left: 4px solid var(--brand-mint); background: var(--brand-softer); border-radius: 0 12px 12px 0; }
 .prose table { display: block; overflow-x: auto; max-width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 14.5px; line-height: 1.5; border: 1px solid var(--line); border-radius: 12px; background: var(--white); }
-@media (min-width: 720px) { .prose table { display: table; width: 100%; overflow: hidden; } }
 .prose th, .prose td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
 .prose th { background: var(--brand-softer); color: var(--ink); font-weight: 700; white-space: nowrap; }
+/* Wide enough screens show the table full width; its headings wrap so it never gets wider than the text column (tablets, the cake page). */
+@media (min-width: 720px) { .prose table { display: table; width: 100%; overflow: hidden; } .prose th { white-space: normal; } .prose th, .prose td { overflow-wrap: break-word; } }
 .prose tr:last-child td { border-bottom: 0; }
 .prose a { color: var(--brand); }
 .prose .ql-align-center { text-align: center; }
