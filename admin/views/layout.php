@@ -240,6 +240,8 @@ $branchLocked = admin_branch_locked($admin);
     'csrf'      => csrf_token(),
     'payMethods' => staff_payment_methods(),
     'live'      => ['url' => admin_url('live'), 'icon' => asset('img/logo-email.png')] + admin_live_state($admin),
+    // Customers' emails are fetched about once a minute while the panel is open (shops with the inbox on).
+    'inboxSync' => admin_can('messages') && array_filter(branches(), static fn ($b) => inbox_enabled($b) && admin_sees_branch((int) $b['id'])) ? admin_url('messages', ['sync' => 1]) : null,
 ], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?>;</script>
 <button type="button" class="sound-unlock" data-sound-unlock hidden><?= icon('volume', '', 18) ?> Order alerts are off. Tap here to turn them on</button>
 <script src="<?= e(asset('js/shrink.js')) ?>" defer></script>

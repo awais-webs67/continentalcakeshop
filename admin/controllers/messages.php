@@ -3,6 +3,30 @@
 // shop together (contact form, orders, custom cake requests, their emails). Newest first.
 $admin = require_admin();
 
+// While the panel is open, every admin page asks about once a minute (admin.js): a shop's inbox is
+// read when it was last tried over a minute ago (10 minutes after an error), so customers' emails
+// arrive within about a minute instead of waiting for the 15 minute job. One check at a time.
+if (input('sync') === '1') {
+    session_write_close();
+    $checked = 0;
+    @mkdir(STORAGE_PATH . '/cache', 0775, true);
+    $lock = @fopen(STORAGE_PATH . '/cache/inbox-sync.lock', 'c');
+    if ($lock && flock($lock, LOCK_EX | LOCK_NB)) {
+        foreach (branches() as $branch) {
+            $id = (int) $branch['id'];
+            $wait = (string) branch_setting($id, 'inbox_error') !== '' ? INBOX_RETRY_SECONDS : INBOX_SYNC_SECONDS;
+            if (!inbox_enabled($branch) || !admin_sees_branch($id) || time() - (int) strtotime((string) branch_setting($id, 'inbox_tried_at')) < $wait) {
+                continue;
+            }
+            branch_setting_save($id, 'inbox_tried_at', date('Y-m-d H:i:s'));
+            inbox_check($branch);
+            $checked++;
+        }
+        flock($lock, LOCK_UN);
+    }
+    json_out(['checked' => $checked]);
+}
+
 // "Check emails now": read the inbox of each shop that has it switched on (normally every 15 minutes).
 if (is_post() && input('action') === 'check_inbox') {
     $lines = [];

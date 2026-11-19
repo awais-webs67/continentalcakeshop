@@ -19,6 +19,9 @@ const EMAIL_PROVIDERS = [
     'server'    => ['Website server (PHP mail)', '', 0, '', '', 0, 'No password needed, but emails can land in spam and there is no inbox in Messages. Gmail or Hostinger email is better.'],
 ];
 const INBOX_MAX_PER_RUN = 25;
+// While the panel is open, inboxes are read about this often (and this long after an error).
+const INBOX_SYNC_SECONDS = 60;
+const INBOX_RETRY_SECONDS = 600;
 
 /** The providers to choose from; "Save to a file" only while the site is in that test mode. */
 function email_providers(): array

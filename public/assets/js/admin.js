@@ -885,6 +885,18 @@ window.ccsChatFile = function (form) {
     return { has: function () { return !!(input && input.files && input.files.length); }, clear: clear };
 };
 
+/* Customers' emails: while the panel is open (and visible), ask the server about once a minute to
+   read the shop's inbox. New emails then appear like any message (badge, sound, pop-up, open chat). */
+(function () {
+    var url = (window.CCS_ADMIN || {}).inboxSync;
+    if (!url || !window.fetch) return;
+    var sync = function () {
+        if (!document.hidden) fetch(url, { credentials: 'same-origin', cache: 'no-store', headers: { 'X-Requested-With': 'fetch' } }).catch(function () {});
+    };
+    setTimeout(sync, 3000);
+    setInterval(sync, 60000);
+})();
+
 /* Quick replies in the chat: tap one to put it in the reply box with the customer's name and
    what the reply is about filled in; staff check it and send. "Edit quick replies" opens the list. */
 (function () {
