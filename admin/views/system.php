@@ -44,7 +44,7 @@ foreach ($checks as $rows) { foreach ($rows as $row) { $problems += $row[1] ? 0 
     <section class="card" id="timer">
         <div class="card__head"><h2>Outside timer</h2><span class="hint">Optional, free</span></div>
         <div class="card__body">
-            <p class="hint" style="margin-top:0">Customers' emails reach Messages within about a minute while the panel is open. For the same when nobody has it open, let a free timer service open this secret address every minute. It also runs the scheduled jobs if the cPanel cron job ever stops.</p>
+            <p class="hint" style="margin-top:0">Customers' emails reach Messages within about half a minute while the panel is open. For the same when nobody has it open, let a free timer service open this secret address every minute. It also runs the scheduled jobs if the cPanel cron job ever stops.</p>
             <div class="copy-field"><code data-timer-url><?= e(url('tasks/' . setting('tasks_key'))) ?></code><button class="btn btn--secondary btn--sm" type="button" data-copy-text="<?= e(url('tasks/' . setting('tasks_key'))) ?>">Copy</button></div>
             <ol class="hint" style="margin:12px 0 0;padding-left:18px">
                 <li>Make a free account at <a href="https://cron-job.org" target="_blank" rel="noopener">cron-job.org</a>.</li>

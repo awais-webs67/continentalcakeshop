@@ -20,7 +20,7 @@ const EMAIL_PROVIDERS = [
 ];
 const INBOX_MAX_PER_RUN = 25;
 // While the panel is open, inboxes are read about this often (and this long after an error).
-const INBOX_SYNC_SECONDS = 60;
+const INBOX_SYNC_SECONDS = 20;
 const INBOX_RETRY_SECONDS = 600;
 
 /** The providers to choose from; "Save to a file" only while the site is in that test mode. */

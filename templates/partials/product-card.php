@@ -1,5 +1,9 @@
 <?php
-/** @var array $product  ('photos' from with_card_photos() adds the extra photos) */
+/**
+ * @var array $product  ('photos' from with_card_photos() adds the extra photos)
+ * @var bool  $eager    the first cards on a page: their photo loads at once (no waiting until it is scrolled to)
+ */
+$eager ??= false;
 $link = product_url($product);
 $photos = $product['photos'] ?? [$product['image']];
 $photos = $photos ?: [null];
@@ -8,7 +12,7 @@ $photos = $photos ?: [null];
     <a class="product-card__media" href="<?= e($link) ?>" tabindex="-1" aria-hidden="true"<?= count($photos) > 1 ? ' data-card-photos' : '' ?>>
         <span class="product-card__slides">
             <?php foreach ($photos as $i => $photo): ?>
-                <img src="<?= e(product_image_url($photo)) ?>" alt="<?= $i === 0 ? e(product_image_alt($product)) : '' ?>" width="600" height="600" loading="lazy" decoding="async">
+                <img src="<?= e(product_image_url($photo)) ?>" alt="<?= $i === 0 ? e(product_image_alt($product)) : '' ?>" width="600" height="600" <?= $eager && $i === 0 ? 'fetchpriority="high"' : 'loading="lazy"' ?> decoding="async">
             <?php endforeach; ?>
         </span>
         <?php if (count($photos) > 1): ?>

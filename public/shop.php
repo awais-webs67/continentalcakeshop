@@ -93,8 +93,8 @@ render('header', compact('page'));
 
         <?php if ($products): ?>
             <div class="product-grid">
-                <?php foreach ($products as $product): ?>
-                    <?php render('partials/product-card', compact('product')); ?>
+                <?php foreach ($products as $n => $product): ?>
+                    <?php render('partials/product-card', compact('product') + ['eager' => $n < 4]); // the first row (two rows on phones) shows at once ?>
                 <?php endforeach; ?>
             </div>
         <?php else: ?>

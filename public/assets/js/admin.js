@@ -885,7 +885,7 @@ window.ccsChatFile = function (form) {
     return { has: function () { return !!(input && input.files && input.files.length); }, clear: clear };
 };
 
-/* Customers' emails: while the panel is open (and visible), ask the server about once a minute to
+/* Customers' emails: while the panel is open (and visible), ask the server every 20 seconds to
    read the shop's inbox. New emails then appear like any message (badge, sound, pop-up, open chat). */
 (function () {
     var url = (window.CCS_ADMIN || {}).inboxSync;
@@ -894,7 +894,7 @@ window.ccsChatFile = function (form) {
         if (!document.hidden) fetch(url, { credentials: 'same-origin', cache: 'no-store', headers: { 'X-Requested-With': 'fetch' } }).catch(function () {});
     };
     setTimeout(sync, 3000);
-    setInterval(sync, 60000);
+    setInterval(sync, 20000);
 })();
 
 /* Copy buttons (e.g. the timer address in System check). */

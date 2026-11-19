@@ -3,9 +3,9 @@
 // shop together (contact form, orders, custom cake requests, their emails). Newest first.
 $admin = require_admin();
 
-// While the panel is open, every admin page asks about once a minute (admin.js): a shop's inbox is
-// read when it was last tried over a minute ago (10 minutes after an error), so customers' emails
-// arrive within about a minute instead of waiting for the 15 minute job. One check at a time.
+// While the panel is open, every admin page asks every 20 seconds (admin.js): a shop's inbox is
+// read when it was last tried over 20 seconds ago (10 minutes after an error), so customers' emails
+// arrive within about half a minute instead of waiting for the 15 minute job. One check at a time.
 if (input('sync') === '1') {
     session_write_close();
     json_out(['checked' => inbox_sync(static fn (int $id): bool => admin_sees_branch($id))]);
