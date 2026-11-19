@@ -61,7 +61,7 @@ $topicText = $topicCount . ' ' . ($topicCount === 1 ? 'topic' : 'topics');
             <p class="field-error" data-chat-error hidden></p>
             <div class="form-actions chat-admin__actions">
                 <label class="inline-check"><input type="checkbox" name="close" value="1"> Close after sending</label>
-                <span class="chat-admin__keys">They get it by email too, unless the chat is open on their side &middot; Enter sends, Shift+Enter for a new line</span>
+                <span class="chat-admin__keys">They get every reply by email too &middot; Enter sends, Shift+Enter for a new line</span>
                 <span class="live-dot" title="New messages appear here automatically"><span></span> Live</span>
             </div>
             <p class="hint" data-chat-note hidden></p>

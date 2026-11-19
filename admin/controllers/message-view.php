@@ -109,8 +109,8 @@ if (is_post()) {
         if (input('close') === '1') {
             db_run("UPDATE threads SET status = 'closed' WHERE LOWER(customer_email) = ?" . $branchSql, [$email]);
         }
-        $note = $live ? 'They have the chat open, so they see it straight away.'
-            : ($sent ? 'Also emailed to ' . $thread['customer_email'] . ' (about ' . thread_topic($thread) . ').' : 'Saved, but the email could not be sent. Check the shop\'s email account in Branches > ' . branch_name((int) $thread['branch_id']) . ' > Email.');
+        $note = $sent ? ($live ? 'They see it in the chat now, and it is in their email too.' : 'Also emailed to ' . $thread['customer_email'] . ' (about ' . thread_topic($thread) . ').')
+            : 'Saved' . ($live ? ' and shown in their open chat' : '') . ', but the email could not be sent. Check the shop\'s email account in Branches > ' . branch_name((int) $thread['branch_id']) . ' > Email.';
         if (is_fetch_request() && input('close') !== '1') {
             json_out(['ok' => true, 'note' => $note, 'about' => 'thread:' . $thread['id'], 'topic' => thread_topic($thread)]);
         }

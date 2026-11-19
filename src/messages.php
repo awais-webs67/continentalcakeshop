@@ -179,13 +179,13 @@ function customer_message(array $thread, string $body, ?array $file = null): voi
     }
 }
 
-/** The shop replied: save it and email the customer, with a button to answer on the website. */
+/**
+ * The shop replied: save it and email the customer, with a button to answer on the website. It is
+ * emailed even while they have the chat open, so the whole conversation is in their email too.
+ */
 function shop_message(array $thread, string $body, int $adminId, ?array $file = null): bool
 {
     add_thread_message($thread, 'shop', $body, $adminId, $file);
-    if (thread_seen_live($thread, 'customer')) {
-        return true; // The customer has the chat open and sees the reply straight away.
-    }
     $conversation = thread_conversation($thread);
     return with_branch((int) ($thread['branch_id'] ?? 0) ?: null, static fn () => send_mail(
         $thread['customer_email'],
