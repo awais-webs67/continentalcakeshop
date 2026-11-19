@@ -355,10 +355,9 @@ final class ImapClient
     {
         // The certificate is always checked; only a local test setup may switch that off (config imap_verify_peer).
         $verify = (bool) config('imap_verify_peer', true);
-        $context = stream_context_create(['ssl' => ['verify_peer' => $verify, 'verify_peer_name' => $verify, 'allow_self_signed' => !$verify, 'SNI_enabled' => true]]);
-        $socket = @stream_socket_client('ssl://' . $host . ':' . $port, $errno, $error, 15, STREAM_CLIENT_CONNECT, $context);
+        [$socket, $error] = mail_socket('ssl', $host, $port, 15, ['verify_peer' => $verify, 'verify_peer_name' => $verify, 'allow_self_signed' => !$verify]);
         if (!$socket) {
-            throw new RuntimeException('Cannot reach ' . $host . ':' . $port . ($error ? ' (' . $error . ')' : ''));
+            throw new RuntimeException(mail_unreachable_message($host, $port, $error));
         }
         stream_set_timeout($socket, 30);
         $this->socket = $socket;

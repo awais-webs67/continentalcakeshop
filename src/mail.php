@@ -120,15 +120,42 @@ function send_branch_mail(?int $branchId, string $to, string $subject, string $h
     return with_branch($branchId ?: null, static fn () => send_mail($to, $subject, $html, null, $replyTo, $reference));
 }
 
+/**
+ * Opens a connection to a mail server (SMTP or IMAP): [socket or null, error]. Many hosting
+ * servers have no IPv6, yet the name of a server such as imap.gmail.com also has an IPv6
+ * address; when the first try says "Network is unreachable", the server's IPv4 address is
+ * tried, with the certificate still checked against the server's name.
+ */
+function mail_socket(string $scheme, string $host, int $port, int $timeout, array $ssl = []): array
+{
+    $context = stream_context_create(['ssl' => $ssl + ['peer_name' => $host, 'SNI_enabled' => true]]);
+    $socket = @stream_socket_client($scheme . '://' . $host . ':' . $port, $errno, $error, $timeout, STREAM_CLIENT_CONNECT, $context);
+    if (!$socket && !filter_var($host, FILTER_VALIDATE_IP) && ($errno === 101 || stripos((string) $error, 'unreachable') !== false)
+        && ($ipv4 = gethostbyname($host)) !== $host) {
+        $socket = @stream_socket_client($scheme . '://' . $ipv4 . ':' . $port, $errno, $error, $timeout, STREAM_CLIENT_CONNECT, $context);
+    }
+    return [$socket ?: null, (string) $error];
+}
+
+/** Plain words for a mail server that cannot be reached, with what to ask the hosting company. */
+function mail_unreachable_message(string $host, int $port, string $error): string
+{
+    $blocked = (bool) preg_match('/unreachable|refused|timed out|no route/i', $error);
+    return 'Cannot reach ' . $host . ':' . $port . ($error !== '' ? ' (' . $error . ')' : '') . '.'
+        . ($blocked ? ' The website\'s hosting server is not allowed to connect to ' . $host . ' on port ' . $port
+            . '. This is a setting of your web hosting, not of the email account: ask your hosting company to allow outgoing connections to '
+            . $host . ' on port ' . $port . '.' : '');
+}
+
 /** Minimal SMTP client: SSL (port 465) or STARTTLS (port 587), with AUTH LOGIN. */
 function smtp_send(string $from, string $to, string $subject, array $headers, string $body): bool
 {
     $host = (string) mail_config('smtp.host');
     $port = (int) mail_config('smtp.port', 465);
     $secure = (string) mail_config('smtp.encryption', 'ssl');
-    $socket = @stream_socket_client(($secure === 'ssl' ? 'ssl://' : 'tcp://') . $host . ':' . $port, $errno, $errstr, 20);
+    [$socket, $errstr] = mail_socket($secure === 'ssl' ? 'ssl' : 'tcp', $host, $port, 20);
     if (!$socket) {
-        throw new RuntimeException("Could not connect to SMTP server {$host}:{$port} ({$errstr})");
+        throw new RuntimeException('Could not connect to the SMTP server. ' . mail_unreachable_message($host, $port, $errstr));
     }
     stream_set_timeout($socket, 20);
 

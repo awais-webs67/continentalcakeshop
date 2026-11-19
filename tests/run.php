@@ -241,6 +241,11 @@ $before = setting('chat_quick_replies');
 same('quick replies: empty rows are left out', 1, chat_quick_replies_save(['Ready', ''], ['Hi {name}, ready.', '']));
 setting_save('chat_quick_replies', $before !== '' ? $before : null);
 
+// --- Mail servers that cannot be reached -------------------------------------------------------
+[$sock, $err] = mail_socket('tcp', '127.0.0.1', 1, 2);
+check('a closed mail server port gives an error, not a hang', $sock === null && $err !== '');
+check('a blocked port says to ask the hosting company', str_contains(mail_unreachable_message('imap.gmail.com', 993, 'Network is unreachable'), 'ask your hosting company to allow outgoing connections to imap.gmail.com on port 993'));
+
 echo "\n\n{$passed} passed";
 if ($failed) {
     echo ', ' . count($failed) . " failed:\n - " . implode("\n - ", $failed) . "\n";
