@@ -328,8 +328,9 @@ $sections = [
     </div>
     <div class="card__body form-stack" style="border-top:1px solid var(--line)">
         <h3 class="label">Google and Bing</h3>
-        <div class="form-grid form-grid--3">
-            <label class="field"><span>Google Analytics ID <small>GA4</small></span><input class="input" name="seo_ga4_id" value="<?= $v('seo_ga4_id') ?>" placeholder="G-ABC123XYZ"></label>
+        <div class="form-grid">
+            <label class="field"><span>Google Analytics / Google Tag ID <small>G-..., GT-... or AW-...</small></span><input class="input" name="seo_ga4_id" value="<?= $v('seo_ga4_id') ?>" placeholder="G-ABC123XYZ"></label>
+            <label class="field"><span>Google Tag Manager ID <small>GTM-... (optional)</small></span><input class="input" name="seo_gtm_id" value="<?= $v('seo_gtm_id') ?>" placeholder="GTM-XXXXXXX"></label>
             <label class="field"><span>Google Search Console code</span><input class="input" name="seo_google_verification" value="<?= $v('seo_google_verification') ?>" placeholder="Paste the code or the whole meta tag"></label>
             <label class="field"><span>Bing Webmaster code</span><input class="input" name="seo_bing_verification" value="<?= $v('seo_bing_verification') ?>"></label>
         </div>

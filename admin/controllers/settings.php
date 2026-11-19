@@ -19,7 +19,7 @@ const SETTINGS_FIELDS = [
     // Each shop's email account, order alerts, inbox and automatic emails are in Admin > Branches > shop > Email.
     'emails'   => ['email_accent_note' => 255, 'daily_email_to' => 190, 'daily_email_minutes_before' => 4, 'reminder_send_hour' => 2],
     'homepage' => ['hero_eyebrow' => 120, 'hero_title' => 120, 'hero_subtitle' => 400, 'announcement_text' => 200, 'google_rating' => 3, 'google_review_count' => 10, 'google_reviews_url' => 500],
-    'seo'      => ['social_facebook' => 255, 'social_instagram' => 255, 'social_pinterest' => 255, 'social_youtube' => 255, 'seo_home_title' => 160, 'seo_home_description' => 300, 'seo_ga4_id' => 20, 'seo_google_verification' => 120, 'seo_bing_verification' => 120],
+    'seo'      => ['social_facebook' => 255, 'social_instagram' => 255, 'social_pinterest' => 255, 'social_youtube' => 255, 'seo_home_title' => 160, 'seo_home_description' => 300, 'seo_ga4_id' => 20, 'seo_gtm_id' => 20, 'seo_google_verification' => 120, 'seo_bing_verification' => 120],
 ];
 
 const SETTINGS_SWITCHES = [

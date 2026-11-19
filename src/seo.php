@@ -369,11 +369,24 @@ function analytics_tags(): string
         $html .= '<meta name="msvalidate.01" content="' . e($v) . '">' . "\n";
     }
     $ga = setting('seo_ga4_id');
-    if (preg_match('/^G-[A-Z0-9]+$/', $ga)) {
+    if (preg_match('/^(?:G|GT|AW)-[A-Z0-9]+$/', $ga)) {
         $html .= '<script async src="https://www.googletagmanager.com/gtag/js?id=' . e($ga) . '"></script>' . "\n"
             . "<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','" . e($ga) . "');</script>\n";
     }
+    $gtm = setting('seo_gtm_id');
+    if (preg_match('/^GTM-[A-Z0-9]+$/', $gtm)) {
+        $html .= "<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','" . e($gtm) . "');</script>\n";
+    }
     return $html;
+}
+
+function gtm_noscript(): string
+{
+    $gtm = setting('seo_gtm_id');
+    if (!preg_match('/^GTM-[A-Z0-9]+$/', $gtm)) {
+        return '';
+    }
+    return '<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=' . e($gtm) . '" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>' . "\n";
 }
 
 // ---------------------------------------------------------------------------
