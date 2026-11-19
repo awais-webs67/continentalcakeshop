@@ -246,6 +246,9 @@ setting_save('chat_quick_replies', $before !== '' ? $before : null);
 check('a closed mail server port gives an error, not a hang', $sock === null && $err !== '');
 check('a blocked port says to ask the hosting company', str_contains(mail_unreachable_message('imap.gmail.com', 993, 'Network is unreachable'), 'ask your hosting company to allow outgoing connections to imap.gmail.com on port 993'));
 
+check('newsletters and offers in the shop\'s Gmail are not added to Messages', mail_parse("From: Deals <deals@shop.example>\r\nList-Unsubscribe: <mailto:u@shop.example>\r\nSubject: Sale\r\n\r\n50% off")['auto']);
+check('a customer\'s own email is added', !mail_parse("From: Mia <mia@example.com>\r\nSubject: Cake\r\n\r\nHi there")['auto']);
+
 echo "\n\n{$passed} passed";
 if ($failed) {
     echo ', ' . count($failed) . " failed:\n - " . implode("\n - ", $failed) . "\n";

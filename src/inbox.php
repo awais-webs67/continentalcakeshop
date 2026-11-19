@@ -209,9 +209,11 @@ function mail_parse(string $raw): array
         'from_name'  => $name !== $email ? str_limit($name, 120) : '',
         'subject'    => str_limit(mail_decode_header($headers['subject'] ?? ''), 160),
         'references' => ($headers['in-reply-to'] ?? '') . ' ' . ($headers['references'] ?? ''),
+        // Automatic replies, and newsletters, offers and social media notices (they carry an unsubscribe
+        // link or mailing list header; a customer writing to the shop never does): not for Messages.
         'auto'       => isset($headers['auto-submitted']) && stripos($headers['auto-submitted'], 'no') !== 0
-                        || isset($headers['x-autoreply']) || stripos($headers['precedence'] ?? '', 'bulk') !== false
-                        || stripos($headers['precedence'] ?? '', 'auto_reply') !== false,
+                        || isset($headers['x-autoreply']) || isset($headers['list-unsubscribe']) || isset($headers['list-id'])
+                        || (bool) preg_match('/bulk|list|junk|auto_reply/i', $headers['precedence'] ?? ''),
         'text'       => mail_strip_quote($text),
         'attachments' => mail_attachments($headers, $body),
     ];
