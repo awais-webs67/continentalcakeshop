@@ -363,20 +363,33 @@ function mail_decode_part(array $headers, string $content): string
 function mail_html_to_text(string $html): string
 {
     $html = (string) preg_replace('#<(style|script|head)[^>]*>.*?</\1>#is', '', $html);
+    // The earlier emails quoted under a reply (Gmail, Apple Mail, Outlook): only the new text is kept.
+    $html = (string) preg_replace('#<div[^>]+class="[^"]*(gmail_quote|yahoo_quoted)[^"]*".*$#is', '', $html);
+    $html = (string) preg_replace('#<div[^>]+id="(appendonsend|divRplyFwdMsg)".*$#is', '', $html);
+    $html = (string) preg_replace('#<blockquote\b.*?</blockquote>#is', '', $html);
     $html = (string) preg_replace('#<br\s*/?>|</(p|div|li|tr|h\d)>#i', "\n", $html);
     $text = html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
     return trim((string) preg_replace("/\n{3,}/", "\n\n", (string) preg_replace('/[ \t]+/', ' ', $text)));
 }
 
-/** Leaves out the earlier emails quoted under a reply ("On ... wrote:", "> ..."). */
+/**
+ * Leaves out the earlier emails quoted under a reply, so only what the customer wrote is kept:
+ * "On Thu, 19 Nov 2026, 7:12 AM The Continental Cake Shop <...> wrote:" (Gmail often breaks it over
+ * two or three lines), the same in other languages, Outlook's "From: ... Sent: ..." block and its
+ * line of underscores, "-----Original Message-----", lines starting with ">", and "Sent from my iPhone".
+ */
 function mail_strip_quote(string $text): string
 {
-    $lines = explode("\n", $text);
+    $lines = explode("\n", str_replace("\r", '', $text));
     $keep = [];
-    foreach ($lines as $line) {
+    foreach ($lines as $i => $line) {
         $t = trim($line);
-        if (preg_match('/^On .{6,200} wrote:$/i', $t) || preg_match('/^-{2,}\s*(Original Message|Forwarded message)/i', $t)
-            || preg_match('/^From: .+/i', $t) && count($keep) > 0 || preg_match('/^Sent from my (iPhone|iPad|Android|Samsung)/i', $t)) {
+        // The "On ... wrote:" line, joined with the next two lines in case the email app wrapped it.
+        $joined = trim($t . ' ' . trim($lines[$i + 1] ?? '') . ' ' . trim($lines[$i + 2] ?? ''));
+        if (preg_match('/^(On|Le|Am|El|Il|Op|Em|Den|Dne)\b.{6,300}?\b(wrote|a écrit|schrieb|escribió|ha scritto|schreef|escreveu|skrev|napsal)\s*:/iu', $joined)
+            || preg_match('/^-{2,}\s*(Original Message|Forwarded message)/i', $t) || preg_match('/^_{8,}$/', $t)
+            || (preg_match('/^(From|Sent|De|Von): .+/i', $t) && count($keep) > 0)
+            || preg_match('/^(Sent from my (iPhone|iPad|Android|Samsung|Galaxy|mobile)|Get Outlook for (iOS|Android))/i', $t)) {
             break;
         }
         if (str_starts_with($t, '>')) {

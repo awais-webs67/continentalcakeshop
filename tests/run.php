@@ -249,6 +249,13 @@ check('a blocked port says to ask the hosting company', str_contains(mail_unreac
 check('newsletters and offers in the shop\'s Gmail are not added to Messages', mail_parse("From: Deals <deals@shop.example>\r\nList-Unsubscribe: <mailto:u@shop.example>\r\nSubject: Sale\r\n\r\n50% off")['auto']);
 check('a customer\'s own email is added', !mail_parse("From: Mia <mia@example.com>\r\nSubject: Cake\r\n\r\nHi there")['auto']);
 
+// --- Replies by email: only the new text -----------------------------------------------------
+same('Gmail reply: the quoted email under it is left out (even when the "wrote:" line is broken over two lines)', 'Yes, please proceed with the order.',
+    mail_strip_quote("Yes, please proceed with the order.\n\nOn Thu, Nov 19, 2026, 7:12 AM The Continental Cake Shop <\ncontinentalcakeshopcanberra@gmail.com> wrote:\n\n> Hi Mia"));
+same('Outlook reply: the From/Sent block is left out', 'Thanks, see you Saturday.', mail_strip_quote("Thanks, see you Saturday.\n\nGet Outlook for iOS\n________________________________\nFrom: The shop\nSent: Thursday"));
+same('a sentence starting with "On" is kept', 'On my way, is it ready?', mail_strip_quote('On my way, is it ready?'));
+same('HTML-only reply: the quoted part is left out', 'Yes, go ahead', mail_html_to_text('<div>Yes, go ahead</div><div class="gmail_quote">On Thu wrote:<blockquote>old</blockquote></div>'));
+
 echo "\n\n{$passed} passed";
 if ($failed) {
     echo ', ' . count($failed) . " failed:\n - " . implode("\n - ", $failed) . "\n";
