@@ -42,9 +42,12 @@ $site = preg_replace('#^https?://#', '', rtrim(url(), '/'));
             <?= $content ?>
             <?php if (!empty($reply_url)): ?>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 0;border-top:1px solid #EFEFF1">
-                <tr><td style="padding:18px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#71717A">
-                    <strong style="color:#111113">Questions or changes?</strong> Message us and we will reply by email.
-                    <a href="<?= e($reply_url) ?>" style="display:inline-block;margin-left:6px;color:<?= $brand ?>;font-weight:bold;text-decoration:none">Reply to us &rarr;</a>
+                <tr><td style="padding:20px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#71717A">
+                    <strong style="color:#111113;font-size:15px">Questions or changes?</strong><br>
+                    Reply to this email, or open our chat to see the whole conversation and send photos.
+                    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:14px 0 0"><tr><td style="border-radius:8px;background:<?= $brand ?>">
+                        <a href="<?= e($reply_url) ?>" style="display:inline-block;padding:12px 22px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#FFFFFF;text-decoration:none;border-radius:8px">&#128172; Open our chat</a>
+                    </td></tr></table>
                 </td></tr>
             </table>
             <?php endif; ?>

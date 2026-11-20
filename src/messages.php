@@ -174,9 +174,16 @@ function customer_message(array $thread, string $body, ?array $file = null): voi
             alert_subject($thread['customer_name'], $conversation[1]),
             render_email('message-admin', ['thread' => $thread, 'body' => $body, 'file' => $file, 'title' => 'New message from ' . $thread['customer_name'], 'preheader' => mb_substr(message_preview(['body' => $body, 'attachment' => $file['path'] ?? null, 'attachment_name' => $file['name'] ?? null]), 0, 90)]),
             $thread['customer_email'],
-            conversation_reference($conversation, 'shop')
+            conversation_reference($conversation, 'shop'),
+            chat_mail_files($file)
         );
     }
+}
+
+/** A chat file as an email attachment: the photo or PDF goes with the email, not only in the chat. */
+function chat_mail_files(?array $file): array
+{
+    return $file ? [['path' => STORAGE_PATH . '/uploads/' . $file['path'], 'name' => $file['name']]] : [];
 }
 
 /**
@@ -193,7 +200,8 @@ function shop_message(array $thread, string $body, int $adminId, ?array $file = 
         render_email('message-customer', ['thread' => $thread, 'body' => $body, 'file' => $file, 'title' => 'A message from ' . setting('store_short_name'), 'preheader' => mb_substr(message_preview(['body' => $body, 'attachment' => $file['path'] ?? null, 'attachment_name' => $file['name'] ?? null]), 0, 90), 'reply_url' => thread_url($thread)]),
         null,
         setting('store_email'),
-        conversation_reference($conversation, 'customer')
+        conversation_reference($conversation, 'customer'),
+        chat_mail_files($file)
     ));
 }
 

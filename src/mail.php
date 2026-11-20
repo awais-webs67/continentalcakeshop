@@ -52,11 +52,15 @@ function mail_from(): array
     ];
 }
 
+/** Largest total of files attached to one email; bigger files are left out (they are in the chat). */
+const MAIL_MAX_ATTACH_BYTES = 15 * 1024 * 1024;
+
 /**
  * Sends one email. $html is the full HTML document; $text is generated from it when omitted.
  * $reference (from conversation_reference()) puts the email in its conversation in the mail app.
+ * $attachments: files sent with it, [['path' => full path, 'name' => file name], ...].
  */
-function send_mail(string $to, string $subject, string $html, ?string $text = null, ?string $replyTo = null, ?string $reference = null): bool
+function send_mail(string $to, string $subject, string $html, ?string $text = null, ?string $replyTo = null, ?string $reference = null, array $attachments = []): bool
 {
     if (!valid_email($to)) {
         return false;
@@ -72,7 +76,6 @@ function send_mail(string $to, string $subject, string $html, ?string $text = nu
         'Reply-To: ' . ($replyTo && valid_email($replyTo) ? $replyTo : setting('store_email', $fromAddress)),
         'MIME-Version: 1.0',
         'Message-ID: <' . bin2hex(random_bytes(16)) . '@' . (parse_url((string) config('app_url'), PHP_URL_HOST) ?: 'localhost') . '>',
-        'Content-Type: multipart/alternative; boundary="' . $boundary . '"',
     ];
     if ($reference !== null) {
         $headers[] = 'In-Reply-To: ' . $reference;
@@ -83,6 +86,15 @@ function send_mail(string $to, string $subject, string $html, ?string $text = nu
         . "--{$boundary}\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n"
         . chunk_split(base64_encode($html))
         . "--{$boundary}--\r\n";
+    // Files go after the text, in a multipart/mixed email (the way email apps send attachments).
+    $mixed = 'm' . bin2hex(random_bytes(12));
+    $files = mail_attachment_parts($attachments, $mixed);
+    if ($files !== '') {
+        $headers[] = 'Content-Type: multipart/mixed; boundary="' . $mixed . '"';
+        $body = "--{$mixed}\r\nContent-Type: multipart/alternative; boundary=\"{$boundary}\"\r\n\r\n" . $body . $files . "--{$mixed}--\r\n";
+    } else {
+        $headers[] = 'Content-Type: multipart/alternative; boundary="' . $boundary . '"';
+    }
 
     try {
         return match (mail_config('driver', 'mail')) {
@@ -95,6 +107,24 @@ function send_mail(string $to, string $subject, string $html, ?string $text = nu
         error_log('Email to ' . $to . ' failed: ' . $e->getMessage());
         return false;
     }
+}
+
+/** The MIME parts for files sent with an email ('' when there are none); files past MAIL_MAX_ATTACH_BYTES are left out. */
+function mail_attachment_parts(array $attachments, string $boundary): string
+{
+    $parts = '';
+    $total = 0;
+    foreach ($attachments as $file) {
+        $path = (string) ($file['path'] ?? '');
+        if ($path === '' || !is_file($path) || ($total += (int) filesize($path)) > MAIL_MAX_ATTACH_BYTES) {
+            continue;
+        }
+        $mime = (new finfo(FILEINFO_MIME_TYPE))->file($path) ?: 'application/octet-stream';
+        $name = '=?UTF-8?B?' . base64_encode(str_replace(['"', "\r", "\n"], '', (string) ($file['name'] ?? '')) ?: basename($path)) . '?=';
+        $parts .= "--{$boundary}\r\nContent-Type: {$mime}; name=\"{$name}\"\r\nContent-Transfer-Encoding: base64\r\n"
+            . "Content-Disposition: attachment; filename=\"{$name}\"\r\n\r\n" . chunk_split(base64_encode((string) file_get_contents($path)));
+    }
+    return $parts;
 }
 
 function log_mail(string $to, string $subject, array $headers, string $body, string $html): bool
@@ -115,9 +145,9 @@ function log_mail(string $to, string $subject, array $headers, string $body, str
 }
 
 /** Sends as one shop: through its own email account when it has one, else the shared account. */
-function send_branch_mail(?int $branchId, string $to, string $subject, string $html, ?string $replyTo = null, ?string $reference = null): bool
+function send_branch_mail(?int $branchId, string $to, string $subject, string $html, ?string $replyTo = null, ?string $reference = null, array $attachments = []): bool
 {
-    return with_branch($branchId ?: null, static fn () => send_mail($to, $subject, $html, null, $replyTo, $reference));
+    return with_branch($branchId ?: null, static fn () => send_mail($to, $subject, $html, null, $replyTo, $reference, $attachments));
 }
 
 /**

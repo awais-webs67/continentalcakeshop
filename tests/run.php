@@ -256,6 +256,14 @@ same('Outlook reply: the From/Sent block is left out', 'Thanks, see you Saturday
 same('a sentence starting with "On" is kept', 'On my way, is it ready?', mail_strip_quote('On my way, is it ready?'));
 same('HTML-only reply: the quoted part is left out', 'Yes, go ahead', mail_html_to_text('<div>Yes, go ahead</div><div class="gmail_quote">On Thu wrote:<blockquote>old</blockquote></div>'));
 
+// --- Files sent with emails ----------------------------------------------------------------
+$tmp = tempnam(sys_get_temp_dir(), 'att');
+file_put_contents($tmp, "%PDF-1.4\n%%EOF\n");
+$part = mail_attachment_parts([['path' => $tmp, 'name' => 'party plan.pdf']], 'BOUND');
+check('a chat file goes with the email as an attachment', str_contains($part, '--BOUND') && str_contains($part, 'Content-Disposition: attachment') && str_contains($part, 'application/pdf'));
+check('a missing file is left out of the email', mail_attachment_parts([['path' => $tmp . '-gone', 'name' => 'x']], 'B') === '');
+unlink($tmp);
+
 echo "\n\n{$passed} passed";
 if ($failed) {
     echo ', ' . count($failed) . " failed:\n - " . implode("\n - ", $failed) . "\n";
