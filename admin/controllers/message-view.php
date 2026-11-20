@@ -117,6 +117,11 @@ if (is_post()) {
         flash($sent ? 'success' : 'error', $note);
         redirect(admin_url('messages/view', ['email' => $email, 'about' => 'thread:' . $thread['id']]) . '#reply');
     }
+    if ($action === 'delete_chat') {
+        $count = delete_person_chat($email, $branchSql);
+        flash('success', 'Chat with ' . $person['name'] . ' deleted (' . $count . ' ' . ($count === 1 ? 'message' : 'messages') . '). Their orders and custom cake requests are still there.');
+        redirect(admin_url('messages'));
+    }
     if ($action === 'quick_replies') {
         $titles = $_POST['titles'] ?? [];
         $texts = $_POST['texts'] ?? [];

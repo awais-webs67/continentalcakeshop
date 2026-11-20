@@ -37,6 +37,7 @@
     <?php else: ?>
         <div class="inbox">
         <?php foreach ($result['rows'] as $p): ?>
+            <div class="inbox__item">
             <a class="inbox__row<?= $p['unread'] ? ' is-unread' : '' ?>" href="<?= e(admin_url('messages/view', ['email' => $p['email']])) ?>">
                 <span class="message__avatar" style="background:<?= e(avatar_colour($p['name'])) ?>"><?= e(mb_strtoupper(mb_substr($p['name'], 0, 1))) ?></span>
                 <span class="inbox__main">
@@ -46,6 +47,12 @@
                 </span>
                 <?php if ($p['unread']): ?><span class="badge badge--new">New</span><?php endif; ?>
             </a>
+            <form method="post" class="inbox__delete" data-confirm="Delete the whole chat with <?= e($p['name']) ?>, with its photos and files? This cannot be undone. Their orders and custom cake requests stay.">
+                <?= csrf_field() ?><input type="hidden" name="action" value="delete_chat"><input type="hidden" name="email" value="<?= e($p['email']) ?>">
+                <input type="hidden" name="filter" value="<?= e($filter) ?>"><input type="hidden" name="q" value="<?= e($q) ?>">
+                <button type="submit" aria-label="Delete the chat with <?= e($p['name']) ?>" title="Delete chat"><?= icon('trash', '', 17) ?></button>
+            </form>
+            </div>
         <?php endforeach; ?>
         </div>
     <?php endif; ?>

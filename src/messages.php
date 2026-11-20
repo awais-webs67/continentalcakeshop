@@ -308,3 +308,26 @@ function chat_quick_replies_save(array $titles, array $texts): int
     setting_save('chat_quick_replies', json_encode($list, JSON_UNESCAPED_UNICODE));
     return count($list);
 }
+
+/**
+ * Deletes everything one customer wrote with the shop (their whole chat in the panel): every
+ * conversation of that email in the shops staff may see ($branchSql), with its messages and
+ * photos or PDFs. Their orders and custom cake requests stay. Returns how many messages went.
+ */
+function delete_person_chat(string $email, string $branchSql = ''): int
+{
+    $threads = person_threads($email, $branchSql);
+    if (!$threads) {
+        return 0;
+    }
+    $ids = implode(',', array_map(static fn ($t) => (int) $t['id'], $threads));
+    $files = array_column(db_all("SELECT attachment FROM thread_messages WHERE thread_id IN ({$ids}) AND attachment IS NOT NULL"), 'attachment');
+    $count = (int) db_value("SELECT COUNT(*) FROM thread_messages WHERE thread_id IN ({$ids})");
+    db_run("DELETE FROM threads WHERE id IN ({$ids})"); // their messages go with them (ON DELETE CASCADE)
+    foreach ($files as $file) {
+        if (!str_contains((string) $file, '..')) {
+            @unlink(STORAGE_PATH . '/uploads/' . $file);
+        }
+    }
+    return $count;
+}

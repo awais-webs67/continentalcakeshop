@@ -264,6 +264,13 @@ check('a chat file goes with the email as an attachment', str_contains($part, '-
 check('a missing file is left out of the email', mail_attachment_parts([['path' => $tmp . '-gone', 'name' => 'x']], 'B') === '');
 unlink($tmp);
 
+// --- Deleting a customer's chat -----------------------------------------------------------
+$t = create_thread('Website message', 'Delete Me', 'delete.me@test.invalid', null, ['branch_id' => main_branch_id()]);
+add_thread_message($t, 'customer', 'First');
+add_thread_message($t, 'shop', 'Reply');
+same('deleting a chat removes all its messages', 2, delete_person_chat('DELETE.ME@test.invalid'));
+check('nothing of that chat is left', person_threads('delete.me@test.invalid') === []);
+
 echo "\n\n{$passed} passed";
 if ($failed) {
     echo ', ' . count($failed) . " failed:\n - " . implode("\n - ", $failed) . "\n";

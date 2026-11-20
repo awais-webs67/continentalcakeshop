@@ -515,6 +515,16 @@ textarea.rich-editor__source:not([hidden]) { display: block; min-height: 320px; 
 .home-section.is-off .home-section__title strong::after { content: " (off)"; color: var(--muted); font-weight: 400; }
 @media (max-width: 600px) { .home-section__edit { display: none; } }
 .inbox { display: flex; flex-direction: column; }
+/* A row with its delete button beside it (the button shows on hover on a computer, always on touch screens). */
+.inbox__item { position: relative; }
+.inbox__item .inbox__row { padding-right: 56px; }
+.inbox__delete { position: absolute; top: 50%; right: 12px; margin: 0; transform: translateY(-50%); }
+.inbox__delete button { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid transparent; border-radius: 10px; background: transparent; color: var(--muted); cursor: pointer; opacity: 0; transition: opacity .15s, background-color .15s, color .15s; }
+.inbox__item:hover .inbox__delete button, .inbox__delete button:focus-visible { opacity: 1; }
+.inbox__delete button:hover { border-color: #FECACA; background: #FEF2F2; color: #B91C1C; }
+@media (hover: none) { .inbox__delete button { opacity: .7; } }
+.icon-button--danger:hover { border-color: #FECACA; background: #FEF2F2; color: #B91C1C; }
+.chat-card__head form { margin: 0; }
 .inbox__row { display: flex; align-items: flex-start; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--line); color: inherit; text-decoration: none; }
 .inbox__row:hover { background: #FAFCFB; }
 .inbox__row.is-unread { background: var(--brand-softer); box-shadow: inset 3px 0 0 var(--brand); }

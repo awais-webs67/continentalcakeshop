@@ -13,6 +13,7 @@ $topicText = $topicCount . ' ' . ($topicCount === 1 ? 'topic' : 'topics');
     <div class="page-head__actions">
         <?php if ($customerLink): ?><a class="btn btn--secondary" href="<?= e($customerLink) ?>"><?= icon('user', '', 18) ?> Customer page</a><?php endif; ?>
         <?php if ($threads): ?><form method="post"><?= csrf_field() ?><input type="hidden" name="email" value="<?= e($person['email']) ?>"><input type="hidden" name="action" value="status"><button class="btn btn--secondary" type="submit"><?= $isOpen ? 'Close chat' : 'Open again' ?></button></form><?php endif; ?>
+        <?php if ($messages): ?><form method="post" data-confirm="Delete the whole chat with <?= e($person['name']) ?>, with its photos and files? This cannot be undone. Their orders and custom cake requests stay."><?= csrf_field() ?><input type="hidden" name="email" value="<?= e($person['email']) ?>"><input type="hidden" name="action" value="delete_chat"><button class="btn btn--danger" type="submit"><?= icon('trash', '', 18) ?> Delete chat</button></form><?php endif; ?>
     </div>
 </div>
 <div class="grid-main">
@@ -23,6 +24,7 @@ $topicText = $topicCount . ' ' . ($topicCount === 1 ? 'topic' : 'topics');
             <div class="chat-card__who"><strong><?= e($person['name']) ?></strong><span><?= e($topicText) ?> &middot; <?= e($person['email']) ?></span></div>
             <?php if ($phone !== ''): ?><a class="icon-button" href="tel:<?= e($phone) ?>" aria-label="Call <?= e($person['name']) ?>"><?= icon('phone', '', 19) ?></a><?php endif; ?>
             <?php if ($customerLink): ?><a class="icon-button" href="<?= e($customerLink) ?>" aria-label="Customer page"><?= icon('user', '', 19) ?></a><?php endif; ?>
+            <?php if ($messages): ?><form method="post" data-confirm="Delete the whole chat with <?= e($person['name']) ?>, with its photos and files? This cannot be undone. Their orders and custom cake requests stay."><?= csrf_field() ?><input type="hidden" name="email" value="<?= e($person['email']) ?>"><input type="hidden" name="action" value="delete_chat"><button class="icon-button icon-button--danger" type="submit" aria-label="Delete this chat"><?= icon('trash', '', 19) ?></button></form><?php endif; ?>
         </header>
         <div class="card__body chat-admin" data-chat data-chat-url="<?= e($self) ?>" data-chat-threads=",<?= e(implode(',', array_keys($threadsById))) ?>," data-chat-email="<?= e($person['email']) ?>" data-last-id="<?= (int) ($messages ? end($messages)['id'] : 0) ?>" data-last-thread="<?= $lastThread ?>" aria-live="polite">
             <?php if (!$messages): ?><p class="hint chat-admin__empty">No messages with <?= e($person['name']) ?> yet. Choose what it is about below and write the first one; they get it by email with a button to reply.</p><?php endif; ?>

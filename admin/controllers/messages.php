@@ -29,6 +29,13 @@ if (is_post() && input('action') === 'inbox_switch' && ($admin['role'] ?? '') ==
     redirect(admin_url('messages'));
 }
 
+// Delete one customer's whole chat from the list (their orders and requests stay).
+if (is_post() && input('action') === 'delete_chat' && valid_email(input('email'))) {
+    $count = delete_person_chat(mb_strtolower(input('email')), branch_sql('branch_id'));
+    flash('success', $count ? 'Chat deleted (' . $count . ' ' . ($count === 1 ? 'message' : 'messages') . '). Orders and custom cake requests are still there.' : 'That chat was already gone.');
+    redirect(admin_url('messages', array_filter(['filter' => input('filter'), 'q' => input('q')])));
+}
+
 // "Check emails now": read the inbox of each shop that has it switched on (normally every 15 minutes).
 if (is_post() && input('action') === 'check_inbox') {
     $lines = [];
