@@ -31,6 +31,15 @@
         <input class="input grow" type="search" name="q" value="<?= e($q) ?>" placeholder="Name, email, phone or order number">
         <button class="btn btn--secondary" type="submit">Search</button>
     </form>
+    <?php if ($result['rows']): ?>
+    <form id="bulk-chats" method="post" class="bulk-bar" data-bulk-bar hidden>
+        <?= csrf_field() ?><input type="hidden" name="action" value="delete_selected"><input type="hidden" name="filter" value="<?= e($filter) ?>"><input type="hidden" name="q" value="<?= e($q) ?>">
+        <label class="bulk-bar__all"><input type="checkbox" data-bulk-all> <span>Select all</span></label>
+        <span class="bulk-bar__count" data-bulk-count>0 selected</span>
+        <button class="btn btn--secondary btn--sm" type="button" data-bulk-clear>Cancel</button>
+        <button class="btn btn--danger btn--sm" type="submit"><?= icon('trash', '', 16) ?> Delete</button>
+    </form>
+    <?php endif; ?>
     <div data-live="list">
     <?php if (!$result['rows']): ?>
         <div class="empty"><?= icon('mail', '', 32) ?><p>No chats here.</p></div>
@@ -38,6 +47,7 @@
         <div class="inbox">
         <?php foreach ($result['rows'] as $p): ?>
             <div class="inbox__item">
+            <label class="inbox__pick" title="Select"><input type="checkbox" name="emails[]" value="<?= e($p['email']) ?>" form="bulk-chats" data-bulk-check data-live-hold aria-label="Select the chat with <?= e($p['name']) ?>"></label>
             <a class="inbox__row<?= $p['unread'] ? ' is-unread' : '' ?>" href="<?= e(admin_url('messages/view', ['email' => $p['email']])) ?>">
                 <span class="message__avatar" style="background:<?= e(avatar_colour($p['name'])) ?>"><?= e(mb_strtoupper(mb_substr($p['name'], 0, 1))) ?></span>
                 <span class="inbox__main">

@@ -783,6 +783,7 @@ document.querySelectorAll('[data-checklist-toggle]').forEach(function (toggle) {
         var a = document.activeElement;
         if (a && region.contains(a) && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)) return true;
         if (region.querySelector('details[open]:not(.dropdown__live-ok)') && region.getAttribute('data-live') !== 'alerts') return true;
+        if (region.querySelector('input[data-live-hold]:checked')) return true; // chats ticked for deleting: keep the list still
         return false;
     };
     var pending = false;
@@ -895,6 +896,27 @@ window.ccsChatFile = function (form) {
     };
     setTimeout(sync, 3000);
     setInterval(sync, 20000);
+})();
+
+/* Messages: tick chats to delete several at once. The bar shows how many are ticked. */
+(function () {
+    var bar = document.querySelector('[data-bulk-bar]');
+    if (!bar) return;
+    var all = bar.querySelector('[data-bulk-all]');
+    var count = bar.querySelector('[data-bulk-count]');
+    var boxes = function () { return Array.prototype.slice.call(document.querySelectorAll('[data-bulk-check]')); };
+    var sync = function () {
+        var ticked = boxes().filter(function (b) { return b.checked; }).length;
+        bar.hidden = ticked === 0;
+        count.textContent = ticked + ' selected';
+        all.checked = ticked > 0 && ticked === boxes().length;
+        document.body.classList.toggle('is-picking', ticked > 0);
+        bar.setAttribute('data-confirm', 'Delete ' + ticked + ' ' + (ticked === 1 ? 'chat' : 'chats') + ', with their photos and files? This cannot be undone. Their orders and custom cake requests stay.');
+    };
+    document.addEventListener('change', function (e) { if (e.target.matches && e.target.matches('[data-bulk-check]')) sync(); });
+    all.addEventListener('change', function () { boxes().forEach(function (b) { b.checked = all.checked; }); sync(); });
+    bar.querySelector('[data-bulk-clear]').addEventListener('click', function () { boxes().forEach(function (b) { b.checked = false; }); sync(); });
+    document.addEventListener('admin:refreshed', sync);
 })();
 
 /* Copy buttons (e.g. the timer address in System check). */

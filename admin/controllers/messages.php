@@ -29,6 +29,20 @@ if (is_post() && input('action') === 'inbox_switch' && ($admin['role'] ?? '') ==
     redirect(admin_url('messages'));
 }
 
+// Delete several chats at once (ticked in the list).
+if (is_post() && input('action') === 'delete_selected') {
+    $emails = array_values(array_unique(array_filter(array_map(static fn ($e) => mb_strtolower(trim((string) $e)), (array) ($_POST['emails'] ?? [])), 'valid_email')));
+    $chats = 0;
+    $count = 0;
+    foreach (array_slice($emails, 0, 200) as $email) {
+        $deleted = delete_person_chat($email, branch_sql('branch_id'));
+        $chats += $deleted > 0 ? 1 : 0;
+        $count += $deleted;
+    }
+    flash($chats ? 'success' : 'error', $chats ? $chats . ' ' . ($chats === 1 ? 'chat' : 'chats') . ' deleted (' . $count . ' ' . ($count === 1 ? 'message' : 'messages') . '). Orders and custom cake requests are still there.' : 'Tick the chats to delete first.');
+    redirect(admin_url('messages', array_filter(['filter' => input('filter'), 'q' => input('q')])));
+}
+
 // Delete one customer's whole chat from the list (their orders and requests stay).
 if (is_post() && input('action') === 'delete_chat' && valid_email(input('email'))) {
     $count = delete_person_chat(mb_strtolower(input('email')), branch_sql('branch_id'));
